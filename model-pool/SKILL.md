@@ -14,45 +14,38 @@ metadata:
 ## Pool Architecture
 ```
 debug-domain-router ("what domain?")
-  |-- writing code        -> cheap endpoint (gemma-2b, phi-3-mini, qwen3-0.6b, nara)
-  |-- validation/verify   -> main endpoint (gpt-4o, claude-3-5-sonnet, nara-premium)
+  |-- writing code        -> cheap endpoint (small local model)
+  |-- validation/verify   -> main endpoint (large/costly model)
   |-- security audit      -> cheap endpoint + debug-reference
   |-- numerical proof     -> main endpoint
 ```
 
-## Endpoint Selection
+## Endpoint Selection (generic template)
 | Task Type | Endpoint | Why |
 |-----------|----------|-----|
-| Initial draft | `gemma-2b-it` / `phi-3-mini` / `qwen3-0.6b` | Fast, cheap code generation |
-| Routing | `nara` (router.bynara.id) | Smart routing, cost optimization |
-| Complex logic | `deepseek-coder-7B` | Better than gemma but cheaper than main |
-| Verification | `gpt-4o` or `claude-3-5-sonnet` | Cross-check cheap output |
-| High-assurance | `nara-premium` or `o1` | Security/correctness validation |
-
-## Nara Integration
-`nara` routes to the cheapest capable model automatically:
-- POST to `https://router.bynara.id/v1/chat/completions`
-- Key stored only in runtime config (`~/.config/opencode/models/pool.json`, gitignored)
-- @see knowledge-base sanitization — keys never committed, never in skills
+| Initial draft | small local model (7B-) | Fast, cheap code generation |
+| Routing | any router endpoint | Smart routing, cost optimization |
+| Complex logic | medium model (7-13B) | Better than small, cheaper than main |
+| Verification | main model (GPT-4/Claude) | Cross-check cheap output |
+| High-assurance | main + reasoning mode | Security/correctness validation |
 
 ## Workflow
-1. `debug-core` step 1 (reproduce) -> debug-domain-router -> "code generation"
+1. debug-core step 1 (reproduce) -> debug-domain-router -> "code generation"
 2. Route to cheapest endpoint that can handle the task
 3. Cheap endpoint writes initial code -> @see analysis-log
-4. `debug-core` step 10 (validate) -> route to main endpoint
+4. debug-core step 10 (validate) -> route to main endpoint
 5. Main endpoint validates + consolidates -> @see knowledge-base if bug/fix found
 
-## Endpoint Config (never committed)
-Store in `~/.config/opencode/models/pool.json` (gitignored):
+## Endpoint Config (never committed — gitignored)
+Store at `~/.config/opencode/models/pool.json` (add to .gitignore):
 ```json
 {
-  "write_endpoints": [{"name":"gemma-2b","base_url":"http://localhost:8080","cost":0.001},
-                      {"name":"phi-3-mini","base_url":"http://localhost:8081"}],
-  "verify_endpoints": [{"name":"main","base_url":"https://api.openai.com/v1","cost":0.03}]
+  "write_endpoints": [{"name":"gemma-local","base_url":"http://localhost:8080","cost":0.0005}],
+  "verify_endpoints": [{"name":"main","base_url":"https://api.example.com/v1","cost":0.03}]
 }
 ```
+Configure your own endpoints here. Keys never committed. @see knowledge-base sanitization.
 
 ## Sanitization (critical)
-@see knowledge-base sanitization rules — never commit API keys/endpoints.
-Pool config loaded at runtime from `~/.config/opencode/models/pool.json`.
-@see knowledge-base for secret stripping on every write.
+@see knowledge-base sanitization rules. Never commit API keys, endpoints,
+or personal URLs. Pool config loaded only at runtime.

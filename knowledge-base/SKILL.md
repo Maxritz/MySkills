@@ -28,9 +28,7 @@ kb.py search "block size"     # max 3 results
 Before debugging: search first — known pattern skips full cycle.
 
 ## Sanitization (both tiers, every write)
-`C:\Users\*`, `/home/*`, `/Users/*` -> `~/project/`
-`sk-*`, `ghp_*`, `AKIA*`, `password=*`, `secret=*` -> `[REDACTED]`
-emails -> `[REDACTED-EMAIL]`, phones -> `[REDACTED-PHONE]`
+Strip all personal paths, API keys, emails, and phone numbers. Keys never committed.
 
 No credentials/endpoints/machine names persisted. @see KB-001.
 

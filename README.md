@@ -108,7 +108,7 @@ kb.py add --category gguf --bug "q4_0 crash n=50" \
 Before debugging anything new: `kb.py search <symptom>` — a known pattern skips an entire debug cycle. Search returns max 3 results; never load the whole KB.
 
 **Sanitization is mandatory on every write, both tiers:**
-- Personal paths `C:\Users\*`, `/home/*`, `/Users/*` → `~/project/`
+Strip all personal paths, API keys, emails, and phone numbers from output.
 - Keys `sk-*`, `ghp_*`, `AKIA*`, `password=*`, `secret=*` → `[REDACTED]`
 - Emails → `[REDACTED-EMAIL]`; phones → `[REDACTED-PHONE]`
 
@@ -193,10 +193,8 @@ Validates: discovery, YAML frontmatter, name matching, auto-trigger config, cont
 
 ## Evaluation against sglangC99
 
-Skills were developed and validated through internal testing against
-`C:\Users\rina0423\Desktop\AI-stuff\base-test\sglangC99`:
-
-- `debug-core` validates DBG_TRACE coverage in `sglangC99/src/` functions (12-step loop)
+Skills were developed and validated through internal testing against the
+sglangC99 codebase. All findings are documented in the local analysis log.
 - `traceability` checks `[T-XXX]` markers per `sglangC99/AGENTS.md` requirement
 - `dox-validate` ensures Doxygen compliance in `sglangC99/include/` headers
 - `gguf-ggml` + `@see c99-standards` validates GGUF parsing in `sglangC99/tests/test_gguf.c`
