@@ -1,7 +1,7 @@
 # OpenCode Skills Library
 
 > CPU-first, C99-compatible AI development skills for OpenCode.
-> 49 skills: 8 auto-triggered (always in context) + 41 on-demand (load only when called).
+> 49 skills: 7 auto-triggered (always in context) + 42 on-demand (load only when called).
 > Developed and validated through internal testing against sglangC99.
 
 ### Model Pool Configuration
