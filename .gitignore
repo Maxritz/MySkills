@@ -1,0 +1,30 @@
+# Context store (local session memory) - do not commit
+contexts/
+contexts/*
+!contexts/README.md
+
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# Debug
+*.dSYM/
+*.pdb
+*.debug
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
