@@ -1,6 +1,6 @@
 ---
 name: analysis-log
-description: "Log codebase analysis findings to .opencode/analysis.md. Append-only, sanitized, ships with code."
+description: "Analysis appended to .opencode/analysis.md. Delta-read, not full."
 license: MIT
 compatibility: opencode
 metadata:
@@ -9,73 +9,42 @@ metadata:
 ---
 
 # Analysis Log
+@see debug-core:1 (reproduce) for full codebase scan trigger. @see knowledge-base.
 
-## Purpose
+## Flow
+1. Full analysis -> append to `.opencode/analysis.md`
+2. Every change -> **append** (never rewrite) — "@appended {timestamp}: ..."
+3. Next analysis -> read only appended delta, never full codebase
 
-When a full codebase analysis is done, write findings to
-`.opencode/analysis.md` in the project root. This file **ships with the code**
-and accumulates analysis incrementally — no re-reading needed.
-
-## File Format
-
+## Format (append-only MD)
 ```
-# Codebase Analysis Log
-
-## [TIMESTAMP] analysis-start
+## [T+0s] analysis-start
 - scope: src/ include/ tests/
-- files_scanned: 127
-- findings: 3 issues
+- files: 127 | findings: 3
 
-## [TIMESTAMP] finding: buffer overflow
-- file: src/tensor.c:87
-- type: bounds-check-missing
+## [T+5s] finding: bounds-check-missing
+- file: src/tensor.c:87 @see c99-standards
 - severity: critical
-- description: tensor_load() does not check n < MAX_TENSORS
-- @see debug-localize, debug-invariants
+- desc: tensor_load() missing n < MAX_TENSORS check
 
-## [TIMESTAMP] finding: DBG_TRACE missing
-- file: src/quant.c:42
-- type: instrumentation-gap
-- @see debug-core
+## [T+5s] finding: DBG_TRACE gap
+- file: src/quant.c:42 @see debug-core
+- desc: no DBG_TRACE at loop entry
 
-## [TIMESTAMP] analysis-complete
-- total_findings: 2
-- status: open
+## [T+10s] analysis-complete
+- total: 3 | open: 3
 ```
 
-## Rules
+## Sanitization
+@see knowledge-base sanitization rules — same regex, same enforcement,
+both tiers. Never write paths/keys/emails/phones.
 
-1. **Always project-local**: `.opencode/analysis.md` — never personal paths.
-2. **Sanitize before write**:
-   - Strip `/home/`, `/Users/`, `C:\Users\` paths → replace with `~/project/`
-   - Strip API keys: `sk-*`, `ghp_*`, `AKIA*` → `[REDACTED-KEY]`
-   - Strip emails: `*@*.*` → `[REDACTED-EMAIL]`
-   - Strip phone numbers: `*[0-9]{3}-[0-9]{3}-[0-9]{4}*` → `[REDACTED-PHONE]`
-   - Strip `password=`, `secret=`, `token=` → `[REDACTED]`
-3. **Append-only**: Never rewrite the file. Append sections with timestamps.
-4. **Search, don't read**: Use `grep`/search to find specific findings by tag.
-5. **Ship with code**: `.opencode/analysis.md` is committed to the repo.
-
-## Usage
-
-```python
-# After full analysis:
-log_analysis("analysis-start", scope="src/ include/", files=127, findings=3)
-log_analysis("finding", file="src/tensor.c:87", type="bounds-check", severity="critical")
-log_analysis("analysis-complete", total=3, status="open")
-```
-
-## CLI
-
-```bash
-python .opencode/analysis_log.py log "finding: buffer overflow" "file: src/tensor.c:87" "severity: critical"
-python .opencode/analysis_log.py search "overflow"
-```
+## Lookup
+`grep -n "finding:" .opencode/analysis.md` > `grep "severity: critical"`
+Never open full file — grep by tag/pattern.
 
 ## Validation
-
-- [ ] File at `.opencode/analysis.md` (not personal path)
-- [ ] No paths outside project root
-- [ ] No API keys/emails/phones in output
-- [ ] Append-only (never rewrite existing sections)
-- [ ] Each entry timestamped
+- [ ] File at project root `.opencode/analysis.md`
+- [ ] Append-only (no rewrite of prior sections)
+- [ ] Sanitized (no secrets)
+- [ ] Next session reads delta only

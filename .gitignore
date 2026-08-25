@@ -3,6 +3,10 @@ contexts/
 contexts/*
 !contexts/README.md
 
+# Model API configs (contains keys) - NEVER commit
+models/
+*.pool.json
+
 # Build artifacts
 *.o
 *.obj

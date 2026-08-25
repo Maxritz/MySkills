@@ -4,6 +4,17 @@
 > 46 skills: 5 auto-triggered (always in context) + 41 on-demand (load only when called).
 > Developed and validated through internal testing against sglangC99.
 
+### Model Pool Configuration
+
+API endpoint pool config is stored at `~/.config/opencode/models/pool.json`
+(gitignored — never committed). The `model-pool` skill routes tasks:
+- `debug-core` → `debug-domain-router` → "need code generation" → cheap endpoint
+- `debug-core` validation step → main endpoint for cross-check
+
+**Nara router** is available as `nara-write` (cheap) and `nara-verify`
+(`https://router.bynara.id/v1`) — keys stored only in runtime config.
+@see model-pool for full routing table.
+
 ## Token Budget
 
 | Level | Loading | Skills | Tokens (always) | Notes |
@@ -37,17 +48,17 @@ available in `tests/sample_flowcharts.md`.
 
 ## What Each Skill Helps With
 
-### Auto-Triggered (5 skills — always in context, ~533 tokens)
+### Auto-Triggered (7 skills — always in context, ~564 tokens)
 
 | Skill | Helps With |
 |-------|-----------|
-| `debug-core` | Any software failure: DBG_TRACE instrumentation, 12-step debug loop, routes to domain-specific debug skills |
-| `dev-process` | Planning any task: architecture-first, 10-iteration validation (compile, test, fuzz, sanitize, flow analysis) |
-| `dox-validate` | Code quality: Doxygen on every function, no fake code/placeholders, 10-iter validation chain |
-| `traceability` | Debugging: `[T-XXX]` flow markers, `-g3` debug symbols, `addr2line` binary-to-source mapping |
-| `context-tracker` | Session memory: save/summarize/retrieve context locally, never reload full conversation |
-| `knowledge-base` | Two-tier bug/fix KB: central (cross-project, `~/.config/opencode/knowledge/`) + project (`.opencode/knowledge.md`, ships with code). Sanitized writes only |
-| `analysis-log` | Full codebase analysis appended to `.opencode/analysis.md`; next analysis reads the delta, never re-reads the codebase |
+| `debug-core` | Any failure: DBG_TRACE, 12-step loop, routes to debug skills |
+| `dev-process` | Architecture-first planning, 10-iteration validation |
+| `dox-validate` | Doxygen on every function. No fake code. |
+| `traceability` | `[T-XXX]` markers, addr2line reversibility |
+| `context-tracker` | Session memory: save/retrieve. Never reload full context. |
+| `knowledge-base` | Two-tier bug/fix KB. Sanitized writes only. |
+| `analysis-log` | Codebase analysis to `.opencode/analysis.md`. Append-only. |
 
 ### Debug Pipeline (13 skills — progressive specialization)
 
@@ -103,7 +114,7 @@ Before debugging anything new: `kb.py search <symptom>` — a known pattern skip
 
 No credentials, endpoints with auth, or machine names are ever persisted.
 
-### On-Demand Domain Skills (33 skills)
+### On-Demand Domain Skills (34 skills)
 
 #### Languages
 | Skill | Helps With |
@@ -153,6 +164,7 @@ No credentials, endpoints with auth, or machine names are ever persisted.
 | Skill | Helps With |
 |-------|-----------|
 | `plugin-adapter` | Universal 4-step plugin template (any backend/shader/quant) |
+| `model-pool` | API endpoint routing: cheap writers -> main verifier, routed by debug-domain-router |
 | `app-engine-deploy` | GCP App Engine: app.yaml, scaling, IAM |
 | `kernel-tuning` | Profiling: cache/bandwidth optimization, SIMD |
 | `ponytail` | Lazy coding: YAGNI, stdlib first, shortest diff |
