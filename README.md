@@ -46,6 +46,8 @@ available in `tests/sample_flowcharts.md`.
 | `dox-validate` | Code quality: Doxygen on every function, no fake code/placeholders, 10-iter validation chain |
 | `traceability` | Debugging: `[T-XXX]` flow markers, `-g3` debug symbols, `addr2line` binary-to-source mapping |
 | `context-tracker` | Session memory: save/summarize/retrieve context locally, never reload full conversation |
+| `knowledge-base` | Two-tier bug/fix KB: central (cross-project, `~/.config/opencode/knowledge/`) + project (`.opencode/knowledge.md`, ships with code). Sanitized writes only |
+| `analysis-log` | Full codebase analysis appended to `.opencode/analysis.md`; next analysis reads the delta, never re-reads the codebase |
 
 ### Debug Pipeline (13 skills — progressive specialization)
 
@@ -77,6 +79,29 @@ On-demand debug skills auto-unload after serving their purpose:
 5. **Exception:** `debug-deep` stays loaded until root cause confirmed + validated
 
 @see `debug-core` and `context-tracker` for full protocol.
+
+### Knowledge Base (bugs + fixes)
+
+After every validated fix (debug-core step 12), document BOTH tiers:
+
+```
+# Central — cross-project total knowledge (never committed)
+kb.py add --category gguf --bug "q4_0 crash n=50" \
+  --cause "n not multiple of block_size" --fix "validate n%32 at boundary" \
+  --pattern "validate block-multiple at API boundary"
+
+# Project mirror — ships with the code, append-only
+.opencode/knowledge.md
+```
+
+Before debugging anything new: `kb.py search <symptom>` — a known pattern skips an entire debug cycle. Search returns max 3 results; never load the whole KB.
+
+**Sanitization is mandatory on every write, both tiers:**
+- Personal paths `C:\Users\*`, `/home/*`, `/Users/*` → `~/project/`
+- Keys `sk-*`, `ghp_*`, `AKIA*`, `password=*`, `secret=*` → `[REDACTED]`
+- Emails → `[REDACTED-EMAIL]`; phones → `[REDACTED-PHONE]`
+
+No credentials, endpoints with auth, or machine names are ever persisted.
 
 ### On-Demand Domain Skills (33 skills)
 
@@ -147,8 +172,9 @@ skill("debug-domain-router") # Ask: what domain knowledge do I need?
 ## Testing
 
 ```bash
-python tests/test_skills.py              # 184 assertions, all PASS
+python tests/test_skills.py              # 186+ assertions
 python tests/test_token_comparison.py    # Debug session token cost analysis
+python tests/test_knowledge_base.py      # KB two-tier + sanitization + search limits
 ```
 
 Validates: discovery, YAML frontmatter, name matching, auto-trigger config, content sanity, debug pipeline integrity, conditional loading, interop, line counts, and token budget.

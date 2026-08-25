@@ -28,6 +28,10 @@ Reproduce. Record facts only. Classify. Localize deviation. Identify contract.
 Keep 2-4 hypotheses. Choose MDE. Run + eliminate. Confirm root cause.
 Apply smallest fix. Rebuild/retest. Add regression.
 
+After VALIDATION (step 12) -> **document the bug+fix**:
+`kb.py add --category <domain> --bug ... --cause ... --fix ... --pattern ...`
+@see knowledge-base for two-tier KB protocol (central + project).
+
 Evidence: FACT=observed, HYPOTHESIS=unproven, RESULT=experiment outcome,
 CONCLUSION=supported cause, VALIDATION=tests passed.
 
