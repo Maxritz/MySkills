@@ -9,70 +9,76 @@ metadata:
   priority: critical
 ---
 
-## Instrumentation (always-on, auto-triggered)
+## Instrumentation
+@see c99-standards, dox-validate, traceability.
 
-Every function MUST use trace markers for evidence collection:
+Every function MUST use trace markers:
 ```c
 #define DBG_TRACE(fmt, ...) fprintf(stderr, "[T] %s:%d %s: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #define DBG_ASSERT(cond) do { if(!(cond)) { DBG_TRACE("ASSERT: %s", #cond); abort(); } } while(0)
-
-int tensor_add(const float* a, float* b, size_t n) {
-    DBG_TRACE("enter: a=%p b=%p n=%zu", (void*)a, (void*)b, n);  /* evidence */
-    DBG_ASSERT(a != NULL && b != NULL && n > 0);                  /* invariant */
-    for (size_t i = 0; i < n; i++) b[i] += a[i];
-    DBG_TRACE("exit: ok");
-    return 0;
-}
 ```
-
-Mark key decision points: `DBG_TRACE("path=A: n<32 -> skip quant")` or `DBG_TRACE("path=B: fallback to scalar")`.
-These become FACTs in the debug loop below.
+Mark branches: `DBG_TRACE("path=A: n<32 -> skip quant")`.
 
 ## Purpose
-Route debugging through the cheapest evidence-producing path. Stay domain-neutral until evidence requires specialization.
+Route debugging through the cheapest evidence path. Stay domain-neutral
+until evidence requires specialization.
 
-## Default loop
-1. Reproduce.
-2. Record verified facts only.
-3. Classify broadly.
-4. Localize the earliest observable deviation.
-5. Identify the relevant contract/invariant.
-6. Keep a small hypothesis set.
-7. Choose the minimum discriminating experiment (MDE).
-8. Run it and eliminate hypotheses.
-9. Confirm root cause.
-10. Apply the smallest justified fix.
-11. Rebuild/retest the original failure.
-12. Add regression coverage.
+## Default loop (12 steps)
+Reproduce. Record facts only. Classify. Localize deviation. Identify contract.
+Keep 2-4 hypotheses. Choose MDE. Run + eliminate. Confirm root cause.
+Apply smallest fix. Rebuild/retest. Add regression.
 
-## Evidence labels
-- FACT: directly observed or verified.
-- HYPOTHESIS: plausible, unproven cause.
-- RESULT: actual experiment outcome.
-- CONCLUSION: evidence-supported cause.
-- VALIDATION: tests actually executed and passed.
-
-Never present a hypothesis as a fact. Never call an unrun test PASS.
+Evidence: FACT=observed, HYPOTHESIS=unproven, RESULT=experiment outcome,
+CONCLUSION=supported cause, VALIDATION=tests passed.
 
 ## Escalate only when needed
-Use reduction, instrumentation, state/data models, flow analysis, truth/logic tables, fault trees, or fishbone analysis only when the fast loop cannot resolve the uncertainty.
+Use reduction, instrumentation, state/data models, truth tables, fault trees
+only when the fast loop cannot resolve uncertainty. Escalate to **debug-deep**.
+
+## Truth Table Escalation (last resort)
+Tag every conditional branch with [T] or [F] based on DBG_TRACE:
+
+```
+FUNCTION: parse_token()
+  if (!buf)            [F] -> ERR_NULL   (trace: buf=NULL)
+  if (len < 4)         [T] -> continue    (trace: len=1024)
+  if (buf[0]!=MAGIC)   [F] -> ERR_BAD    (trace: buf[0]=0x00, expected 0x46)
+```
+
+| Branch | Cond | T | F | Observed | Result |
+|--------|------|---|---|----------|--------|
+| buf    |!buf  |   | X | NULL     | FAIL   |
+| len    |<4    | X |   | 1024     | PASS   |
+| magic  |!=M   |   | X | 0x00     | FAIL   |
+
+First [F] = root cause candidate. @see debug-domain-router to validate.
 
 ## Specialization (conditional loading)
+When domain knowledge needed, call `debug-domain-router`:
+> "What fact cannot be interpreted without domain knowledge?"
 
-When domain knowledge is needed, call `debug-domain-router`:
-> "What fact or test cannot be interpreted without domain knowledge?"
+Load ONLY the smallest debug skill:
+- C/C++ UB/lifetime -> `debug-localize` + `debug-reference`
+- GGUF/tensor -> `debug-invariants` + `debug-reference`
+- Network/protocol -> `debug-reproduce` + `debug-root-cause`
+- Quantization -> `debug-invariants` + `debug-mde`
+- Forensics -> `debug-deep`
 
-Based on the answer, load ONLY the smallest debug skill that resolves it:
-- C/C++ lifetime/UB → `debug-localize` + `debug-reference`
-- GGUF/tensor encoding → `debug-invariants` + `debug-reference`
-- Network protocol/state → `debug-reproduce` + `debug-root-cause`
-- Quantization block formats → `debug-invariants` + `debug-mde`
-- General forensics → `debug-deep`
+**Never preload domain packs.** Max 2 specialized skills per cycle.
 
-**Never preload domain packs.** Each debug-* skill loads on-demand only for its specific question. Do not load more than 2 specialized skills per diagnostic cycle.
+## Auto-Skill Unload (prevent lingering context)
+
+On-demand debug skills must be UNLOADED after serving their purpose:
+
+1. **Unload trigger:** After `VALIDATION: tests passed` (step 12 of loop)
+2. **Unload scope:** All debug-* skills loaded during this cycle, EXCEPT debug-core + debug-domain-router
+3. **Unload action:** Remove skill body from context. Keep only the summary:
+   > "debug-localize: applied, fixed n%32 check, validated."
+4. **Context-tracker:** Log unload via `ctx.py unload debug-localize` — summary persists in sessions/
+5. **Exception:** Keep debug-deep loaded until root cause is confirmed+validated
+
+@see context-tracker for session memory + unload logging.
 
 ## Compact status
-Maintain:
 `repro | facts | boundary | hypotheses | next test | result | fix | validation | unknowns`
 
-Do not repeat established facts unless they change a decision.

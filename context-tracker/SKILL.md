@@ -57,9 +57,12 @@ Search "gguf" → fuzzy match topic names → show top 3 summaries.
 
 ### Usage Flow
 
-1. At session start: `Get "current-task"` → load prior context (≤500 tokens).
+1. At session start: `Get "current-task"` → load prior context.
 2. After each significant step: `Save {topic}: "{what was learned}"`.
 3. Before asking user: `Get {related_topics}` → avoid redundant explanation.
 4. Context grows incrementally, not by re-reading full logs.
+5. **After task completion: `Unload {topic}`** → remove from context, keep 1-line summary.
+   `ctx.py unload debug-localize` stores: "debug-localize: applied, validated. 42 tokens freed."
+   Use `@see debug-core:Auto-Skill-Unload` for unload protocol.
 
-This skill is **always-on** (auto_trigger). Every code change triggers a `Save` call.
+**Always-on** (auto_trigger). Every code change triggers a `Save` call.

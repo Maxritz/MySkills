@@ -66,6 +66,18 @@ Each loads **only when debug-core + debug-domain-router determine it's needed**:
 | `debug-deep` | Fast loop cannot resolve | Escalate: data models, truth tables, fault trees |
 | `debug-domain-router` | Need domain knowledge | Routes to domain-specific skills (C/C++, GGUF, LLM...) |
 
+### Auto-Skill Unload (prevent lingering context)
+
+On-demand debug skills auto-unload after serving their purpose:
+
+1. **Trigger:** After `VALIDATION: tests passed` (step 12 of debug-core loop)
+2. **Scope:** All debug-* skills loaded during this cycle, EXCEPT debug-core + debug-domain-router
+3. **Action:** Remove from context, keep 1-line summary in `~/.config/opencode/contexts/`
+4. **CLI:** `python ~/.config/opencode/contexts/ctx.py unload debug-localize "Fixed n%32 check, validated"`
+5. **Exception:** `debug-deep` stays loaded until root cause confirmed + validated
+
+@see `debug-core` and `context-tracker` for full protocol.
+
 ### On-Demand Domain Skills (33 skills)
 
 #### Languages
