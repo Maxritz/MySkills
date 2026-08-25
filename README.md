@@ -1,7 +1,7 @@
 # OpenCode Skills Library
 
 > CPU-first, C99-compatible AI development skills for OpenCode.
-> 46 skills: 5 auto-triggered (always in context) + 41 on-demand (load only when called).
+> 49 skills: 8 auto-triggered (always in context) + 41 on-demand (load only when called).
 > Developed and validated through internal testing against sglangC99.
 
 ### Model Pool Configuration
@@ -19,8 +19,8 @@ API endpoint pool config is stored at `~/.config/opencode/models/pool.json`
 
 | Level | Loading | Skills | Tokens (always) | Notes |
 |-------|---------|--------|-----------------|-------|
-| 1 | Always in context | All 46 | **~533 tokens** | Name + ~45-char description per skill |
-| 2 | On-demand (`skill()` call) | 41 | ~404 avg | Full body — only loads when triggered |
+| 1 | Always in context | All 49 | **~580 tokens** | Name + ~50-char description per skill |
+| 2 | On-demand (`skill()` call) | 42 | ~409 avg | Full body — only loads when triggered |
 | 3 | Resource | N/A | 0 | External docs/fixtures never loaded unless needed |
 
 ## Skill Flowchart
