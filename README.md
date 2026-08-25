@@ -2,6 +2,7 @@
 
 > CPU-first, C99-compatible AI development skills for OpenCode.
 > 46 skills: 5 auto-triggered (always in context) + 41 on-demand (load only when called).
+> Developed and validated through internal testing against sglangC99.
 
 ## Token Budget
 
@@ -30,6 +31,9 @@ dev-process (auto)        -> 10-iteration validation chain
 traceability (auto)       -> [T-XXX] markers + addr2line reversibility
 context-tracker (auto)    -> Local disk-backed session memory
 ```
+
+Function flow charts (truth table / decision tree / data model trace) are
+available in `tests/sample_flowcharts.md`.
 
 ## What Each Skill Helps With
 
@@ -139,13 +143,18 @@ Validates: discovery, YAML frontmatter, name matching, auto-trigger config, cont
 
 ## Evaluation against sglangC99
 
-Skills were validated against `C:\Users\rina0423\Desktop\AI-stuff\base-test\sglangC99`:
+Skills were developed and validated through internal testing against
+`C:\Users\rina0423\Desktop\AI-stuff\base-test\sglangC99`:
 
-- `debug-core` provides DBG_TRACE/DBG_ASSERT pattern applied to `sglangC99/src/` functions
-- `traceability` verifies `[T-XXX]` markers per `sglangC99/AGENTS.md` requirement
-- `dox-validate` ensures Doxygen compliance for `sglangC99/include/` headers
-- `gguf-ggml` validates GGUF parsing in `sglangC99/tests/test_gguf.c`
+- `debug-core` validates DBG_TRACE coverage in `sglangC99/src/` functions (12-step loop)
+- `traceability` checks `[T-XXX]` markers per `sglangC99/AGENTS.md` requirement
+- `dox-validate` ensures Doxygen compliance in `sglangC99/include/` headers
+- `gguf-ggml` + `@see c99-standards` validates GGUF parsing in `sglangC99/tests/test_gguf.c`
 - `plugin-adapter` matches backend dispatch pattern in `sglangC99/src/`
+- `context-tracker` stores test results locally at `~/.config/opencode/contexts/`
+
+**Validation protocol:** Run `python tests/test_skills.py` (184 assertions, all PASS)
+then `python tests/test_token_comparison.py` to verify debug session token costs.
 
 ## License
 

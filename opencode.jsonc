@@ -1,0 +1,51 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "skill": {
+      "debug-*": "allow",
+      "gguf-ggml": "allow",
+      "safetensors-handler": "allow",
+      "c99-standards": "allow",
+      "plugin-adapter": "allow",
+      "dox-validate": "allow",
+      "traceability": "allow",
+      "context-tracker": "allow",
+      "dev-process": "allow",
+      "debug-core": "allow",
+      "*": "allow"
+    }
+  },
+  "skill": {
+    "auto_trigger": [
+      "debug-core",
+      "dev-process",
+      "dox-validate",
+      "traceability",
+      "context-tracker"
+    ],
+    "conditional_load": [
+      "debug-domain-router",
+      "debug-localize",
+      "debug-reference",
+      "debug-hypothesis",
+      "debug-mde",
+      "debug-invariants",
+      "debug-fix",
+      "debug-verify",
+      "debug-root-cause",
+      "debug-reduce",
+      "debug-deep",
+      "debug-reproduce"
+    ],
+    "trigger_keywords": {
+      "debug-core": ["bug", "crash", "error", "fail", "trace", "DBG_"],
+      "gguf-ggml": ["gguf", "dequant", "quant", "tensor", "safetensors"],
+      "plugin-adapter": ["backend", "adapter", "plugin", "vulkan", "cuda", "rocm"],
+      "c99-standards": ["c99", "opaque", "ownership", "checked", "union"],
+      "traceability": ["trace", "T-XXX", "addr2line", "debug", "reversib"],
+      "context-tracker": ["context", "save", "retrieve", "remember"],
+      "dev-process": ["plan", "10-iteration", "architecture", "valid"],
+      "dox-validate": ["doxygen", "doxygen", "@brief", "@param", "comment"]
+    }
+  }
+}
