@@ -1,209 +1,189 @@
-# OpenCode Skills Library
+# MySkills
 
-> CPU-first, C99-compatible AI development skills for OpenCode.
-> 49 skills: 7 auto-triggered (always in context) + 42 on-demand (load only when called).
-> Developed and validated through internal testing against sglangC99.
+> A modular, conditionally loaded skill library for systems programming, GPU compute, graphics, operating systems, compilers, model formats, LLM infrastructure, debugging, and production code quality.
 
-### Model Pool Configuration
+The repository is designed for **progressive disclosure**. Skill metadata is used for routing; a skill body is loaded only when its trigger matches the active task; detailed procedures and version matrices live in on-demand references. This keeps unrelated domain knowledge out of context and reduces token consumption.
 
-API endpoint pool config is stored at `~/.config/opencode/models/pool.json`
-(gitignored — never committed). The `model-pool` skill routes tasks:
-- `debug-core` → `debug-domain-router` → "need code generation" → cheap endpoint
-- `debug-core` validation step → main endpoint for cross-check
+## Design principles
 
-**Nara router** is available as `nara-write` (cheap) and `nara-verify`
-(`https://router.bynara.id/v1`) — keys stored only in runtime config.
-@see model-pool for full routing table.
+The suite follows five rules. First, load the smallest specialist that matches the active boundary. Second, add another skill only when the task crosses a concrete API, ABI, memory, kernel, compiler, graphics, or model-format boundary. Third, keep shared workflows in `_systems-ml-shared/` rather than copying them into every skill. Fourth, never present a placeholder, stub, fake success path, demo-only branch, or unverified claim as production functionality. Fifth, record version, host, target, toolchain, and validation evidence for time-sensitive work.
 
-## Token Budget
+## Loading model
 
-| Level | Loading | Skills | Tokens (always) | Notes |
-|-------|---------|--------|-----------------|-------|
-| 1 | Always in context | All 49 | **~580 tokens** | Name + ~50-char description per skill |
-| 2 | On-demand (`skill()` call) | 42 | ~409 avg | Full body — only loads when triggered |
-| 3 | Resource | N/A | 0 | External docs/fixtures never loaded unless needed |
+| Level | What is loaded | Purpose |
+|---|---|---|
+| Metadata | One concise `name` and `description` per skill | Route without loading implementation detail |
+| Skill body | The matching `SKILL.md` only | Provide the minimum repeatable workflow |
+| Reference | A named file only when its topic is active | Hold version tables, API notes, checklists, and detailed variants |
 
-## Skill Flowchart
+Use `systems-ml-stack-router` only when a request spans several domains or its boundary is unclear. Do not load the entire suite for a single C++, CUDA, Linux, or model-format task.
 
-```
-debug-core (auto, 78 lines, always in context)
-  |-- DBG_TRACE/DBG_ASSERT instrumentation on every function
-  |-- 12-step evidence loop (reproduce -> fix -> verify -> regress)
-  |-- references debug-domain-router ("what fact needs domain knowledge?")
-  |     |-- C/C++  -> debug-localize + debug-reference
-  |     |-- GGUF   -> debug-invariants + debug-mde
-  |     |-- LLM    -> debug-hypothesis + debug-root-cause
-  |     |-- (other domains: cdna, rdna, vulkan, etc.)
-  |     |-- NEVER loads entire domain pack - only the technique needed
-  |-- escalates to debug-deep (forensics) when fast loop cannot resolve
+The configured auto-trigger skills are `debug-core`, `dev-process`, `dox-validate`, `traceability`, `context-tracker`, `knowledge-base`, and `analysis-log`. All domain, quality, and specialized debugging skills are conditional. The configuration is in [`opencode.jsonc`](opencode.jsonc).
 
-dox-validate (auto)       -> Doxygen on every function/struct/module
-dev-process (auto)        -> 10-iteration validation chain
-traceability (auto)       -> [T-XXX] markers + addr2line reversibility
-context-tracker (auto)    -> Local disk-backed session memory
-```
+## Canonical skill catalog
 
-Function flow charts (truth table / decision tree / data model trace) are
-available in `tests/sample_flowcharts.md`.
+The repository contains **66 canonical skills**. Existing skills that overlapped the new compact modules were replaced rather than duplicated; the mapping is documented in [Canonical migrations](#canonical-migrations).
 
-## What Each Skill Helps With
+### Routing, architecture, and quality
 
-### Auto-Triggered (7 skills — always in context, ~564 tokens)
+| Skill | Load when | Scope |
+|---|---|---|
+| `systems-ml-stack-router` | A task spans domains or the correct specialist is unclear | Select the smallest skill set and interface boundaries |
+| `system-architecture` | Designing an end-to-end system | Requirements, boundaries, performance budgets, failure domains, observability |
+| `implementation-integrity` | Writing, repairing, or completing code | Reject stubs/placeholders and require executed evidence |
+| `code-contract-comments` | Documenting functions, classes, APIs, or kernels | Preconditions, ownership, invariants, side effects, errors, concurrency |
+| `modular-component-boundaries` | Splitting or reorganizing components | Ownership, interfaces, dependency direction, lifecycle, replacement seams |
+| `backend-component-demarcation` | Designing backend or service layers | Transport, application, domain, persistence, workers, infrastructure |
+| `porting-change-isolation` | Isolating platform-specific changes | Adapters, capability probes, fallbacks, differential validation |
+| `plugin-adapter` | Adding interchangeable backends or plugins | Stable adapters and backend dispatch patterns |
+| `model-pool` | Routing model calls or endpoint roles | Writer/verifier routing and model-pool configuration |
+| `app-engine-deploy` | Deploying the supported application service | App Engine configuration and deployment workflow |
+| `knowledge-base` | Recording or searching validated fixes | Sanitized two-tier bug/fix knowledge |
+| `analysis-log` | Maintaining codebase analysis records | Append-only, project-scoped analysis notes |
+| `context-tracker` | Persisting session findings | Disk-backed context summaries and unload behavior |
+| `dev-process` | Planning and validating implementation work | Architecture-first iterative development |
+| `dox-validate` | Maintaining API documentation | Doxygen and documentation completeness |
+| `traceability` | Maintaining reversible evidence links | Trace markers and source/binary mapping |
+| `ponytail` | Reducing unnecessary implementation complexity | YAGNI and smallest justified diff |
+| `caveman` | Requesting terse communication | Minimal prose output mode |
 
-| Skill | Helps With |
-|-------|-----------|
-| `debug-core` | Any failure: DBG_TRACE, 12-step loop, routes to debug skills |
-| `dev-process` | Architecture-first planning, 10-iteration validation |
-| `dox-validate` | Doxygen on every function. No fake code. |
-| `traceability` | `[T-XXX]` markers, addr2line reversibility |
-| `context-tracker` | Session memory: save/retrieve. Never reload full context. |
-| `knowledge-base` | Two-tier bug/fix KB. Sanitized writes only. |
-| `analysis-log` | Codebase analysis to `.opencode/analysis.md`. Append-only. |
+### Debugging
 
-### Debug Pipeline (13 skills — progressive specialization)
+| Skill | Load when | Scope |
+|---|---|---|
+| `debug-core` | Any software failure | Evidence-first reproduce, localize, fix, verify, regress loop |
+| `debug-domain-router` | A failure needs domain interpretation | Select one domain skill without preloading all domains |
+| `debug-reproduce` | The failure is not reliably reproducible | Capture and minimize a deterministic reproducer |
+| `debug-localize` | The first wrong boundary is unknown | Bisect input, state, transformation, and output |
+| `debug-reference` | Correct behavior is uncertain | Compare against specification or trusted implementation |
+| `debug-hypothesis` | Several causes remain plausible | Keep a small explicit hypothesis set |
+| `debug-mde` | A discriminating experiment is needed | Select the cheapest safe experiment |
+| `debug-invariants` | A contract may be violated | Check bounds, types, ownership, and state invariants |
+| `debug-root-cause` | Symptom and cause are being conflated | Establish the causal chain and confidence level |
+| `debug-reduce` | The reproducer is too large | Minimize while preserving the failure |
+| `debug-fix` | The cause is sufficiently supported | Apply the smallest justified change |
+| `debug-verify` | A fix needs evidence | Run static, targeted, reproducer, and regression checks |
+| `debug-deep` | The fast loop cannot resolve the issue | Escalate to state models, fault trees, or instrumentation |
 
-Each loads **only when debug-core + debug-domain-router determine it's needed**:
+### AMD and NVIDIA GPU stacks
 
-| Skill | When To Load | Helps With |
-|-------|-------------|------------|
-| `debug-reproduce` | Failure exists but can't reproduce | Capture minimal repro, isolate env factors |
-| `debug-localize` | Need to find WHERE failure starts | Bisect input/state/transformation/output boundaries |
-| `debug-reference` | Unsure if output is correct | Compare against spec/known-good/trusted impl |
-| `debug-hypothesis` | Testing multiple theories | Maintain 2-4 hypotheses, eliminate with evidence |
-| `debug-mde` | Multiple hypotheses remain | Pick cheapest experiment distinguishing them |
-| `debug-invariants` | Need contract validation | Check ownership/bounds/type rules at failure boundary |
-| `debug-fix` | Root cause confirmed | Apply smallest patch, retest immediately |
-| `debug-verify` | Fix applied, need proof | Verification ladder: static -> unit -> repro -> regression |
-| `debug-root-cause` | Need causal chain clarity | symptom -> first bad state -> cause -> defect |
-| `debug-reduce` | Repro case too large | Shrink failing input while preserving failure |
-| `debug-deep` | Fast loop cannot resolve | Escalate: data models, truth tables, fault trees |
-| `debug-domain-router` | Need domain knowledge | Routes to domain-specific skills (C/C++, GGUF, LLM...) |
+| Skill | Load when | Scope |
+|---|---|---|
+| `rocm-stack` | ROCm/HIP libraries, profiling, or AMD GPU optimization | HIP, rocBLAS, RCCL, rocprof, rocminfo, packaging |
+| `rocr-runtime` | ROCr/HSA runtime behavior | Agents, queues, AQL, signals, memory pools, code objects |
+| `cdna` | AMD CDNA accelerator behavior | Matrix engines, MFMA, memory, and accelerator tuning |
+| `rdna` | AMD RDNA graphics/compute behavior | Wave32, LDS, vector registers, graphics-oriented constraints |
+| `cuda-stack` | CUDA runtime, driver, graphs, or kernels | Streams, events, graphs, cooperative groups, Nsight, fallbacks |
+| `kernel-tuning` | GPU/CPU kernel performance tuning | Cache, bandwidth, SIMD, occupancy, profiling |
+| `llm-hardcode` | Hand-optimizing LLM kernels | Layout, vectorization, cache, and low-level kernel design |
+| `vulkan-compute` | Vulkan compute programming | Buffers, descriptors, command buffers, synchronization |
+| `directx-ai-ml` | DirectX 12, DirectML, or Agility SDK | D3D12, DXGI, DXIL, resources, heaps, fences, ML operators |
+| `graphics-shader-kernels` | Shader or graphics-kernel development | HLSL, GLSL, SPIR-V, barriers, subgroups, occupancy |
+| `vino` | OpenVINO runtime or model deployment | IR and CPU/GPU/NPU inference paths |
 
-### Auto-Skill Unload (prevent lingering context)
+For ROCm, ROCr, Vulkan, DirectX/Agility, DirectML, and RDNA version work, load `_systems-ml-shared/version-policy.md` first. It requires separating packaged releases, component Git tags, preview/nightly streams, drivers, SDKs, and hardware support instead of assuming that related version numbers are interchangeable.
 
-On-demand debug skills auto-unload after serving their purpose:
+### Operating systems, architecture, and memory
 
-1. **Trigger:** After `VALIDATION: tests passed` (step 12 of debug-core loop)
-2. **Scope:** All debug-* skills loaded during this cycle, EXCEPT debug-core + debug-domain-router
-3. **Action:** Remove from context, keep 1-line summary in `~/.config/opencode/contexts/`
-4. **CLI:** `python ~/.config/opencode/contexts/ctx.py unload debug-localize "Fixed n%32 check, validated"`
-5. **Exception:** `debug-deep` stays loaded until root cause confirmed + validated
+| Skill | Load when | Scope |
+|---|---|---|
+| `linux-kernel` | Kernel, module, driver, DMA, scheduler, or kernel MM work | Kconfig, subsystem contracts, tracing, locking, DMA, validation |
+| `linux-systems` | Linux userspace systems programming | Syscalls, pthreads, epoll, mmap, systemd, process integration |
+| `os-kernel` | Low-level OS boot and platform work | x86-64 long mode, GDT/IDT, paging, PCI, AHCI |
+| `windows-system-architecture` | Windows internals or WDDM/ABI work | NT processes, threads, handles, I/O, ETW, deployment |
+| `memory-management` | CPU/GPU/OS memory behavior | Virtual/physical memory, allocators, NUMA, DMA, cache/coherence |
+| `x86-architecture` | x86/x86-64 ISA or platform behavior | Paging, caches, SIMD, atomics, CPUID, virtualization, ABI |
+| `assembler` | Assembly, disassembly, or binary ABI work | x86-64/ARM/RISC-V conventions, instructions, relocations, unwind |
+| `emulation` | Emulator or simulator development | ISA/device/system emulation, translation, timing, replay, fuzzing |
 
-@see `debug-core` and `context-tracker` for full protocol.
+### Languages and build systems
 
-### Knowledge Base (bugs + fixes)
+| Skill | Load when | Scope |
+|---|---|---|
+| `c99-systems` | Portable C99 systems code | ABI, ownership, errors, aliasing, portability, sanitizers |
+| `cpp-systems` | Production C++ systems code | RAII, templates, allocators, concurrency, ABI, testing |
+| `python-conversion` | Translating Python into native/ML artifacts | Semantic preservation, dtype/shape, ABI, differential validation |
+| `python-engineering` | Production Python implementation | Packaging, typing, async, extensions, profiling, testing |
+| `python-performance` | Python numerical performance tuning | Vectorization, Numba, memory, hot-loop analysis |
+| `cross-porting` | Porting APIs, kernels, or behavior across platforms | Capability mapping, adapters, differential tests |
+| `cross-compilation` | Building for a non-host target | Host/target/sysroot/ABI, reproducible artifacts, target tests |
+| `toolchains` | Compiler/linker/SDK/build diagnosis | GCC, Clang, MSVC, NVCC, HIP, CMake, Ninja, sysroots |
+| `rust-safety` | Rust implementation or review | Ownership, lifetimes, unsafe boundaries, Cargo workspaces |
 
-After every validated fix (debug-core step 12), document BOTH tiers:
+### LLM engines and model formats
 
-```
-# Central — cross-project total knowledge (never committed)
-kb.py add --category gguf --bug "q4_0 crash n=50" \
-  --cause "n not multiple of block_size" --fix "validate n%32 at boundary" \
-  --pattern "validate block-multiple at API boundary"
+| Skill | Load when | Scope |
+|---|---|---|
+| `llm-components` | Implementing or benchmarking LLM subsystems | Tokenization, embeddings, attention, KV cache, sampling, MoE, speculation |
+| `gguf-format` | Parsing, converting, quantizing, or validating GGUF | Header, metadata, tensors, offsets, alignment, shards, safety |
+| `safetensors-format` | Parsing, converting, or validating SafeTensors | Header, offsets, dtype/shape, shards, mmap, safety |
+| `llamacpp-dev` | Existing llama.cpp integration work | llama.cpp runtime and GGUF integration |
+| `sglang-dev` | Existing SGLang runtime work | KV cache, tensor parallelism, speculative decoding |
+| `vllm-dev` | Existing vLLM runtime work | PagedAttention, tensor parallelism, Triton kernels |
+| `tensorrt-llm-dev` | Existing TensorRT-LLM work | NVIDIA engine/runtime, FP8/INT8, parallelism |
 
-# Project mirror — ships with the code, append-only
-.opencode/knowledge.md
-```
+## Canonical migrations
 
-Before debugging anything new: `kb.py search <symptom>` — a known pattern skips an entire debug cycle. Search returns max 3 results; never load the whole KB.
+The following legacy names were removed as duplicate packages. Their strongest shared behavior is now maintained under the canonical modular skill; use the mapping when updating external references.
 
-**Sanitization is mandatory on every write, both tiers:**
-Strip all personal paths, API keys, emails, and phone numbers from output.
-- Keys `sk-*`, `ghp_*`, `AKIA*`, `password=*`, `secret=*` → `[REDACTED]`
-- Emails → `[REDACTED-EMAIL]`; phones → `[REDACTED-PHONE]`
+| Removed duplicate | Canonical skill |
+|---|---|
+| `c99-standards` | `c99-systems` |
+| `cuda-optimization` | `cuda-stack` |
+| `directx-compute` | `directx-ai-ml` |
+| `gguf-ggml` | `gguf-format` |
+| `rocm-hip` | `rocm-stack` |
+| `rocr-core` | `rocr-runtime` |
+| `safetensors-handler` | `safetensors-format` |
+| `shader-opt` | `graphics-shader-kernels` when the task is broader than optimization |
+| `windows-systems` | `windows-system-architecture` |
+| `x86-assembly` | `assembler` when the task is general assembly/ABI work |
+| `cpp-modern` | `cpp-systems` when the task is production systems C++ rather than language-only guidance |
 
-No credentials, endpoints with auth, or machine names are ever persisted.
+Specialized non-duplicates such as `cdna`, `rdna`, `vulkan-compute`, `linux-systems`, `os-kernel`, `python-performance`, and the engine-specific skills remain separate because they have distinct trigger boundaries.
 
-### On-Demand Domain Skills (34 skills)
+## Quality gate against false or incomplete code
 
-#### Languages
-| Skill | Helps With |
-|-------|-----------|
-| `c99-standards` | Strict C99: opaque handles, checked arithmetic, tagged unions, error codes |
-| `cpp-modern` | C++17/20: RAII, move semantics, smart pointers, concepts, ranges |
-| `rust-safety` | Rust: ownership, lifetimes, no unsafe, Cargo workspace |
-| `python-performance` | NumPy vectorization, Numba JIT, avoid hot loops |
+`implementation-integrity` is conditional on code-writing tasks. It requires an explicit behavior contract, a search for TODO/FIXME/placeholder/stub/fake-success paths, a complete implementation, and executed evidence. A report must distinguish **PASS**, **FAIL**, **NOT RUN**, and **UNVALIDATED**. Comments do not replace implementation, and a demo path must never be silently used as a production path.
 
-#### GPU Compute
-| Skill | Helps With |
-|-------|-----------|
-| `cuda-optimization` | SM/warp/block, memory hierarchy, coalescing, occupancy |
-| `rocm-hip` | HIP migration from CUDA, device kernels |
-| `rocr-core` | ROCm runtime: hsa_init, queues, signals, kernel dispatch |
-| `cdna` | AMD CDNA: matrix cores (MFMA), rocBLAS |
-| `rdna` | AMD RDNA: wave32, LDS, vector registers |
+`code-contract-comments` documents only non-obvious behavior: preconditions, postconditions, ownership, lifetime, errors, side effects, synchronization, and performance constraints. `modular-component-boundaries` and `backend-component-demarcation` make component seams explicit so backends, workers, repositories, and platform adapters can be added, removed, or ported without spreading conditionals through unrelated code.
 
-#### Systems
-| Skill | Helps With |
-|-------|-----------|
-| `os-kernel` | x86-64 long mode, GDT/IDT, paging, PCI, AHCI |
-| `x86-assembly` | Registers, AVX-512, cache-line optimization |
-| `windows-systems` | Win32: processes, I/O, Registry, COM |
-| `linux-systems` | Syscalls, pthreads, epoll, mmap, systemd |
+## Shared references and deduplication
 
-#### Graphics
-| Skill | Helps With |
-|-------|-----------|
-| `vulkan-compute` | VkBuffer/VkImage, descriptor sets, command buffers |
-| `directx-compute` | ID3D12Device, descriptor heaps, root signatures |
-| `shader-opt` | Register allocation, occupancy, branch divergence |
+The `_systems-ml-shared/` directory is intentionally not a skill and must never auto-load. Read only the named file when needed:
 
-#### AI Engines
-| Skill | Helps With |
-|-------|-----------|
-| `gguf-ggml` | GGUF binary parsing, quantization types, GGML dequant |
-| `safetensors-handler` | SafeTensors: JSON header, mmap, dtype validation |
-| `llamacpp-dev` | llama.cpp: GGUF loading, quantization, GPU offload |
-| `sglang-dev` | SGLang: KVCache, tensor parallelism, speculative decode |
-| `vllm-dev` | vLLM: PagedAttention, tensor parallel, Triton kernels |
-| `tensorrt-llm-dev` | TensorRT-LLM: C++ engine, FP8/INT8, tensor parallel |
-| `llm-hardcode` | Hand-optimized: manual kernel writing, memory layout |
-| `vino` | OpenVINO: IR format, NPU/GPU/CPU inference |
+| Reference | Read only for |
+|---|---|
+| `shared-execution-protocol.md` | General implementation workflow and evidence labels |
+| `quality-gates.md` | Completeness and anti-placeholder checks |
+| `version-policy.md` | Release, preview, compatibility, or support claims |
+| `porting-checklist.md` | Cross-platform behavior and capability mapping |
+| `model-format-checklist.md` | Binary model artifact validation |
+| `suite-manifest.md` | Bundle inventory and loading policy |
 
-#### Infrastructure & Patterns
-| Skill | Helps With |
-|-------|-----------|
-| `plugin-adapter` | Universal 4-step plugin template (any backend/shader/quant) |
-| `model-pool` | API endpoint routing: cheap writers -> main verifier, routed by debug-domain-router |
-| `app-engine-deploy` | GCP App Engine: app.yaml, scaling, IAM |
-| `kernel-tuning` | Profiling: cache/bandwidth optimization, SIMD |
-| `ponytail` | Lazy coding: YAGNI, stdlib first, shortest diff |
-| `caveman` | Terse prose: no preamble, bullet-only communication |
+## Installation and use
 
-## Usage
+The repository layout is directly discoverable by OpenCode: each skill is a directory containing `SKILL.md` at the repository root. Preserve the root layout when copying or extracting the repository into the OpenCode skills directory. Keep `_systems-ml-shared/` beside the skill directories so explicitly referenced files remain available without becoming auto-triggered skills.
 
-Skills auto-discover from `~/.config/opencode/skills/*/SKILL.md`.
+Example calls are intentionally small:
 
-```
-skill("debug-localize")     # Find where failure starts
-skill("gguf-ggml")          # Load GGUF parsing + quantization
-skill("plugin-adapter")     # Load universal plugin pattern
-skill("debug-domain-router") # Ask: what domain knowledge do I need?
+```text
+skill("cuda-stack")
+skill("implementation-integrity")
+skill("gguf-format")
+skill("backend-component-demarcation")
 ```
 
-## Testing
+For a cross-domain request, start with `systems-ml-stack-router`; do not manually load all domain modules.
 
-```bash
-python tests/test_skills.py              # 186+ assertions
-python tests/test_token_comparison.py    # Debug session token cost analysis
-python tests/test_knowledge_base.py      # KB two-tier + sanitization + search limits
-```
+## Validation
 
-Validates: discovery, YAML frontmatter, name matching, auto-trigger config, content sanity, debug pipeline integrity, conditional loading, interop, line counts, and token budget.
+Validate every `SKILL.md` with the project’s skill validator or the local skill validator available in the execution environment. Also check that every configured skill name exists, every `name` matches its directory, no initializer examples remain, and the JSON configuration parses after comments are removed. For implementation changes, run the narrowest relevant build or test and report anything not executed.
 
-## Evaluation against sglangC99
+## Contributing a skill
 
-Skills were developed and validated through internal testing against the
-sglangC99 codebase. All findings are documented in the local analysis log.
-- `traceability` checks `[T-XXX]` markers per `sglangC99/AGENTS.md` requirement
-- `dox-validate` ensures Doxygen compliance in `sglangC99/include/` headers
-- `gguf-ggml` + `@see c99-standards` validates GGUF parsing in `sglangC99/tests/test_gguf.c`
-- `plugin-adapter` matches backend dispatch pattern in `sglangC99/src/`
-- `context-tracker` stores test results locally at `~/.config/opencode/contexts/`
-
-**Validation protocol:** Run `python tests/test_skills.py` (184 assertions, all PASS)
-then `python tests/test_token_comparison.py` to verify debug session token costs.
+Create one narrowly triggered directory with a concise `SKILL.md`. Put version matrices, long API references, examples, and platform variants under a reference file. Keep the body below roughly 180 words when practical, avoid duplicating shared rules, state when another skill should be loaded, and never include fake or placeholder production code. Add the skill to `opencode.jsonc` only as conditional unless it is genuinely useful for nearly every task. Update the README catalog and migration table when names change.
 
 ## License
 
-MIT. See individual skill files for license details.
+MIT. Individual skill files may include additional attribution or licensing notes where required.

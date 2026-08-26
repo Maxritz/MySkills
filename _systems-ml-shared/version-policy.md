@@ -1,0 +1,3 @@
+# Version and preview policy
+
+Treat version claims as time-sensitive. Record product, component, repository, commit/tag, release channel, host OS, target GPU/CPU, compiler, and date. Distinguish packaged product releases from source-tree branches, nightly builds, technology previews, and compatibility layers. Do not infer that two numbers are equivalent merely because they refer to related stacks; for ROCm/TheRock, report the public product label and the Git/component label separately, with the exact source URL or tag. Verify current information from the component’s official release notes, compatibility matrix, and repository tag before changing installation instructions.
