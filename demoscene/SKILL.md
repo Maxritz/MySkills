@@ -15,7 +15,7 @@ When optimizing any code, enumerate what these demoscene legends were excellent 
 - **Binary compression**: Pack everything through Crunch/Crinkler
 - **Dead code elimination**: Strip every byte not actively used
 
-## BeRo
+## BeBo
 - **Instruction-level parallelism**: Schedule independent ops together (VLIW style)
 - **Non-temporal stores**: Bypass cache for streaming writes
 - **Aggressive prefetching**: Software prefetch ahead of need
@@ -70,3 +70,21 @@ When applying these to ANY project:
 5. **Remove branches**: Convert conditional logic to arithmetic/bit tricks
 6. **Inline everything**: Function call overhead is death for inner loops
 7. **Specialize for known inputs**: Generate code specialized to the specific problem
+
+## GPU Translation Guide (RDNA2/ROCr/HSA)
+
+When mapping these concepts to AMD GPU compute (RDNA2/gfx1031), translate:
+
+- **Bit-packing** → pack 8 int4 / 4 int8 weights into one 32-bit VGPR, use RDNA2 dot units
+- **Fused pipelines** → read packed weights, apply scale via v_mul/v_pk, accumulate in int32
+- **Register tiling** → reuse 8x8 weight tiles across work-items in a workgroup
+- **LUT optimization** → LDS table indexed by quantized value
+- **Non-temporal stores** → use glc/dlc/slc cache hints on loads/stores
+- **Bump allocator** → pre-allocate large HSA pool, hand out from bump buffer
+- **Software pipeline** → overlap dequant of next block with compute of current
+- **ILP** → schedule independent SGPR/VGPR operations, hide s_waitcnt stalls
+
+RDNA2 native dot instructions (only available via raw GCN, not HIP):
+- `v_dot8_i32_i4`: 8×int4 × 8×int4 → int32 accumulate
+- `v_dot4_i32_i8`: 4×int8 × 4×int8 → int32 accumulate
+- `v_dot2_i32_i16`: 2×int16 × 2×int16 → int32 accumulate
