@@ -2,7 +2,7 @@
 
 # MySkills
 
-35 skills for systems programming, GPU compute, LLM infrastructure, debugging, and production code quality. Each skill loads on demand, does its job, then unloads. No context bloat.
+32 skills for systems programming, GPU compute, LLM infrastructure, debugging, and production code quality. Each skill loads on demand, does its job, then unloads. No context bloat.
 
 ## Catalogue
 
