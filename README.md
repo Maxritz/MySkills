@@ -89,6 +89,8 @@ The `ponytail` skill was inspired by Dietrich Gebert's original work at https://
 
 An expanded variant lives in this repo at https://github.com/Maxritz/MySkills/blob/main/ponytail/SKILL.md — adding intensity levels (lite/full/ultra), explicit ladder rules, upgrade-path markers, and a separate `caveman` skill for terse prose.
 
+The `demoscene` and `optimization-toolkit` skills draw inspiration from farbrausch (https://github.com/farbrausch) and the wider demoscene community — legendary groups like Ryg, Haujobb, Wayfinder, Fiver2, Chaos Inc whose extreme optimisation techniques continue to push what is possible.
+
 ## Installation
 
 Copy the repository root into your OpenCode skills directory. Preserve the layout: each skill is a directory with SKILL.md at the top level. Keep `_systems-ml-shared/` beside the skill directories.
