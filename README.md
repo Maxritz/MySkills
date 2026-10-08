@@ -1,3 +1,5 @@
+<img width="1024" height="384" alt="banner png" src="https://github.com/user-attachments/assets/6fcc92f6-ab46-482c-a234-88b879b76313" />
+
 # MySkills
 
 A curated skill library for systems programming, GPU compute, LLM infrastructure, debugging, and production code quality. Each skill loads only when its trigger matches the active task, then unloads once its purpose is served — keeping context lean and focused.
