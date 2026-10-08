@@ -1,0 +1,102 @@
+name: Validate Skills
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check skill structure
+        run: |
+          for d in */; do
+            if [ -f "$d/SKILL.md" ]; then
+              echo "Checking $d..."
+              # Check metadata section exists
+              if ! head -20 "$d/SKILL.md" | grep -q "metadata:"; then
+                echo "ERROR: $d missing metadata section"
+                exit 1
+              fi
+              # Check loading and auto_unload
+              if ! head -20 "$d/SKILL.md" | grep -q "loading: on-demand"; then
+                echo "ERROR: $d missing 'loading: on-demand'"
+                exit 1
+              fi
+              if ! head -20 "$d/SKILL.md" | grep -q "auto_unload: true"; then
+                echo "ERROR: $d missing 'auto_unload: true'"
+                exit 1
+              fi
+              # Check line count (warn >500, fail >800)
+              lines=$(wc -l < "$d/SKILL.md")
+              if [ $lines -gt 500 ]; then
+                echo "WARN: $d has $lines lines (>500)"
+              fi
+              if [ $lines -gt 800 ]; then
+                echo "ERROR: $d has $lines lines (>800 max)"
+                exit 1
+              fi
+            fi
+          done
+          echo "All skill structure checks passed."
+
+      - name: Validate opencode.jsonc
+        run: |
+          # Check JSON syntax
+          python3 -m json.tool opencode.jsonc > /dev/null
+          # Check all conditional_load skills exist
+          python3 -c "
+import json
+with open('opencode.jsonc') as f:
+    content = f.read()
+# Strip comments
+import re
+content = re.sub(r'//.*', '', content)
+data = json.loads(content)
+for skill in data.get('skill', {}).get('conditional_load', []):
+    if not os.path.isdir(skill):
+        print(f'MISSING: {skill}')
+        exit(1)
+for skill in data.get('skill', {}).get('auto_trigger', []):
+    if not os.path.isdir(skill):
+        print(f'MISSING auto_trigger: {skill}')
+        exit(1)
+print('All skills in config exist.')
+          "
+      - name: Check for duplicate trigger keywords
+        run: |
+          python3 -c "
+import json, re
+with open('opencode.jsonc') as f:
+    content = f.read()
+content = re.sub(r'//.*', '', content)
+data = json.loads(content)
+keywords = {}
+for skill, kws in data.get('skill', {}).get('trigger_keywords', {}).items():
+    for kw in kws:
+        if kw in keywords:
+            print(f'DUPLICATE keyword: {kw} in {keywords[kw]} and {skill}')
+            exit(1)
+        keywords[kw] = skill
+print('No duplicate trigger keywords.')
+          "
+      - name: Validate JSON references
+        run: |
+          python3 -c "
+import json, os, re
+with open('opencode.jsonc') as f:
+    content = f.read()
+content = re.sub(r'//.*', '', content)
+data = json.loads(content)
+# Check auto_trigger and conditional_load are disjoint
+auto = set(data.get('skill', {}).get('auto_trigger', []))
+cond = set(data.get('skill', {}).get('conditional_load', []))
+if auto & cond:
+    print(f'OVERLAP: {auto & cond}')
+    exit(1)
+print('Auto-trigger and conditional load are disjoint.')
+          "

@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+
+  - repo: local
+    hooks:
+      - id: markdown-lint
+        name: Markdown lint
+        entry: markdownlint
+        language: system
+        types: [markdown]
+        args: ["--disable", "MD013", "--disable", "MD033", "--disable", "MD041"]
+        exclude: "^README.md$"
+
+  - repo: local
+    hooks:
+      - id: skill-size-check
+        name: Skill size check
+        entry: bash -c 'for d in */; do if [ -f "$d/SKILL.md" ]; then lines=$(wc -l < "$d/SKILL.md"); if [ $lines -gt 500 ]; then echo "WARN: $d has $lines lines (>500)"; fi; if [ $lines -gt 800 ]; then echo "ERROR: $d has $lines lines (>800)"; exit 1; fi; fi; done'
+        language: system
+        pass_filenames: false
+        always_run: true

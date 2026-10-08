@@ -51,7 +51,7 @@
 | **sglang-dev** | SGLang runtime: KV cache, tensor parallelism, speculative decoding, FlashInfer, server API, profiling, development flow. | SGLang, KV cache, tensor parallel, speculative, FlashInfer |
 | **tensorrt-llm-dev** | TensorRT-LLM: C++ engine, Python build, quantisation (FP8/INT8/INT4/AWQ), tensor/pipeline parallelism, Paged KV cache, Triton backend, plugin system. | TensorRT-LLM, quantisation, tensor parallel, Triton, FP8 |
 | **vllm-dev** | vLLM: PagedAttention, tensor parallel, Triton kernels, quantisation (GPTQ/AWQ/Marlin/SmoothQuant), GPU memory management, LoRA, monitoring, development flow. | vLLM, PagedAttention, tensor parallel, Triton, quantisation |
-| **vulkan-compute** | Vulkan compute basics: instance/device, VMA memory, buffers/descriptors, command buffers, synchronisation, GLSL to SPIR-V, validation layers. | Vulkan, VK_KHR, SPIR-V, glslc, VMA, compute shader |
+| **vulkan-compute-stack** | Vulkan SDK 1.4.357.0: instance/device, VMA memory, buffers/descriptors, command buffers, sync (fences/semaphores/timeline/barriers), GLSL to SPIR-V, subgroup/cooperative matrix. | Vulkan, VK_KHR, SPIR-V, glslc, VMA, compute shader |
 | **windows-system-architecture** | Windows internals: NT processes, threads, handles, I/O, security, WDDM, ETW, ABI, deployment. Separate Win32 contracts from NT details. | Windows, Win32, WDDM, ETW, WinDbg, handle |
 
 ## Loading model
