@@ -42,8 +42,6 @@
 | **debug-verify** | Verification ladder: static to build to targeted to reproducer to differential to regression to integration. Never claim unrun PASS. Risk-based escalation. | verify fix, validation, regression test, differential test |
 | **debug-domain-router** | Load domain debug knowledge only when needed. Maps unresolved facts to minimal specialisations (C/C++, Windows, LLM, GGUF, quantisation, networking, GPU kernels, model serving, filesystem, distributed). Max two per cycle. | domain debug, specialised debug, C++ debug, GPU debug, LLM debug |
 | **code-quality-gate** | Unified quality gate: trace markers, Doxygen contracts, no-fake-code, 10-iteration validation, Rust safety, component boundaries. Auto-triggers on code changes. | quality gate, Doxygen, contracts, validation, traceability |
-| **plugin-adapter** | Universal plugin pattern: 4-step template (interface, implementation, registration, integration). Domain variants for compute, shader, quantisation, renderer, storage, network. | backend, adapter, vulkan, cuda, rocm, openvino, gpu, plugin |
-| **demoscene** | Legendary demoscene optimisation patterns: farbrausch, Ryg, Haujobb, Wayfinder, Fiver2, Chaos Inc. Generic framework plus RDNA2/ROCr/HSA translation guide. | demoscene, optimisation, farbrausch, Ryg, Haujobb |
 | **low-level-toolkit** | Assembly, emulation, toolchains: ISA/ABI analysis, instruction selection, binary interfaces, emulator design, compiler/linker/sysroot reproducibility. | assembly, emulation, toolchain, ISA, ABI, binary, compiler |
 | **caveman** | Ultra-terse human-facing prose. Bullet points only. Caveman grammar. No preamble, no postamble, no pleasantries. | caveman, terse, minimal prose |
 | **ponytail** | Lazy senior dev for code decisions. YAGNI ladder. Stdlib/native first. Intensity: lite/full/ultra. Marks shortcuts with upgrade path. | ponytail, lazy, YAGNI, stdlib, minimal |
@@ -52,7 +50,6 @@
 | **tensorrt-llm-dev** | TensorRT-LLM: C++ engine, Python build, quantisation (FP8/INT8/INT4/AWQ), tensor/pipeline parallelism, Paged KV cache, Triton backend, plugin system. | TensorRT-LLM, quantisation, tensor parallel, Triton, FP8 |
 | **vllm-dev** | vLLM: PagedAttention, tensor parallel, Triton kernels, quantisation (GPTQ/AWQ/Marlin/SmoothQuant), GPU memory management, LoRA, monitoring, development flow. | vLLM, PagedAttention, tensor parallel, Triton, quantisation |
 | **vulkan-compute-stack** | Vulkan SDK 1.4.357.0: instance/device, VMA memory, buffers/descriptors, command buffers, sync (fences/semaphores/timeline/barriers), GLSL to SPIR-V, subgroup/cooperative matrix. | Vulkan, VK_KHR, SPIR-V, glslc, VMA, compute shader |
-| **windows-system-architecture** | Windows internals: NT processes, threads, handles, I/O, security, WDDM, ETW, ABI, deployment. Separate Win32 contracts from NT details. | Windows, Win32, WDDM, ETW, WinDbg, handle |
 
 ## Loading model
 
