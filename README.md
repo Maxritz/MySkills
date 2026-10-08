@@ -1,189 +1,110 @@
 # MySkills
 
-> A modular, conditionally loaded skill library for systems programming, GPU compute, graphics, operating systems, compilers, model formats, LLM infrastructure, debugging, and production code quality.
+A curated skill library for systems programming, GPU compute, LLM infrastructure, debugging, and production code quality. Each skill loads only when its trigger matches the active task, then unloads once its purpose is served — keeping context lean and focused.
 
-The repository is designed for **progressive disclosure**. Skill metadata is used for routing; a skill body is loaded only when its trigger matches the active task; detailed procedures and version matrices live in on-demand references. This keeps unrelated domain knowledge out of context and reduces token consumption.
+## Current catalogue
 
-## Design principles
+35 skills, all at production depth (100–680 lines). No stubs. No placeholders.
 
-The suite follows five rules. First, load the smallest specialist that matches the active boundary. Second, add another skill only when the task crosses a concrete API, ABI, memory, kernel, compiler, graphics, or model-format boundary. Third, keep shared workflows in `_systems-ml-shared/` rather than copying them into every skill. Fourth, never present a placeholder, stub, fake success path, demo-only branch, or unverified claim as production functionality. Fifth, record version, host, target, toolchain, and validation evidence for time-sensitive work.
+| Skill | Purpose | When it loads |
+|-------|---------|---------------|
+| **amd-gpu-stack** | Unified AMD GPU: ROCm/HIP platform, ROCr/HSA runtime, CDNA (MI200/MI300), RDNA (RX 6000/7000). MFMA kernels, multi-GPU, profiling. | AMD GPU, ROCm, HIP, HSA, MI200, MI300, RX 6000/7000 |
+| **nvidia-cuda-stack** | Unified CUDA: runtime, Hopper (H100/H200 FP8/TMA/cluster), Blackwell (B200/GB200 FP4/NVLink 5), Ampere (A100/RTX sparsity). Nsight, CUTLASS, TensorRT. | CUDA, NVIDIA, H100, H200, B200, FP8, FP4, TMA, Nsight |
+| **vulkan-compute-stack** | Vulkan SDK 1.4.357.0: instance/device, VMA memory, buffers/descriptors, command buffers, synchronisation (fences/semaphores/timeline/barriers), GLSL→SPIR-V, subgroup/cooperative matrix. | Vulkan, VK_KHR, SPIR-V, glslc, VMA, compute shader |
+| **c-systems** | Portable C99 and C++ systems code: ownership, ABI, RAII, templates, allocators, concurrency, performance contracts. Cross-language interop, porting discipline. | C99, C++, RAII, ABI, ownership, allocator, concurrency |
+| **os-kernel-systems** | Linux kernel (modules, drivers, KASAN, ftrace), bare-metal OS (boot, paging, IDT, PCI), x86-64 architecture (ISA, SIMD, memory ordering), memory management (VM, allocators, NUMA, DMA). | Linux kernel, kernel module, driver, bootloader, paging, IDT, PCI |
+| **linux-user-systems** | Linux/Windows userspace: syscalls, pthreads, epoll, IOCP, signals, IPC, systemd/cgroups, ETW, Win32/NT, system architecture (components, boundaries, data flow). | syscall, pthread, epoll, mmap, signal, IPC, systemd, cgroup, Win32, NT |
+| **model-formats** | GGUF, SafeTensors, ONNX, OpenVINO IR. Validation checklists, cross-format golden tests, security rules, provenance tracking. | GGUF, SafeTensors, ONNX, OpenVINO, quantisation, shard |
+| **llm-components** | LLM component contracts: tokenizer, embeddings, attention, KV cache, MLP/MoE, sampling, speculative decoding. Deterministic references, intermediate validation, numerical tolerances. | tokenizer, embeddings, attention, KV cache, MoE, sampling |
+| **llm-serving** | Unified serving: vLLM (PagedAttention), SGLang (Radix/speculative), TensorRT-LLM (TRT engine/FP8/FP4/Triton), model-pool routing. Benchmarks, monitoring, deployment checklist. | vLLM, SGLang, TensorRT-LLM, Triton, PagedAttention, speculative |
+| **llm-hardcode** | Hand-optimised LLM kernels: memory layout, cache-aware coding, SIMD intrinsics (AVX-512/AVX2), quantisation (Q4_0), numerical precision, validation. | LLM kernel, SIMD, quantisation, cache, AVX-512 |
+| **python-engineering** | Production Python: packaging, typing, async, native extensions (cffi/Numba), profiling, conversion to C/CUDA/ONNX with differential testing, reproducible environments. | Python, NumPy, Numba, async, packaging, profiling |
+| **c-systems** | Portable C99 and C++ systems code: ownership, ABI, RAII, templates, allocators, concurrency, performance contracts. Cross-language interop, porting discipline. | C99, C++, RAII, ABI, ownership, allocator, concurrency |
+| **porting-toolkit** | Cross-porting workflow: capability matrix, change isolation, cross-compilation, toolchains, assembly, emulation. Six phases from matrix to validation. | port, cross-compile, cross-platform, adapter, capability probe |
+| **architecture-boundaries** | Component architecture: modular boundaries, backend demarcation, porting isolation. Dependency direction, explicit interfaces, replacement seams, platform adapters. | component, module, architecture, boundary, backend, service |
+| **optimization-toolkit** | Extreme optimisation: demoscene legends (farbrausch, Ryg, Haujobb) + kernel tuning (roofline, cache, SIMD, GPU occupancy). RDNA2/ROCr translation guide. | optimisation, demoscene, kernel tuning, roofline, SIMD |
+| **traceability-gate** | Auto-triggered quality gate: trace markers [T-XXX], Doxygen contracts, no-fake-code rule, 10-iteration validation (compile, format, unit, fuzz, sanitizers, flow, resource, perf). | quality gate, Doxygen, trace, implementation integrity, 10-iteration |
+| **knowledge-process** | Session continuity: analysis log (append-only delta), context tracker (local store), dev process (10-iteration validation), knowledge base (two-tier sanitised), App Engine deployment. | analysis log, context tracker, dev process, knowledge base |
+| **low-level-toolkit** | Assembly, emulation, toolchains: ISA/ABI analysis, instruction selection, binary interfaces, emulator design, compiler/linker/sysroot reproducibility. | assembly, emulation, toolchain, ISA, ABI, binary, compiler |
+| **utility-pair** | Two output styles: caveman (ultra-terse prose for humans) and ponytail (lazy senior dev, YAGNI, stdlib first, shortest path for code decisions). | caveman, ponytail, terse, lazy, YAGNI |
+| **sherlock-it** | Performance investigation with persistent analysis log. FULL/HIGH/LOW modes. Baseline→decompose→instrument→investigate→optimise→verify. Diagnostic traps, hypothesis tracking, delta comparison across runs. | performance, profile, bottleneck, optimise, benchmark, trap |
+| **ponytail-diag** | Structured debugging: one-line verdict by default, minimal/full expansion on demand. Internal model (call graph, truth tables, data-state flow). Hypothesis management, extended methods (fishbone, 5 whys, barrier, change, waterfall). Handoff to fix. | diagnose, one-line verdict, truth table, hypothesis, root cause |
+| **debug-core** | Debug orchestrator: 12-step loop, truth tables, auto-unload, knowledge capture. Default entry for all debugging. | debug, reproduce, root cause, hypothesis, fix, verify |
+| **debug-deep** | Escalation techniques: flow/state/contract/fishbone/FTA/5-whys/barrier/change/waterfall. Use only when fast loop cannot resolve. | deep debug, fishbone, fault tree, 5 whys, barrier analysis |
+| **debug-fix** | Smallest patch for confirmed root cause. One causal hypothesis → one minimal patch → one verification cycle. Validation gates (compile, format, targeted test, reproducer, differential, sanitizers, regression). | apply fix, minimal patch, root cause fix |
+| **debug-verify** | Verification ladder: static→build→targeted→reproducer→differential→regression→integration. Never claim unrun PASS. Risk-based escalation. | verify fix, validation, regression test, differential test |
+| **debug-domain-router** | Load domain debug knowledge only when needed. Maps unresolved facts to minimal specialisations (C/C++, Windows, LLM, GGUF, quantisation, networking, GPU kernels, model serving, filesystem, distributed). Max two per cycle. | domain debug, specialised debug, C++ debug, GPU debug, LLM debug |
+| **code-quality-gate** | Unified quality gate (merged from traceability-gate): trace markers, Doxygen contracts, no-fake-code, 10-iteration validation, Rust safety, component boundaries. Auto-triggers on code changes. | quality gate, Doxygen, contracts, validation, traceability |
+| **plugin-adapter** | Universal plugin pattern: 4-step template (interface, implementation, registration, integration). Domain variants for compute, shader, quantisation, renderer, storage, network. | backend, adapter, vulkan, cuda, rocm, openvino, gpu, plugin |
+| **demoscene** | Legendary demoscene optimisation patterns: farbrausch, Ryg, Haujobb, Wayfinder, Fiver2, Chaos Inc. Generic framework + RDNA2/ROCr/HSA translation guide. | demoscene, optimisation, farbrausch, Ryg, Haujobb |
+| **knowledge-process** | Session continuity: analysis log (append-only delta), context tracker (local store), dev process (10-iteration validation), knowledge base (two-tier sanitised), App Engine deployment. | analysis log, context tracker, dev process, knowledge base |
+| **low-level-toolkit** | Assembly, emulation, toolchains: ISA/ABI analysis, instruction selection, binary interfaces, emulator design, compiler/linker/sysroot reproducibility. | assembly, emulation, toolchain, ISA, ABI, binary, compiler |
+| **utility-pair** | Two output styles: caveman (ultra-terse prose for humans) and ponytail (lazy senior dev, YAGNI, stdlib first, shortest path for code decisions). | caveman, ponytail, terse, lazy, YAGNI |
+| **caveman** | Ultra-terse human-facing prose. Bullet points only. Caveman grammar. No preamble, no postamble, no pleasantries. | caveman, terse, minimal prose |
+| **ponytail** | Lazy senior dev for code decisions. YAGNI ladder. Stdlib/native first. Intensity: lite/full/ultra. Marks shortcuts with upgrade path. | ponytail, lazy, YAGNI, stdlib, minimal |
+| **rust-safety** | Rust ownership, lifetimes, error handling, memory safety, build/tooling, testing. No unwrap/expect in production. | Rust, ownership, lifetimes, unsafe, Cargo |
+| **sglang-dev** | SGLang runtime: KV cache, tensor parallelism, speculative decoding, FlashInfer, server API, profiling, development flow. | SGLang, KV cache, tensor parallel, speculative, FlashInfer |
+| **tensorrt-llm-dev** | TensorRT-LLM: C++ engine, Python build, quantisation (FP8/INT8/INT4/AWQ), tensor/pipeline parallelism, Paged KV cache, Triton backend, plugin system. | TensorRT-LLM, quantisation, tensor parallel, Triton, FP8 |
+| **vllm-dev** | vLLM: PagedAttention, tensor parallel, Triton kernels, quantisation (GPTQ/AWQ/Marlin/SmoothQuant), GPU memory management, LoRA, monitoring, development flow. | vLLM, PagedAttention, tensor parallel, Triton, quantisation |
+| **vulkan-compute** | Vulkan compute basics: instance/device, VMA memory, buffers/descriptors, command buffers, synchronisation, GLSL→SPIR-V, validation layers. | Vulkan, VK_KHR, SPIR-V, glslc, VMA, compute shader |
+| **windows-system-architecture** | Windows internals: NT processes, threads, handles, I/O, security, WDDM, ETW, ABI, deployment. Separate Win32 contracts from NT details. | Windows, Win32, WDDM, ETW, WinDbg, handle |
 
 ## Loading model
 
-| Level | What is loaded | Purpose |
-|---|---|---|
-| Metadata | One concise `name` and `description` per skill | Route without loading implementation detail |
-| Skill body | The matching `SKILL.md` only | Provide the minimum repeatable workflow |
-| Reference | A named file only when its topic is active | Hold version tables, API notes, checklists, and detailed variants |
+Every skill declares:
 
-Use `systems-ml-stack-router` only when a request spans several domains or its boundary is unclear. Do not load the entire suite for a single C++, CUDA, Linux, or model-format task.
-
-The configured auto-trigger skills are `debug-core`, `dev-process`, `dox-validate`, `traceability`, `context-tracker`, `knowledge-base`, and `analysis-log`. All domain, quality, and specialized debugging skills are conditional. The configuration is in [`opencode.jsonc`](opencode.jsonc).
-
-## Canonical skill catalog
-
-The repository contains **66 canonical skills**. Existing skills that overlapped the new compact modules were replaced rather than duplicated; the mapping is documented in [Canonical migrations](#canonical-migrations).
-
-### Routing, architecture, and quality
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `systems-ml-stack-router` | A task spans domains or the correct specialist is unclear | Select the smallest skill set and interface boundaries |
-| `system-architecture` | Designing an end-to-end system | Requirements, boundaries, performance budgets, failure domains, observability |
-| `implementation-integrity` | Writing, repairing, or completing code | Reject stubs/placeholders and require executed evidence |
-| `code-contract-comments` | Documenting functions, classes, APIs, or kernels | Preconditions, ownership, invariants, side effects, errors, concurrency |
-| `modular-component-boundaries` | Splitting or reorganizing components | Ownership, interfaces, dependency direction, lifecycle, replacement seams |
-| `backend-component-demarcation` | Designing backend or service layers | Transport, application, domain, persistence, workers, infrastructure |
-| `porting-change-isolation` | Isolating platform-specific changes | Adapters, capability probes, fallbacks, differential validation |
-| `plugin-adapter` | Adding interchangeable backends or plugins | Stable adapters and backend dispatch patterns |
-| `model-pool` | Routing model calls or endpoint roles | Writer/verifier routing and model-pool configuration |
-| `app-engine-deploy` | Deploying the supported application service | App Engine configuration and deployment workflow |
-| `knowledge-base` | Recording or searching validated fixes | Sanitized two-tier bug/fix knowledge |
-| `analysis-log` | Maintaining codebase analysis records | Append-only, project-scoped analysis notes |
-| `context-tracker` | Persisting session findings | Disk-backed context summaries and unload behavior |
-| `dev-process` | Planning and validating implementation work | Architecture-first iterative development |
-| `dox-validate` | Maintaining API documentation | Doxygen and documentation completeness |
-| `traceability` | Maintaining reversible evidence links | Trace markers and source/binary mapping |
-| `ponytail` | Reducing unnecessary implementation complexity | YAGNI and smallest justified diff |
-| `caveman` | Requesting terse communication | Minimal prose output mode |
-
-### Debugging
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `debug-core` | Any software failure | Evidence-first reproduce, localize, fix, verify, regress loop |
-| `debug-domain-router` | A failure needs domain interpretation | Select one domain skill without preloading all domains |
-| `debug-reproduce` | The failure is not reliably reproducible | Capture and minimize a deterministic reproducer |
-| `debug-localize` | The first wrong boundary is unknown | Bisect input, state, transformation, and output |
-| `debug-reference` | Correct behavior is uncertain | Compare against specification or trusted implementation |
-| `debug-hypothesis` | Several causes remain plausible | Keep a small explicit hypothesis set |
-| `debug-mde` | A discriminating experiment is needed | Select the cheapest safe experiment |
-| `debug-invariants` | A contract may be violated | Check bounds, types, ownership, and state invariants |
-| `debug-root-cause` | Symptom and cause are being conflated | Establish the causal chain and confidence level |
-| `debug-reduce` | The reproducer is too large | Minimize while preserving the failure |
-| `debug-fix` | The cause is sufficiently supported | Apply the smallest justified change |
-| `debug-verify` | A fix needs evidence | Run static, targeted, reproducer, and regression checks |
-| `debug-deep` | The fast loop cannot resolve the issue | Escalate to state models, fault trees, or instrumentation |
-
-### AMD and NVIDIA GPU stacks
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `rocm-stack` | ROCm/HIP libraries, profiling, or AMD GPU optimization | HIP, rocBLAS, RCCL, rocprof, rocminfo, packaging |
-| `rocr-runtime` | ROCr/HSA runtime behavior | Agents, queues, AQL, signals, memory pools, code objects |
-| `cdna` | AMD CDNA accelerator behavior | Matrix engines, MFMA, memory, and accelerator tuning |
-| `rdna` | AMD RDNA graphics/compute behavior | Wave32, LDS, vector registers, graphics-oriented constraints |
-| `cuda-stack` | CUDA runtime, driver, graphs, or kernels | Streams, events, graphs, cooperative groups, Nsight, fallbacks |
-| `kernel-tuning` | GPU/CPU kernel performance tuning | Cache, bandwidth, SIMD, occupancy, profiling |
-| `llm-hardcode` | Hand-optimizing LLM kernels | Layout, vectorization, cache, and low-level kernel design |
-| `vulkan-compute` | Vulkan compute programming | Buffers, descriptors, command buffers, synchronization |
-| `directx-ai-ml` | DirectX 12, DirectML, or Agility SDK | D3D12, DXGI, DXIL, resources, heaps, fences, ML operators |
-| `graphics-shader-kernels` | Shader or graphics-kernel development | HLSL, GLSL, SPIR-V, barriers, subgroups, occupancy |
-| `vino` | OpenVINO runtime or model deployment | IR and CPU/GPU/NPU inference paths |
-
-For ROCm, ROCr, Vulkan, DirectX/Agility, DirectML, and RDNA version work, load `_systems-ml-shared/version-policy.md` first. It requires separating packaged releases, component Git tags, preview/nightly streams, drivers, SDKs, and hardware support instead of assuming that related version numbers are interchangeable.
-
-### Operating systems, architecture, and memory
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `linux-kernel` | Kernel, module, driver, DMA, scheduler, or kernel MM work | Kconfig, subsystem contracts, tracing, locking, DMA, validation |
-| `linux-systems` | Linux userspace systems programming | Syscalls, pthreads, epoll, mmap, systemd, process integration |
-| `os-kernel` | Low-level OS boot and platform work | x86-64 long mode, GDT/IDT, paging, PCI, AHCI |
-| `windows-system-architecture` | Windows internals or WDDM/ABI work | NT processes, threads, handles, I/O, ETW, deployment |
-| `memory-management` | CPU/GPU/OS memory behavior | Virtual/physical memory, allocators, NUMA, DMA, cache/coherence |
-| `x86-architecture` | x86/x86-64 ISA or platform behavior | Paging, caches, SIMD, atomics, CPUID, virtualization, ABI |
-| `assembler` | Assembly, disassembly, or binary ABI work | x86-64/ARM/RISC-V conventions, instructions, relocations, unwind |
-| `emulation` | Emulator or simulator development | ISA/device/system emulation, translation, timing, replay, fuzzing |
-
-### Languages and build systems
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `c99-systems` | Portable C99 systems code | ABI, ownership, errors, aliasing, portability, sanitizers |
-| `cpp-systems` | Production C++ systems code | RAII, templates, allocators, concurrency, ABI, testing |
-| `python-conversion` | Translating Python into native/ML artifacts | Semantic preservation, dtype/shape, ABI, differential validation |
-| `python-engineering` | Production Python implementation | Packaging, typing, async, extensions, profiling, testing |
-| `python-performance` | Python numerical performance tuning | Vectorization, Numba, memory, hot-loop analysis |
-| `cross-porting` | Porting APIs, kernels, or behavior across platforms | Capability mapping, adapters, differential tests |
-| `cross-compilation` | Building for a non-host target | Host/target/sysroot/ABI, reproducible artifacts, target tests |
-| `toolchains` | Compiler/linker/SDK/build diagnosis | GCC, Clang, MSVC, NVCC, HIP, CMake, Ninja, sysroots |
-| `rust-safety` | Rust implementation or review | Ownership, lifetimes, unsafe boundaries, Cargo workspaces |
-
-### LLM engines and model formats
-
-| Skill | Load when | Scope |
-|---|---|---|
-| `llm-components` | Implementing or benchmarking LLM subsystems | Tokenization, embeddings, attention, KV cache, sampling, MoE, speculation |
-| `gguf-format` | Parsing, converting, quantizing, or validating GGUF | Header, metadata, tensors, offsets, alignment, shards, safety |
-| `safetensors-format` | Parsing, converting, or validating SafeTensors | Header, offsets, dtype/shape, shards, mmap, safety |
-| `llamacpp-dev` | Existing llama.cpp integration work | llama.cpp runtime and GGUF integration |
-| `sglang-dev` | Existing SGLang runtime work | KV cache, tensor parallelism, speculative decoding |
-| `vllm-dev` | Existing vLLM runtime work | PagedAttention, tensor parallelism, Triton kernels |
-| `tensorrt-llm-dev` | Existing TensorRT-LLM work | NVIDIA engine/runtime, FP8/INT8, parallelism |
-
-## Canonical migrations
-
-The following legacy names were removed as duplicate packages. Their strongest shared behavior is now maintained under the canonical modular skill; use the mapping when updating external references.
-
-| Removed duplicate | Canonical skill |
-|---|---|
-| `c99-standards` | `c99-systems` |
-| `cuda-optimization` | `cuda-stack` |
-| `directx-compute` | `directx-ai-ml` |
-| `gguf-ggml` | `gguf-format` |
-| `rocm-hip` | `rocm-stack` |
-| `rocr-core` | `rocr-runtime` |
-| `safetensors-handler` | `safetensors-format` |
-| `shader-opt` | `graphics-shader-kernels` when the task is broader than optimization |
-| `windows-systems` | `windows-system-architecture` |
-| `x86-assembly` | `assembler` when the task is general assembly/ABI work |
-| `cpp-modern` | `cpp-systems` when the task is production systems C++ rather than language-only guidance |
-
-Specialized non-duplicates such as `cdna`, `rdna`, `vulkan-compute`, `linux-systems`, `os-kernel`, `python-performance`, and the engine-specific skills remain separate because they have distinct trigger boundaries.
-
-## Quality gate against false or incomplete code
-
-`implementation-integrity` is conditional on code-writing tasks. It requires an explicit behavior contract, a search for TODO/FIXME/placeholder/stub/fake-success paths, a complete implementation, and executed evidence. A report must distinguish **PASS**, **FAIL**, **NOT RUN**, and **UNVALIDATED**. Comments do not replace implementation, and a demo path must never be silently used as a production path.
-
-`code-contract-comments` documents only non-obvious behavior: preconditions, postconditions, ownership, lifetime, errors, side effects, synchronization, and performance constraints. `modular-component-boundaries` and `backend-component-demarcation` make component seams explicit so backends, workers, repositories, and platform adapters can be added, removed, or ported without spreading conditionals through unrelated code.
-
-## Shared references and deduplication
-
-The `_systems-ml-shared/` directory is intentionally not a skill and must never auto-load. Read only the named file when needed:
-
-| Reference | Read only for |
-|---|---|
-| `shared-execution-protocol.md` | General implementation workflow and evidence labels |
-| `quality-gates.md` | Completeness and anti-placeholder checks |
-| `version-policy.md` | Release, preview, compatibility, or support claims |
-| `porting-checklist.md` | Cross-platform behavior and capability mapping |
-| `model-format-checklist.md` | Binary model artifact validation |
-| `suite-manifest.md` | Bundle inventory and loading policy |
-
-## Installation and use
-
-The repository layout is directly discoverable by OpenCode: each skill is a directory containing `SKILL.md` at the repository root. Preserve the root layout when copying or extracting the repository into the OpenCode skills directory. Keep `_systems-ml-shared/` beside the skill directories so explicitly referenced files remain available without becoming auto-triggered skills.
-
-Example calls are intentionally small:
-
-```text
-skill("cuda-stack")
-skill("implementation-integrity")
-skill("gguf-format")
-skill("backend-component-demarcation")
+```yaml
+metadata:
+  loading: on-demand
+  auto_unload: true
 ```
 
-For a cross-domain request, start with `systems-ml-stack-router`; do not manually load all domain modules.
+A skill body loads only when its `trigger_keywords` match the active task (or when explicitly called). Once its purpose is served, it unloads — leaving only a one-line summary in context. No skill persists unless the task demands it.
+
+The configuration lives in [`opencode.jsonc`](opencode.jsonc). Auto-trigger skills: `debug-core`, `traceability-gate`, `knowledge-process`. All others are conditional.
+
+## Design principles
+
+1. **Load the smallest specialist** that matches the active boundary.
+2. **Add another skill only when the task crosses a concrete boundary** — API, ABI, memory, kernel, compiler, graphics, or model format.
+3. **Keep shared workflows out of skills**; reference them explicitly when needed.
+4. **No stubs, no placeholders, no fake success paths**. Every skill describes a complete, repeatable workflow with validation gates.
+5. **Record the evidence**: version, host, target, toolchain, and what actually ran.
+
+## Quality gate
+
+`traceability-gate` (auto-triggered on code changes) enforces:
+
+- Trace markers `[T-XXX]` on every non-trivial function
+- Doxygen contracts with `@pre`/`@post`/`@param[in|out|in,out]`
+- No `TODO`, `FIXME`, `pass`, `unimplemented!()`, stub functions, hardcoded test outputs
+- 10-iteration validation: compile (`-Werror`), format, unit test, reproducer, golden test, fuzz, sanitizers, flow analysis, resource audit, performance (≤5% regression)
+
+`implementation-integrity` is implicit — code must be real, complete, executable, and supported by executed evidence.
+
+## Shared references
+
+The `_systems-ml-shared/` directory holds version policy, porting checklists, model-format checklists, quality gates, and execution protocol. These are not skills and never auto-load. Read only the named file when the task requires it.
+
+## Installation
+
+Copy the repository root into your OpenCode skills directory. Preserve the layout: each skill is a directory with `SKILL.md` at the top level. Keep `_systems-ml-shared/` beside the skill directories.
+
+Example calls:
+
+```text
+skill("amd-gpu-stack")
+skill("llm-serving")
+skill("porting-toolkit")
+skill("debug-core")
+```
+
+For a cross-domain request, start with `systems-ml-stack-router` (if present) or let the conditional loader select the right set.
 
 ## Validation
 
-Validate every `SKILL.md` with the project’s skill validator or the local skill validator available in the execution environment. Also check that every configured skill name exists, every `name` matches its directory, no initializer examples remain, and the JSON configuration parses after comments are removed. For implementation changes, run the narrowest relevant build or test and report anything not executed.
+Run the narrowest relevant build or test for any implementation change. Report anything not executed. The project validator checks: every configured skill exists, every `name` matches its directory, no initializer examples remain, JSON parses after comment removal.
 
-## Contributing a skill
-
-Create one narrowly triggered directory with a concise `SKILL.md`. Put version matrices, long API references, examples, and platform variants under a reference file. Keep the body below roughly 180 words when practical, avoid duplicating shared rules, state when another skill should be loaded, and never include fake or placeholder production code. Add the skill to `opencode.jsonc` only as conditional unless it is genuinely useful for nearly every task. Update the README catalog and migration table when names change.
-
-## License
+## Licence
 
 MIT. Individual skill files may include additional attribution or licensing notes where required.
