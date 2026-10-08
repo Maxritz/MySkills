@@ -9,11 +9,8 @@
   "skill": {
     "auto_trigger": [
       "debug-core",
-      "code-quality-gate",
-      "dev-process",
-      "context-tracker",
-      "knowledge-base",
-      "analysis-log"
+      "traceability-gate",
+      "knowledge-process"
     ],
     "conditional_load": [
       "systems-ml-stack-router",
@@ -31,20 +28,14 @@
       "c-systems",
       "os-kernel-systems",
       "linux-user-systems",
-      "directx-ai-ml",
       "python-engineering",
       "graphics-shader-kernels",
       "optimization-toolkit",
-      "traceability-gate",
       "architecture-boundaries",
       "low-level-toolkit",
       "utility-pair",
-      "knowledge-process",
-      "llamacpp-dev",
-      "llm-hardcode",
       "sglang-dev",
       "tensorrt-llm-dev",
-      "vino",
       "vllm-dev",
       "sherlock-it",
       "ponytail-diag"
