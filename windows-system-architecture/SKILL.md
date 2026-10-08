@@ -1,6 +1,9 @@
 ---
 name: windows-system-architecture
 description: Design, debug, or port Windows system software involving NT processes, threads, handles, I/O, security, WDDM, ETW, ABI, deployment, or host/driver boundaries.
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Windows system architecture

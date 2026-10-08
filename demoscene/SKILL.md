@@ -1,6 +1,9 @@
 ---
 name: demoscene
 description: Channels legendary demoscene groups (farbrausch, BeRo, Ryg, Haujobb, Wayfinder, Fiver2, Chaos Inc, KB) for extreme performance optimization. Enumerates what each legend would do for any optimization challenge.
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Demoscene Optimization

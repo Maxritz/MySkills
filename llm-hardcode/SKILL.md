@@ -3,6 +3,9 @@ name: llm-hardcode
 description: "Hand-opt LLM kernels: layout, cache, vectorization."
 license: MIT
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # LLM Hardcode Development

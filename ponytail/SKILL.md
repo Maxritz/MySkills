@@ -8,6 +8,9 @@ description: "Lazy senior dev. YAGNI. stdlib first."
   "shortest path", or complains about over-engineering/bloat.
 argument-hint: "[lite|full|ultra]"
 license: MIT
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Ponytail

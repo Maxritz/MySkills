@@ -3,6 +3,9 @@ name: vulkan-compute
 description: "Vulkan: buffers, descriptors, cmd buffers."
 license: MIT
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Vulkan Compute

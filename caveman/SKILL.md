@@ -1,6 +1,9 @@
 ---
 name: caveman
 description: Use for ALL output directed at the human user. Forces ultra-terse, caveman-grammar bullet points. Strip every preamble, summary, and filler word.
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Caveman output

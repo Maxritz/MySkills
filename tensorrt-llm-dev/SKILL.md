@@ -3,6 +3,9 @@ name: tensorrt-llm-dev
 description: "TensorRT-LLM: C++ engine, quantization, tensor parallel."
 license: NVIDIA Source Code License
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # TensorRT-LLM Development

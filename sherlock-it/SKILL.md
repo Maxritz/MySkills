@@ -1,137 +1,224 @@
 ---
 name: sherlock-it
-description: "Measurement-driven performance investigation and optimisation. Profiles every execution layer, creates instrumentation traps to expose hidden bottlenecks, identifies root causes, implements verified optimisations, and retests against measured baselines.
+description: "Measurement-driven performance investigation and optimisation. Profiles every execution layer, creates instrumentation traps to expose hidden bottlenecks, identifies root causes, implements verified optimisations, and retests against measured baselines. Persistent analysis log with FULL/LOW/HIGH modes.
 , /sherlock-it."
 metadata:
   loading: on-demand
   auto_unload: true
 ---
 
-
-
+# Sherlock-It
 
 **Objective:** Find, prove, fix and verify every significant performance bottleneck. Never optimise by guesswork.
 
-## Modes
+## Persistent Analysis Log
 
-| Mode | Purpose |
-|---|---|
-| `scan` | Rapid profiling, bottleneck identification and optimisation opportunities. |
-| `trace` | Per-operation timing, data-flow analysis, launch overhead and resource tracking. |
-| `deep` | Full kernel, shader, memory, hardware and execution-path investigation. |
-| `autopsy` | Exhaustive investigation with additional instrumentation, diagnostic traps, competing hypotheses and repeated validation. |
+**File:** `.opencode/sherlock-analysis.md` (project root, append-only)
 
-Default: `trace`. Escalate only when evidence is insufficient.
+### Log Format (Dox-Style)
+```markdown
+# Sherlock Analysis Log
 
-## Mandatory workflow
+## [RUN-001] 2026-10-08T14:30:00Z — MODE: FULL — TARGET: llama.cpp
+### BASELINE
+- Hardware: H100 (CC 9.0), Driver 560.x, CUDA 12.6
+- Workload: prefill 4096, decode 128, batch 32
+- Baseline: 12,450 tok/s, TTFT 45ms, p99 latency 230ms
 
-**1. Baseline**
-- Build and run the unmodified target.
-- Record hardware, driver, compiler, build flags, workload, input sizes and runtime configuration.
-- Capture throughput, latency, resource utilisation and correctness.
-- Preserve reproducible baseline results.
+### FINDINGS
+| Rank | Component | Cost | Evidence | Status |
+|------|-----------|------|----------|--------|
+| 1 | attention | 68% | ncu: SM throughput 34%, L2 78% | CONFIRMED |
+| 2 | KV cache write | 12% | nsys: memcpy 1.2GB/s | SUSPECTED |
+| 3 | token sampling | 5% | perf: 8% cycles in top-k | UNRESOLVED |
 
-**2. Decompose**
-- Map the complete execution and data flow.
-- Enumerate every kernel, shader, operator, dispatch, transfer, synchronisation point and fallback path.
-- Record invocation counts, tensor dimensions, formats, bytes moved and dependencies.
-- Distinguish host time, device execution time, queue wait, launch overhead and end-to-end wall time.
+### HYPOTHESES
+| ID | Claim | For | Against | Test | Cost | Status |
+|----|-------|-----|---------|------|------|--------|
+| H1 | FlashAttention-2 kernel underutilised | SM occupancy 34% | - | try FA-3 | low | PENDING |
+| H2 | KV cache not paged | memcpy bottleneck | - | enable PagedAttention | med | PENDING |
 
-**3. Instrument**
-- Add targeted diagnostic traps wherever visibility is insufficient.
-- Capture per-call latency, launch dimensions, memory transactions, cache behaviour, occupancy, register pressure, stalls and synchronisation.
-- Add execution markers, timestamp queries, counters, trace events and selective debug logging.
-- Use sampling or selective instrumentation when tracing overhead distorts results.
-- Compare instrumented and uninstrumented runs.
+### ACTIONS
+- [ ] Implement FA-3 kernel (H1 test)
+- [ ] Enable PagedAttention (H2 test)
+- [ ] Profile with nsys after each
 
-**4. Investigate**
-- Rank bottlenecks by cumulative cost and impact on end-to-end latency.
-- Compare actual throughput against workload-specific hardware ceilings, not theoretical peak numbers alone.
-- Investigate inefficient algorithms, poor instruction selection, scalar fallbacks, memory-bound execution, redundant transfers, serial dependencies, excessive dispatches and underutilisation.
-- Form explicit hypotheses and design measurements that can disprove them.
+## [RUN-002] 2026-10-08T16:15:00Z — MODE: LOW — TARGET: llama.cpp
+### DELTA from RUN-001
+- FA-3 applied: attention 68% → 52% (-16pp)
+- PagedAttention enabled: KV write 12% → 4% (-8pp)
+- New bottleneck: token sampling 5% → 18% (now #2)
 
-**5. Optimise**
-- Prioritise changes by measured expected impact, implementation complexity and correctness risk.
-- Research hardware-specific instructions, compiler behaviour, alternative algorithms and established implementations.
-- Change one meaningful variable at a time.
-- Preserve a known-good implementation and isolate experimental variants.
-- Avoid speculative rewrites and unrelated refactoring.
+### UPDATED FINDINGS
+| Rank | Component | Cost | Δ | Status |
+|------|-----------|------|---|--------|
+| 1 | attention | 52% | -16pp | IMPROVED |
+| 2 | token sampling | 18% | +13pp | REGRESSED |
+| 3 | KV cache write | 4% | -8pp | FIXED |
 
-**6. Verify**
-- Rebuild and rerun identical workloads.
-- Compare raw per-kernel performance, aggregate operator costs and end-to-end throughput.
-- Verify numerical correctness, edge cases, memory safety and concurrency.
-- Reject regressions and improvements that cannot be reproduced.
-- Retain results, measurements and the exact configuration for every accepted change.
-
-## Diagnostic traps
-
-Create additional instrumentation dynamically when unexplained costs remain.
-
-| Trap | Captures |
-|---|---|
-| Dispatch trap | Launch count, grid size, workgroup dimensions, launch latency |
-| Memory trap | Bytes read/written, alignment, bandwidth, cache misses |
-| Instruction trap | Generated ISA, vectorisation, instruction mix, fallback paths |
-| Synchronisation trap | Barriers, fences, queue waits, idle gaps |
-| Allocation trap | Allocation frequency, memory pressure, temporary buffers |
-| Transfer trap | Host-device copies, staging, transfer latency |
-| Dependency trap | Serial execution, critical path, hidden synchronisation |
-| Accuracy trap | Output differences, numerical error, precision-related performance |
-| Regression trap | Before/after timings, workload sensitivity and performance variance |
-
-Traps must have a clear hypothesis, measurable output and a removal or disable mechanism.
-
-## Data flow
-
-`Workload → Baseline → Execution map → Instrumentation → Measurements → Bottleneck ranking → Hypothesis → Targeted experiment → Optimisation → Retest → Evidence`
-
-At each stage, preserve the evidence needed by the next stage. If measurements are inconclusive, return to instrumentation rather than guessing.
-
-## Output contract
-
-Produce a concise, evidence-backed report containing:
-
-- **Findings:** Ranked bottlenecks with raw measurements and invocation counts.
-- **Root causes:** Proven causes, suspected causes and unresolved questions, explicitly distinguished.
-- **Hardware analysis:** Relevant architectural limits and observed utilisation.
-- **Optimisation plan:** Specific changes, expected impact and validation criteria.
-- **Results:** Before/after measurements, percentage change, correctness and reproducibility.
-- **Next actions:** The highest-impact unresolved investigation.
-
-Use tables for per-kernel and per-shader measurements. Include raw timings and workload dimensions, not just percentages or aggregate scores.
-
-## Enforcement rules
-
-- Never assume a kernel is optimal because it uses a specialised instruction.
-- Never equate aggregate device time with individual invocation latency.
-- Never confuse theoretical peak performance with achievable workload performance.
-- Never accept an optimisation based on a single noisy measurement.
-- Never claim a root cause without evidence.
-- Never stop at the first bottleneck if another significant bottleneck remains.
-- Never discard the original baseline or correctness tests.
-- Always redirect the investigation towards the highest-impact measurable performance gap.
-
-**Success criterion:** Reproducible performance improvement with verified correctness, explained by evidence at the relevant execution layer.
-
-
-example of a sherlock trace:
-stdout:
-     component           ops   %dev      dev us     idle us     host us
-     attention            24  95.4%   535880.80      377.62       49.20
-     projections         187   3.2%    17723.32     2026.19      460.80
-     recurrent            90   1.1%     6127.59     1170.02      143.80
-     attention-mix        72   0.2%     1335.28     1102.27      111.60
-     head+sample           1   0.0%       98.20       91.80       56.90
-     bias                 18   0.0%       90.03      265.52       66.60
-     transfer              1   0.0%       79.80     1087.10     1084.30
-     norms                67   0.0%       72.98      784.24      139.40
-     residual             48   0.0%       23.40      198.44       73.30
-     ffn-activate         42   0.0%       21.52      372.84       67.70
-     embed                 1   0.0%        0.48       25.44        2.40
-   instrumentation floor, 256 empty ops timed through the same begin/end path: 0.70 us host, 19.54 us device each.
+### NEW HYPOTHESES
+| ID | Claim | For | Against | Test | Cost | Status |
+|----|-------|-----|---------|------|------|--------|
+| H3 | Speculative decoding reduces sampling | - | - | enable draft model | med | PENDING |
 
 ---
 
+## Run Modes
 
+| Mode | Trigger | Depth | Time | Use Case |
+|------|---------|-------|------|----------|
+| **FULL** | `/sherlock-it FULL` | Complete workflow (1-6) + all traps | 30-120 min | First run, major changes, new target |
+| **HIGH** | `/sherlock-it HIGH` | Baseline + Decompose + Investigate + top 3 traps | 10-30 min | After changes, verify specific area |
+| **LOW** | `/sherlock-it LOW` | Read log, compare delta, top 1 bottleneck | 2-5 min | Quick check, CI gate, daily |
 
+### Mode Behaviour
+
+**FULL:**
+- Runs all 6 workflow stages
+- Creates all 8 trap types as needed
+- Produces complete evidence-backed report
+- Appends new RUN-XXX entry to log
+- Updates hypothesis statuses
+
+**HIGH:**
+- Reads last RUN entry
+- Re-runs Baseline (verify no regression)
+- Re-runs Decompose for changed components
+- Runs Investigate on top 3 hypotheses
+- Appends DELTA entry to log
+
+**LOW:**
+- Reads last RUN entry only
+- Runs single targeted measurement (top bottleneck)
+- Appends QUICK-CHECK entry (10 lines max)
+- No trap creation
+
+---
+
+## Mandatory Workflow (6 Stages)
+
+### 1. Baseline
+- Build and run unmodified target
+- Record: hardware, driver, compiler, build flags, workload, input sizes, runtime config
+- Capture: throughput, latency, resource utilisation, correctness
+- Preserve reproducible baseline results
+
+### 2. Decompose
+- Map complete execution and data flow
+- Enumerate every kernel, shader, operator, dispatch, transfer, sync point, fallback
+- Record: invocation counts, tensor dimensions, formats, bytes moved, dependencies
+- Distinguish: host time, device exec time, queue wait, launch overhead, wall time
+
+### 3. Instrument
+- Add targeted diagnostic traps where visibility insufficient
+- Capture: per-call latency, launch dimensions, memory transactions, cache behaviour, occupancy, register pressure, stalls, sync
+- Add: execution markers, timestamp queries, counters, trace events, selective debug logging
+- Use sampling/selective instrumentation when tracing overhead distorts results
+- Compare instrumented vs uninstrumented runs
+
+### 4. Investigate
+- Rank bottlenecks by cumulative cost and end-to-end latency impact
+- Compare actual throughput against workload-specific hardware ceilings (not theoretical peak)
+- Investigate: inefficient algorithms, poor instruction selection, scalar fallbacks, memory-bound exec, redundant transfers, serial deps, excessive dispatches, underutilisation
+- Form explicit hypotheses; design measurements to disprove them
+
+### 5. Optimise
+- Prioritise by measured expected impact, implementation complexity, correctness risk
+- Research: hardware-specific instructions, compiler behaviour, alternative algorithms, established implementations
+- Change one meaningful variable at a time
+- Preserve known-good implementation; isolate experimental variants
+- Avoid speculative rewrites and unrelated refactoring
+
+### 6. Verify
+- Rebuild and rerun identical workloads
+- Compare: raw per-kernel perf, aggregate operator costs, end-to-end throughput
+- Verify: numerical correctness, edge cases, memory safety, concurrency
+- Reject regressions and improvements that cannot be reproduced
+- Retain results, measurements, exact config for every accepted change
+
+---
+
+## Diagnostic Traps (8 Types)
+
+| Trap | Captures | When to Create |
+|------|----------|----------------|
+| Dispatch | Launch count, grid size, workgroup dims, launch latency | Kernel launch overhead suspected |
+| Memory | Bytes R/W, alignment, bandwidth, cache misses | Memory-bound suspected |
+| Instruction | Generated ISA, vectorisation, instruction mix, fallback paths | Compute-bound suspected |
+| Synchronisation | Barriers, fences, queue waits, idle gaps | Sync overhead suspected |
+| Allocation | Alloc frequency, memory pressure, temp buffers | Alloc overhead suspected |
+| Transfer | Host-device copies, staging, transfer latency | PCIe/NVLink bottleneck suspected |
+| Dependency | Serial exec, critical path, hidden sync | False dependency suspected |
+| Accuracy | Output diff, numerical error, precision-related perf | Precision loss suspected |
+
+**Each trap:** clear hypothesis + measurable output + disable mechanism.
+
+---
+
+## Output Contract
+
+Produce evidence-backed report:
+
+- **Findings:** Ranked bottlenecks with raw measurements, invocation counts
+- **Root causes:** Proven/suspected/unresolved — explicitly distinguished
+- **Hardware analysis:** Architectural limits vs observed utilisation
+- **Optimisation plan:** Specific changes, expected impact, validation criteria
+- **Results:** Before/after measurements, % change, correctness, reproducibility
+- **Next actions:** Highest-impact unresolved investigation
+
+Use tables for per-kernel/per-shader measurements. Include raw timings and workload dimensions, not just percentages.
+
+---
+
+## Enforcement Rules
+
+- Never assume kernel optimal because it uses specialised instruction
+- Never equate aggregate device time with individual invocation latency
+- Never confuse theoretical peak with achievable workload performance
+- Never accept optimisation based on single noisy measurement
+- Never claim root cause without evidence
+- Never stop at first bottleneck if another significant bottleneck remains
+- Never discard original baseline or correctness tests
+- Always redirect investigation towards highest-impact measurable performance gap
+
+**Success criterion:** Reproducible performance improvement with verified correctness, explained by evidence at relevant execution layer.
+
+---
+
+## Log Management
+
+### Auto-Load on Session Start
+```
+On sherlock-it load: read .opencode/sherlock-analysis.md
+If exists: show last 3 RUN entries summary
+If missing: create new log, start with FULL
+```
+
+### Delta Comparison (Automatic)
+```python
+def compare_runs(current, previous):
+    # Compare bottlenecks, costs, statuses
+    # Mark: IMPROVED, REGRESSED, FIXED, NEW, UNCHANGED
+    # Update hypothesis statuses: PENDING → TESTING → CONFIRMED/FALSIFIED
+    # Carry forward UNRESOLVED hypotheses
+```
+
+### Sanitization
+- No paths, keys, emails, phones, machine names
+- Same rules as knowledge-base
+
+### Validation Gates (Per RUN Entry)
+- [ ] Baseline recorded with full config
+- [ ] At least 3 measurements per bottleneck
+- [ ] Hypothesis status updated
+- [ ] Actions have checkboxes
+- [ ] Next RUN knows where to continue
+
+---
+
+## Boundaries
+
+- Does not write kernel code (receives kernels to validate/optimise)
+- Does not manage CUDA/ROCm installation
+- `stop sherlock-it`: revert
+- Log persists across sessions; never auto-deleted

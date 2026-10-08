@@ -3,6 +3,9 @@ name: vllm-dev
 description: "vLLM: PagedAttention, tensor parallel, Triton."
 license: Apache-2.0
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # vLLM Development

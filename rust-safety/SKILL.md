@@ -3,6 +3,9 @@ name: rust-safety
 description: "Rust: ownership, lifetimes, no unsafe."
 license: MIT
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Rust Safety
