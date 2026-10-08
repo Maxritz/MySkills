@@ -1,4 +1,3 @@
-<img width="1024" height="384" alt="banner png" src="https://github.com/user-attachments/assets/6fcc92f6-ab46-482c-a234-88b879b76313" />
 
 # MySkills
 
