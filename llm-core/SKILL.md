@@ -1,16 +1,18 @@
 ---
-name: llm-components
-description: "LLM component contracts: tokenizer, embeddings, attention, KV cache, MLP/MoE, sampling, speculative decoding. Deterministic reference, intermediate validation, numerical tolerances."
+name: llm-core
+description: "LLM core components: tokenizer, embeddings, attention, KV cache, MLP, sampling. Deterministic reference, intermediate validation, numerical tolerances. Foundational LLM building blocks."
 compatibility: opencode
 metadata:
   loading: on-demand
-  auto_trigger: true
-  trigger_keywords: ["tokenizer", "embeddings", "attention", "KV cache", "MoE", "sampling", "speculative decoding", "LLM component", "intermediate tensor", "logits"]
+  auto_unload: true
+  trigger_keywords: ["tokenizer", "embeddings", "attention", "KV cache", "MLP", "sampling", "LLM component", "intermediate tensor", "logits"]
 ---
 
-# LLM Components
+# LLM Core Components
 
-**Treat each LLM subsystem as an explicit contract:** token IDs, shapes, dtype, device, cache layout, masking, randomness, stop behavior. Freeze a deterministic reference; validate intermediates.
+**Foundational LLM building blocks. Treat each subsystem as an explicit contract: token IDs, shapes, dtype, device, cache layout, masking, randomness, stop behavior. Freeze a deterministic reference; validate intermediates.**
+
+---
 
 ## Component Contract Template
 
@@ -47,6 +49,7 @@ COMPONENT_CONTRACT = {
 ## 1. Tokenization
 
 ### Contract
+
 ```python
 TOKENIZER_CONTRACT = {
     "encode(text: str) -> List[int]": "Deterministic, no randomness",
@@ -58,21 +61,21 @@ TOKENIZER_CONTRACT = {
 ```
 
 ### Validation
+
 ```python
 def validate_tokenizer(tokenizer, test_cases):
     for text in test_cases:
         tokens = tokenizer.encode(text)
         decoded = tokenizer.decode(tokens)
-        # Round-trip (may differ for whitespace normalization)
         re_tokens = tokenizer.encode(decoded)
         assert tokens == re_tokens, f"Round-trip failed: {tokens} != {re_tokens}"
     
-    # Special tokens
     assert tokenizer.encode("<|endoftext|>") == [tokenizer.eos_token_id]
     assert tokenizer.decode([tokenizer.bos_token_id]) == "<|beginoftext|>"
 ```
 
 ### Common Tokenizers
+
 | Model | Type | Vocab | Special |
 |-------|------|-------|---------|
 | LLaMA 2/3 | BPE (SentencePiece) | 32K/128K | BOS=1, EOS=2 |
@@ -85,6 +88,7 @@ def validate_tokenizer(tokenizer, test_cases):
 ## 2. Embeddings
 
 ### Contract
+
 ```python
 EMBEDDING_CONTRACT = {
     "input": {"token_ids": "[B, S]", "dtype": "int64"},
@@ -98,6 +102,7 @@ EMBEDDING_CONTRACT = {
 ```
 
 ### Implementation Patterns
+
 ```python
 # Standard
 hidden_states = F.embedding(token_ids, weight, padding_idx=pad_id)
@@ -108,11 +113,11 @@ hidden_states = rms_norm(hidden_states, weight=ln_weight, eps=1e-6)
 ```
 
 ### Validation
+
 ```python
 def validate_embeddings(weight, token_ids, expected_out):
     out = F.embedding(token_ids, weight)
     assert_close(out, expected_out, rtol=1e-3, atol=1e-3)
-    # Check padding
     if pad_id is not None:
         pad_mask = (token_ids == pad_id)
         assert (out[pad_mask] == 0).all()
@@ -123,11 +128,12 @@ def validate_embeddings(weight, token_ids, expected_out):
 ## 3. Attention
 
 ### Contract (Multi-Head / Grouped-Query / Multi-Query)
+
 ```python
 ATTENTION_CONTRACT = {
     "inputs": {
         "q": "[B, S, H_q]", "k": "[B, S, H_k]", "v": "[B, S, H_v]",
-        "mask": "[B, 1, S, S] or [B, H, S, S]",  # causal + padding
+        "mask": "[B, 1, S, S] or [B, H, S, S]",
         "rope": {"cos": "[S, D/2]", "sin": "[S, D/2]"},
         "kv_cache": "[L, 2, B, H, S_kv, D]",
     },
@@ -145,6 +151,7 @@ ATTENTION_CONTRACT = {
 ```
 
 ### Variants
+
 | Variant | Q Heads | K/V Heads | Example |
 |---------|---------|-----------|---------|
 | **MHA** | 32 | 32 | LLaMA-1, GPT-3 |
@@ -152,6 +159,7 @@ ATTENTION_CONTRACT = {
 | **MQA** | 32 | 1 | PaLM, Falcon |
 
 ### Implementation (FlashAttention-2)
+
 ```python
 def flash_attention(q, k, v, mask=None, causal=True, scale=None):
     # q: [B, H, S, D], k/v: [B, H_kv, S, D]
@@ -162,25 +170,21 @@ def flash_attention(q, k, v, mask=None, causal=True, scale=None):
 ```
 
 ### Validation
+
 ```python
 def validate_attention(q, k, v, mask, expected_out, kv_cache=None):
-    # 1. Reference: naive attention
     scores = torch.matmul(q, k.transpose(-2, -1)) * scale
     if mask is not None:
         scores = scores.masked_fill(mask == 0, -1e9)
     attn = F.softmax(scores, dim=-1)
     ref_out = torch.matmul(attn, v)
     
-    # 2. Check causal
     if causal:
         S = q.shape[-2]
         causal_mask = torch.triu(torch.ones(S, S), diagonal=1).bool()
         assert (attn[:, :, causal_mask] == 0).all()
     
-    # 3. Check softmax sum
     assert (attn.sum(-1) - 1.0).abs().max() < 1e-3
-    
-    # 4. Compare
     assert_close(flash_out, ref_out, rtol=1e-3, atol=1e-3)
 ```
 
@@ -189,9 +193,10 @@ def validate_attention(q, k, v, mask, expected_out, kv_cache=None):
 ## 4. KV Cache
 
 ### Contract
+
 ```python
 KV_CACHE_CONTRACT = {
-    "layout": "[L, 2, B, H, S, D]",  # L=layers, 2=K/V
+    "layout": "[L, 2, B, H, S, D]",
     "update": "append new tokens at sequence dimension",
     "invariants": [
         "Cache never shrinks during generation",
@@ -207,6 +212,7 @@ KV_CACHE_CONTRACT = {
 ```
 
 ### PagedAttention (vLLM/SGLang)
+
 ```python
 class PagedKVCache:
     def __init__(self, num_blocks, block_size, num_layers, num_heads, head_dim, dtype):
@@ -214,42 +220,39 @@ class PagedKVCache:
         self.block_tables = {}  # seq_id -> List[block_id]
         self.free_blocks = list(range(num_blocks))
     
-    def append(self, seq_id, k, v):  # k/v: [B, H, S, D]
-        # Allocate blocks, copy k/v, update block_table
+    def append(self, seq_id, k, v):
         pass
     
     def swap_in(self, seq_id, cpu_blocks):
-        # Move from CPU to GPU
         pass
     
     def swap_out(self, seq_id, num_blocks):
-        # Move from GPU to CPU
         pass
 ```
 
 ### Validation
+
 ```python
 def validate_kv_cache(cache, layer, seq_len, expected_k, expected_v):
     actual_k = cache[layer, 0, :, :, :seq_len]
     actual_v = cache[layer, 1, :, :, :seq_len]
     assert_close(actual_k, expected_k)
     assert_close(actual_v, expected_v)
-    
-    # Check no overwrite
     assert cache[layer, 0, :, :, seq_len:].abs().sum() == 0
 ```
 
 ---
 
-## 5. MLP / MoE
+## 5. MLP (SwiGLU)
 
-### MLP Contract (LLaMA: SwiGLU)
+### Contract
+
 ```python
 MLP_CONTRACT = {
     "input": "[B, S, H]",
     "output": "[B, S, H]",
     "weights": {
-        "gate_proj": "[H, 4H]",  # or 8H/14H for MoE
+        "gate_proj": "[H, 4H]",
         "up_proj": "[H, 4H]",
         "down_proj": "[4H, H]",
     },
@@ -259,41 +262,14 @@ MLP_CONTRACT = {
 }
 ```
 
-### MoE Contract (Mixtral, DeepSeekMoE)
-```python
-MOE_CONTRACT = {
-    "input": "[B, S, H]",
-    "output": "[B, S, H]",
-    "router": {"weight": "[H, E]", "top_k": 2},  # E=experts
-    "experts": E * {"gate_proj": "[H, I]", "up_proj": "[H, I]", "down_proj": "[I, H]"},
-    "shared_experts": "optional, always active",
-    "invariants": [
-        "router logits: softmax → top-k → normalize",
-        "expert capacity: floor(tokens * capacity_factor / E)",
-        "dropped tokens: reroute or zero",
-    ],
-}
-```
-
 ### Validation
+
 ```python
-def validate_moe(router_weight, experts, input, expected_out):
-    # 1. Router
-    logits = input @ router_weight.T  # [B, S, E]
-    probs = F.softmax(logits, dim=-1)
-    topk_probs, topk_idx = probs.topk(2, dim=-1)
-    topk_probs = topk_probs / topk_probs.sum(-1, keepdim=True)
-    
-    # 2. Expert forward (scatter-gather)
-    out = torch.zeros_like(input)
-    for e in range(num_experts):
-        mask = (topk_idx == e).any(-1)
-        if mask.any():
-            expert_in = input[mask]
-            expert_out = experts[e](expert_in)
-            out[mask] += expert_out * topk_probs[mask, topk_idx[mask] == e].sum(-1, keepdim=True)
-    
-    assert_close(out, expected_out, rtol=1e-3)
+def validate_mlp(gate_proj, up_proj, down_proj, input, expected_out):
+    gate = F.silu(input @ gate_proj.T)
+    up = input @ up_proj.T
+    out = (gate * up) @ down_proj.T
+    assert_close(out, expected_out, rtol=1e-3, atol=1e-3)
 ```
 
 ---
@@ -301,10 +277,11 @@ def validate_moe(router_weight, experts, input, expected_out):
 ## 6. Sampling
 
 ### Contract
+
 ```python
 SAMPLING_CONTRACT = {
     "inputs": {
-        "logits": "[B, V]",  # Last token logits
+        "logits": "[B, V]",
         "temperature": "float > 0",
         "top_p": "float in (0, 1]",
         "top_k": "int >= 0",
@@ -324,30 +301,27 @@ SAMPLING_CONTRACT = {
 ```
 
 ### Implementation
+
 ```python
 def sample(logits, temperature=1.0, top_p=1.0, top_k=0, min_p=0.0, repetition_penalty=1.0, prev_tokens=None, seed=0):
     gen = torch.Generator(device=logits.device).manual_seed(seed)
     
-    # Repetition penalty
     if repetition_penalty != 1.0 and prev_tokens is not None:
         for b in range(logits.shape[0]):
             logits[b, prev_tokens[b]] /= repetition_penalty
     
-    # Temperature
     if temperature > 0:
         logits = logits / temperature
         probs = F.softmax(logits, dim=-1)
     else:
         probs = F.one_hot(logits.argmax(-1), logits.shape[-1]).float()
     
-    # Top-k
     if top_k > 0:
         topk_probs, topk_idx = probs.topk(top_k, dim=-1)
         mask = torch.zeros_like(probs).scatter_(-1, topk_idx, 1)
         probs = probs * mask
         probs = probs / probs.sum(-1, keepdim=True)
     
-    # Top-p (nucleus)
     if top_p < 1.0:
         sorted_probs, sorted_idx = probs.sort(descending=True)
         cumsum = sorted_probs.cumsum(-1)
@@ -358,7 +332,6 @@ def sample(logits, temperature=1.0, top_p=1.0, top_k=0, min_p=0.0, repetition_pe
         probs = torch.zeros_like(probs).scatter_(-1, sorted_idx, sorted_probs)
         probs = probs / probs.sum(-1, keepdim=True)
     
-    # Min-p
     if min_p > 0:
         max_prob = probs.max(-1, keepdim=True).values
         mask = probs >= min_p * max_prob
@@ -371,92 +344,37 @@ def sample(logits, temperature=1.0, top_p=1.0, top_k=0, min_p=0.0, repetition_pe
 ```
 
 ### Validation
+
 ```python
 def validate_sampling():
     logits = torch.randn(10, 1000)
     
-    # Determinism
     t1, _ = sample(logits, seed=42)
     t2, _ = sample(logits, seed=42)
     assert (t1 == t2).all()
     
-    # Greedy
     t_greedy, _ = sample(logits, temperature=0)
     assert (t_greedy == logits.argmax(-1)).all()
     
-    # Top-k
     t_topk, _ = sample(logits, top_k=10)
-    assert (t_topk < 10).all()  # Only top 10 possible
+    assert (t_topk < 10).all()
     
-    # Distribution check (statistical)
     samples = torch.stack([sample(logits, temperature=1.0, seed=i)[0] for i in range(10000)])
     emp_dist = samples.bincount(minlength=1000).float() / 10000
     true_dist = F.softmax(logits[0], dim=-1)
     kl = (emp_dist * (emp_dist / true_dist).log()).sum()
-    assert kl < 0.01  # Close to true distribution
+    assert kl < 0.01
 ```
 
 ---
 
-## 7. Speculative Decoding
-
-### Contract
-```python
-SPECULATIVE_CONTRACT = {
-    "draft_model": "smaller model (e.g., 300M → 7B target)",
-    "num_draft_tokens": "gamma (typically 4-8)",
-    "verification": "target model scores draft tokens",
-    "acceptance": "accept prefix until first reject, then resample",
-    "invariants": [
-        "Output distribution matches target model exactly",
-        "Speedup = accepted_drafts / total_drafts",
-        "No quality degradation vs pure target",
-    ],
-}
-```
-
-### Algorithms
-| Algorithm | Draft | Verification | Speedup |
-|-----------|-------|--------------|---------|
-| **Standard** | Small model | Target scores all | 1.5-2x |
-| **Medusa** | Heads on target | Target scores all | 2-2.5x |
-| **EAGLE** | Feature-based | Target scores all | 2.5-3x |
-| **Lookahead** | No draft (self) | N/A | 1.2-1.5x |
-
-### Validation
-```python
-def validate_speculative(draft, target, prompts, num_draft=4):
-    for prompt in prompts:
-        # Speculative generation
-        spec_tokens = speculative_generate(draft, target, prompt, num_draft)
-        
-        # Pure target generation
-        target_tokens = target.generate(prompt)
-        
-        # Must match exactly (distribution equivalence)
-        assert spec_tokens == target_tokens, "Speculative ≠ target output"
-    
-    # Measure speedup
-    import time
-    t0 = time.time()
-    speculative_generate(draft, target, prompt, num_draft)
-    t1 = time.time()
-    target.generate(prompt)
-    t2 = time.time()
-    speedup = (t2 - t1) / (t1 - t0)
-    assert speedup > 1.3, f"Speedup {speedup:.2f}x insufficient"
-```
-
----
-
-## Numerical Tolerances (Per Component)
+## Numerical Tolerances (Core Components)
 
 | Component | FP16 | BF16 | INT8 (weight-only) | INT4 (AWQ/GPTQ) |
 |-----------|------|------|-------------------|-----------------|
 | **Embeddings** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
 | **Attention** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
 | **MLP** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
-| **MoE Router** | 1e-4 | 1e-3 | 1e-2 | — |
 | **LayerNorm/RMSNorm** | 1e-4 | 1e-3 | 1e-2 | 1e-1 |
 | **Sampling** | exact | exact | exact | exact |
 | **Logits (final)** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
@@ -466,8 +384,8 @@ def validate_speculative(draft, target, prompts, num_draft=4):
 ## Output Report
 
 ```
-LLM COMPONENTS: <component> VALIDATION
-COMPONENT: <tokenizer|embeddings|attention|kv_cache|mlp|moe|sampling|speculative>
+LLM CORE: <component> VALIDATION
+COMPONENT: <tokenizer|embeddings|attention|kv_cache|mlp|sampling>
 CONTRACT: <inputs/outputs/invariants defined>
 REFERENCE: <HF model / custom impl>
 TOLERANCE: <fp16/bf16/int8/int4>
@@ -482,5 +400,6 @@ BLOCKERS: <list>
 
 - Does not serve models (see `llm-serving`)
 - Does not convert formats (see `model-formats`)
-- Does not optimize kernels (see `amd-gpu-stack`/`nvidia-cuda-stack`/`llm-hardcode`)
-- `stop llm-components`: revert.
+- Does not optimise kernels (see `amd-gpu-stack`/`nvidia-cuda-stack`/`llm-hardcode`)
+- Does not cover MoE or speculative decoding (see `llm-advanced`)
+- `stop llm-core`: revert.
