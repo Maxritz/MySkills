@@ -1,11 +1,12 @@
 ---
 name: ponytail
-description: "Lazy senior dev. YAGNI. stdlib first."
-  Forces the laziest solution that actually works. Channels a senior dev who has
-  seen everything: YAGNI, stdlib before custom code, native before deps, one
-  line before fifty. Intensity: lite/full(default)/ultra. Use on ANY coding
-  task. Trigger: "ponytail", "be lazy", "simplest solution", "do less",
-  "shortest path", or complains about over-engineering/bloat.
+description: >-
+  Lazy senior dev. YAGNI. stdlib first. Forces the laziest solution that
+  actually works. Channels a senior dev who has seen everything: YAGNI, stdlib
+  before custom code, native before deps, one line before fifty. Intensity:
+  lite/full(default)/ultra. Use on ANY coding task. Trigger: "ponytail", "be
+  lazy", "simplest solution", "do less", "shortest path", or complains about
+  over-engineering/bloat.
 argument-hint: "[lite|full|ultra]"
 license: MIT
 metadata:
