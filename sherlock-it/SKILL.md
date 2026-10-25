@@ -222,3 +222,23 @@ def compare_runs(current, previous):
 - Does not manage CUDA/ROCm installation
 - `stop sherlock-it`: revert
 - Log persists across sessions; never auto-deleted
+
+## Example (of what the trace can contain)
+
+example of a sherlock trace:
+stdout:
+     component           ops   %dev      dev us     idle us     host us
+     attention            24  95.4%   535880.80      377.62       49.20
+     projections         187   3.2%    17723.32     2026.19      460.80
+     recurrent            90   1.1%     6127.59     1170.02      143.80
+     attention-mix        72   0.2%     1335.28     1102.27      111.60
+     head+sample           1   0.0%       98.20       91.80       56.90
+     bias                 18   0.0%       90.03      265.52       66.60
+     transfer              1   0.0%       79.80     1087.10     1084.30
+     norms                67   0.0%       72.98      784.24      139.40
+     residual             48   0.0%       23.40      198.44       73.30
+     ffn-activate         42   0.0%       21.52      372.84       67.70
+     embed                 1   0.0%        0.48       25.44        2.40
+   instrumentation floor, 256 empty ops timed through the same begin/end path: 0.70 us host, 19.54 us device each.
+
+---
