@@ -1,12 +1,9 @@
 ---
 name: code-quality-gate
-description: "Unified code quality gate: behavioural contracts, no-fake-code, risk-sized verification, traceability, Rust safety and component boundaries. Auto-triggers on implementation changes."
+description: "Implementation review checklist for behavioural contracts, placeholder detection, risk-sized verification, traceability, Rust safety and component boundaries. Invoke for code changes."
 compatibility: opencode
 metadata:
-  auto_unload: true
   loading: on-demand
-  auto_trigger: true
-  trigger_keywords: ["write", "edit", "create", "add", "refactor", "implement", "fix"]
   priority: critical
 ---
 # Code Quality Gate
