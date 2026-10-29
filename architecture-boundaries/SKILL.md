@@ -2,11 +2,6 @@
 name: architecture-boundaries
 description: "Component architecture: modular boundaries, backend demarcation, porting isolation. Enforce dependency direction, explicit interfaces, replacement seams, platform adapters."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["component", "module", "architecture", "boundary", "backend", "service", "porting", "adapter", "interface", "dependency direction", "replacement seam"]
 ---
 
 # Architecture Boundaries
@@ -118,7 +113,6 @@ Use explicit durable states and reconciliation:
 6. Return the state that is actually durable. Do not report settlement merely because the provider call returned or because an in-memory object was updated.
 
 Provider, repository and ledger interfaces should express timeouts, retryability, idempotency support and permanent versus transient failures. Exactly-once effects across independent systems are not assumed; document the deduplication and reconciliation guarantees.
-
 
 ---
 
