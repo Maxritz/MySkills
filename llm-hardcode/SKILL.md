@@ -1,6 +1,6 @@
 ---
 name: llm-hardcode
-description: "Hand-opt LLM kernels: layout, cache, vectorization."
+description: "Hand-optimised LLM kernels: tensor layouts, quantised matvec/GEMM, SIMD, cache behaviour, numerical accuracy and differential validation."
 license: MIT
 compatibility: opencode
 metadata:
@@ -10,71 +10,70 @@ metadata:
 
 # LLM Hardcode Development
 
-## Memory Layout
+Write custom kernels only when a measured workload justifies them. Preserve the operator contract, exact tensor layout, data type, quantisation semantics and a trusted correctness reference.
 
-- Tensors in **row-major** (C-order). `tensor[i][j] = data[i*stride_j + j]`.
-- KV cache: store key/value per-layer. `[num_layers][num_heads][seq_len][head_dim]`.
-- **Interleaved QKV**: pack `[q0,k0,v0, q1,k1,v1, ...]` for contiguous load.
-- **Blocked layout**: tile [64, 64] or [128, 128] for cache efficiency.
+## Memory and tensor layout
 
-## Cache-Aware Coding
+- Do not assume every tensor is contiguous or row-major. Respect explicit strides, dimensions, transpose flags, alignment and broadcasting semantics.
+- Record tensor shape, dtype, layout, quantisation type, block size and accumulation precision before writing the kernel.
+- For KV cache, document layout by layer, head, token and head dimension. Benchmark the actual access pattern rather than choosing a layout by convention.
+- Tile GEMM/matvec only after measuring the working set, data reuse and launch/dispatch cost.
 
-- L1 cache line = 64 bytes = 16× float32. Touch data sequentially.
-- Tile loops: `for i in 0..N step B: for j in 0..N step B:` — B ≈ sqrt(L1/elem_size).
-- Software prefetch: `_mm_prefetch((char*)&data[i+B], _MM_HINT_T0)` 2 iterations ahead.
-- Avoid strided access: transpose blocks before processing.
+## CPU SIMD
 
-## SIMD Intrinsics (AVX-512 / AVX2)
+- Use the exact CPU vendor/family/model, available ISA extensions, OS state, compiler version and target flags to select intrinsics.
+- Provide runtime dispatch or a safe baseline implementation when binaries may run on CPUs without the specialised ISA.
+- Check compiler intrinsic headers and generated ISA. An intrinsic's name, vector width or instruction count does not establish its latency or throughput.
+- AVX2, AVX-512, FMA, VNNI and other extensions are not interchangeable. Masked operations may require particular ISA subsets such as AVX-512VL.
+- Validate alignment, tails, signedness, saturation, overflow, reduction order and multithreading. Avoid undefined behaviour from aliasing or out-of-range vector loads.
 
-- **FMA**: `_mm256_fmadd_ps(a, b, c)` = 8 FMA in 1 cycle. Latency 4, throughput 1/cycle.
-- **Transpose**: `_MM_TRANSPOSE8_PS` for 8×8 float transpose.
-- **Reduction**: `_mm256_reduce_add_ps` via horizontal add + shuffle.
-- Mask registers: `_mm256_maskz_fmadd_ps(mask, a, b, c)` — avoid branches.
-- **Gather**: `_mm256_i32gather_ps(base, idx, scale)` — stride = scale, stride 4-8.
+## Quantisation formats
 
-## Numerical Precision
+Treat each quantisation layout as a binary contract. Pin the exact GGML/llama.cpp revision and consult its definitions and reference dequantisers:
+- https://github.com/ggml-org/llama.cpp/wiki/Tensor-Encoding-Schemes
+- https://github.com/ggml-org/llama.cpp/blob/master/ggml/include/gguf.h
 
-- **Round to nearest even**: default FPU behavior. `_MM_SET_ROUND(_MM_ROUND_NEAREST + _MM_ROUND_EVEN)`.
-- **Clipping**: `min(max_val, max(min_val, x))` — prevents NaN/inf propagation.
-- **Softmax**: subtract max before exp: `exp(x - max) / sum(exp(x - max))`.
-- **LayerNorm**: 
-```c
-// eps = 1e-6
-mean = sum(x) / n;
-var = sum((x - mean)^2) / n;
-y = (x - mean) / sqrt(var + eps) * weight + bias;
-```
-- **Mixed precision**: accumulate in FP32, store weights in FP16/BF16.
+For the common GGML Q4_0 block layout, the block stores one 16-bit scale value and 16 packed bytes for 32 four-bit values, for 18 bytes per block (4.5 storage bits per weight before surrounding tensor/layout overhead). Each byte contains two nibbles; the decoded values are transformed using the format's signed offset and scale convention. Verify the exact packing order and formula in the target revision before implementing it.
 
-## Quantization (Q4_0 hardcode)
+Do not assume:
+- that every quant type uses the same number of scales or one zero-point field;
+- that nominal bits per weight equals exact storage size;
+- that the scale must be positive;
+- that a tensor's element count is always a multiple of its block size;
+- that a format name guarantees an unchanged layout across revisions.
 
-```c
-// Block: 5×FP16 scale + 16×int4 (each int4 → 2 elements)
-// Dequantize 16 elements:
-for (int i = 0; i < 16; i++) {
-    float scale = halves[i/2];        // FP16 → FP32
-    int q1 = qbytes[i*2] & 0xF;       // low nibble
-    int q2 = qbytes[i*2] >> 4;       // high nibble
-    out[i*2]   = scale * (q1 - 8);    // int4 biased
-    out[i*2+1] = scale * (q2 - 8);
-}
-```
+For every supported type, test complete blocks and tails, minimum and maximum codes, zero or unusual scales, negative values, alignment and malformed metadata.
 
-## Kernel Patterns
+## Numerical behaviour
 
-- **Elementwise**: independent per element. High throughput. Vectorize fully.
-- **Reduction**: sum/dot-product. Tree-reduce in registers → shared memory → atomic.
-- **Scan (prefix sum)**: work-efficient (`upsweep + downsweep`).
-- **Scatter/Gather**: non-coalesced. Use shared memory tiling to reorganize.
-- **GEMM**: blocked (C = A×B). 3-level tiling: register → shared → global.
-  - MR×NR register tile. K loop unrolled.
-  - `packA`/packB` for contiguous load.
+- Softmax should subtract the maximum before exponentiation, with defined handling for empty inputs and non-finite values.
+- Clamping does not automatically prevent NaN propagation; define the desired NaN/Inf policy explicitly.
+- LayerNorm and RMSNorm are different operations. Preserve the exact formula, epsilon placement, accumulation type and weighting/bias rules.
+- Mixed precision must define where values are converted and what type accumulates partial sums.
+- Reduction order can change floating-point results. Use project-specified tolerances and reference comparisons instead of universal tolerances copied from another workload.
+
+## Kernel patterns
+
+- Elementwise work: vectorise contiguous spans and handle tails safely.
+- Reductions: use a measured reduction tree; account for lane/wave communication and numerical order.
+- GEMM: tune register, local/shared memory and global-memory reuse together. Packing may help repeated work but can cost more than it saves for one-off matvec.
+- Fusion: remove intermediate traffic only when added register pressure, code size and reduced parallelism do not erase the gain.
+- Gather/scatter: inspect access locality and cache behaviour before introducing complex staging.
 
 ## Validation
 
-- Compare FP32 reference vs FP16/BF16/INT8 within tolerance:
-  - FP16/BF16: 1e-2 RMS
-  - Q4: 1e-1 RMS
-  - Q2_K: 5e-1 RMS
-- Use `ggui_test` / custom golden tests with known outputs.
-- `valgrind` (Linux) or `Application Verifier` (Windows) for memory errors.
+1. Freeze a deterministic scalar or trusted reference path.
+2. Compare outputs over representative shapes, edge cases and randomised inputs.
+3. Define metrics and tolerances for dequantisation, intermediate tensors, logits and end-to-end output.
+4. Run sanitizers or memory checking where available.
+5. Benchmark identical workloads with correct warm-up and synchronisation, repeated measurements and raw timings.
+6. Inspect generated ISA and counters to explain the measured benefit.
+7. Keep the previous implementation and add a regression test for each discovered defect.
+
+## Output
+
+Report target ISA, compiler flags, layout and quant type, correctness deltas, raw timings and spread, fallback behaviour, generated-code evidence, and remaining limitations.
+
+## Boundaries
+
+Use gguf-ggml for model-file/quantisation contracts, llm-core for inference operator semantics, and kernel-tuning for broader profiling. Do not call a kernel complete because it compiles or runs one shape.
