@@ -241,3 +241,8 @@ stdout:
    instrumentation floor, 256 empty ops timed through the same begin/end path: 0.70 us host, 19.54 us device each.
 
 ---
+
+## Optional references
+
+- [diagnostic-methods.md](references/diagnostic-methods.md)
+- [run-log-template.md](references/run-log-template.md)
