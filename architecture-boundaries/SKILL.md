@@ -21,6 +21,8 @@ metadata:
 Make components **independently understandable, testable, replaceable, and portable**.
 
 ### Component Definition
+
+The following payment example is an architecture template, not a universal domain model. Choose contracts and guarantees that match the actual provider, ledger and persistence APIs.
 ```markdown
 ## Component: PaymentService
 
@@ -43,7 +45,7 @@ Process payment transactions, manage refunds, reconcile with providers.
 - **Precondition**: `amount > 0`, `currency` in supported list
 - **Postcondition**: `Payment` persisted, `ProviderClient.charge` called, `AuditLog` emitted
 - **Errors**: `InsufficientFunds`, `ProviderUnavailable`, `InvalidCurrency`
-- **Idempotency**: `Idempotency-Key` header → exactly-once
+- **Idempotency**: key + durable request identity + provider deduplication. This can provide effectively-once effects within documented retention bounds; it does not guarantee exactly-once across independent systems.
 
 ### Dependencies
 - **Upstream**: API Gateway (auth, rate limit)
@@ -51,9 +53,9 @@ Process payment transactions, manage refunds, reconcile with providers.
 - **Platform**: PostgreSQL (persistence), Redis (cache), Vault (secrets)
 
 ### Failure Domains
-- Provider API down → queue for retry, degrade to alternative provider
-- Ledger down → reject new payments, return 503
-- DB down → read-only mode, serve from cache
+- Provider API down → preserve a durable pending/unknown state; retry only with the same idempotency identity and provider guarantees. Never switch providers after an ambiguous timeout unless the first provider is proven not to have charged.
+- Ledger down → keep a durable outbox item and retry idempotently, or hold the payment in a reconcilable pending state. Do not silently report settled success.
+- DB down → fail state-changing payment requests closed with a documented error. Serve cached data only for reads whose contract explicitly permits staleness.
 
 ### Observability
 - Metrics: `payments.total`, `payments.latency.p99`, `payments.errors`
@@ -103,51 +105,20 @@ TRANSPORT (HTTP/gRPC)
 5. **Test each layer** + one E2E path; verify startup, migration, shutdown, failure recovery
 
 ### Implementation Pattern
-```python
-# transport/http/routes.py (thin)
-@router.post("/payments")
-async def create_payment(req: PaymentRequest, service: PaymentService = Depends()):
-    return await service.process(req)
 
-# application/services/payment_service.py
-class PaymentService:
-    def __init__(self, provider: ProviderClient, ledger: LedgerClient, repo: PaymentRepo):
-        self.provider = provider
-        self.ledger = ledger
-        self.repo = repo
-    
-    async def process(self, req: PaymentRequest) -> PaymentResponse:
-        # Validation (application layer)
-        if req.amount <= 0: raise ValidationError("amount > 0")
-        
-        # Domain logic (pure, no I/O)
-        payment = Payment.create(req)
-        
-        # External calls (infrastructure)
-        provider_resp = await self.provider.charge(payment)
-        payment.provider_ref = provider_resp.ref
-        
-        # Persistence
-        await self.repo.save(payment)
-        await self.ledger.record(payment)
-        
-        return PaymentResponse.from_domain(payment)
+Treat this example as an architectural flow, not drop-in payment code. The naive sequence “charge provider, then save payment, then write ledger” can lose the local record after a successful charge or return an ambiguous result after a crash.
 
-# domain/models/payment.py (no imports outside domain)
-class Payment:
-    @staticmethod
-    def create(req) -> "Payment":
-        # Pure business rules
-        pass
+Use explicit durable states and reconciliation:
 
-# persistence/repos/payment_repo.py
-class PaymentRepo:
-    async def save(self, payment: Payment): ...
+1. Validate the request and bind the idempotency key to a canonical request hash. Reject reuse of the key with a different request.
+2. Persist a PENDING payment and the idempotency record before starting the external effect.
+3. Charge the provider with the same provider-supported idempotency key. Store the provider reference and result using a conditional state transition.
+4. In the same database transaction as the state change, write an outbox event for ledger posting. A separate worker publishes it; the ledger consumer deduplicates by a stable event/payment ID.
+5. On timeout or connection loss, store an UNKNOWN/RECONCILIATION_REQUIRED state and query the provider or retry only with the same safe idempotency identity. Never infer that a timeout means “not charged”.
+6. Return the state that is actually durable. Do not report settlement merely because the provider call returned or because an in-memory object was updated.
 
-# infrastructure/clients/provider_client.py
-class ProviderClient:
-    async def charge(self, payment: Payment) -> ProviderResponse: ...
-```
+Provider, repository and ledger interfaces should express timeouts, retryability, idempotency support and permanent versus transient failures. Exactly-once effects across independent systems are not assumed; document the deduplication and reconciliation guarantees.
+
 
 ---
 
@@ -172,36 +143,58 @@ class ProviderClient:
 // capability.h - portable code includes ONLY this
 #pragma once
 
-#ifndef PLATFORM_ALIGNED_ALLOC
-#  if defined(_WIN32)
-#    define PLATFORM_ALIGNED_ALLOC(align, size) _aligned_malloc(size, align)
-#    define PLATFORM_ALIGNED_FREE(ptr) _aligned_free(ptr)
-#  elif defined(__linux__) || defined(__APPLE__)
-#    define PLATFORM_ALIGNED_ALLOC(align, size) aligned_alloc(align, size)
-#    define PLATFORM_ALIGNED_FREE(ptr) free(ptr)
-#  else
-#    error "PLATFORM_ALIGNED_ALLOC not defined for this target"
-#  endif
-#endif
+/* API contract: zero size succeeds with *out == NULL. On error, *out
+ * remains NULL and the function returns an errno-style error code. */
+int platform_aligned_alloc(void **out, size_t align, size_t size);
+void platform_aligned_free(void *ptr);
 ```
 
 ### Platform Adapters
-```c
-// platform/linux/memory.c
-#include "capability.h"
-#include <stdlib.h>
-#include <errno.h>
 
-void* platform_aligned_alloc(size_t align, size_t size) {
-    void* ptr = aligned_alloc(align, size);
-    if (!ptr) errno = ENOMEM;
-    return ptr;
-}
+Use the allocator API supported by the actual target. C99 does not include aligned_alloc, and the C11 aligned_alloc contract requires size to be an exact multiple of the requested alignment. POSIX posix_memalign does not have that size-multiple requirement and reports an error code directly. Windows _aligned_malloc memory must be released with _aligned_free, not free.
 
-void platform_aligned_free(void* ptr) {
-    free(ptr);
-}
-```
+    #include <errno.h>
+    #include <stddef.h>
+    #include <stdlib.h>
+    #if defined(_WIN32)
+    #include <malloc.h>
+    #endif
+
+    int platform_aligned_alloc(void **out, size_t align, size_t size)
+    {
+        if (out == NULL)
+            return EINVAL;
+        *out = NULL;
+        if (size == 0)
+            return 0;
+        if (align < sizeof(void *) || (align & (align - 1)) != 0)
+            return EINVAL;
+
+    #if defined(_WIN32)
+        *out = _aligned_malloc(size, align);
+        return *out != NULL ? 0 : ENOMEM;
+    #elif defined(__unix__) || defined(__APPLE__)
+        {
+            int rc = posix_memalign(out, align, size);
+            if (rc != 0)
+                *out = NULL;
+            return rc;
+        }
+    #else
+    #error "Add a verified allocator adapter for this target"
+    #endif
+    }
+
+    void platform_aligned_free(void *ptr)
+    {
+    #if defined(_WIN32)
+        _aligned_free(ptr);
+    #else
+        free(ptr);
+    #endif
+    }
+
+The POSIX implementation must be built with a feature-test macro that exposes posix_memalign in the target libc headers, where required. Keep the allocator contract consistent across platforms and test alignment, zero-size handling, allocation failure and matching deallocation.
 
 ### Delta Landing Template
 ```diff
@@ -239,28 +232,28 @@ for root, dirs, files in os.walk('src'):
 ```
 
 ### Contract Tests
-```python
-# tests/contract/test_payment_service.py
-def test_payment_service_contract(payment_service, mock_provider, mock_ledger, mock_repo):
-    # Given
-    req = PaymentRequest(amount=100, currency="USD")
-    mock_provider.charge.return_value = ProviderResponse(ref="pay_123")
-    
-    # When
-    resp = await payment_service.process(req)
-    
-    # Then
-    assert resp.status == "completed"
-    mock_provider.charge.assert_called_once()
-    mock_ledger.record.assert_called_once()
-    mock_repo.save.assert_called_once()
 
-def test_payment_service_failure_domain(payment_service, mock_provider):
-    mock_provider.charge.side_effect = ProviderUnavailable()
-    
-    with pytest.raises(ProviderUnavailable):
-        await payment_service.process(PaymentRequest(amount=100, currency="USD"))
-```
+Use an asynchronous test function when awaiting an asynchronous service. These tests are test templates: adapt fixtures and expected status transitions to the real API and persistence model.
+
+    async def test_payment_service_contract(payment_service, mock_provider, mock_ledger, mock_repo):
+        req = PaymentRequest(amount=100, currency="USD", idempotency_key="case-001")
+        mock_provider.charge.return_value = ProviderResponse(ref="pay_123", status="succeeded")
+
+        resp = await payment_service.process(req)
+
+        assert resp.status in {"pending_ledger", "completed"}
+        mock_provider.charge.assert_awaited_once()
+        # Also assert the durable payment state and outbox event exist.
+        # Do not require ledger completion in the same request unless the
+        # service contract explicitly guarantees synchronous ledger posting.
+
+    async def test_payment_timeout_is_reconcilable(payment_service, mock_provider, payment_repo):
+        mock_provider.charge.side_effect = TimeoutError()
+        resp = await payment_service.process(
+            PaymentRequest(amount=100, currency="USD", idempotency_key="case-timeout")
+        )
+        assert resp.status in {"unknown", "reconciliation_required", "pending"}
+        assert await payment_repo.has_idempotency_record("case-timeout")
 
 ### Porting Differential Tests
 ```bash
@@ -292,5 +285,5 @@ BLOCKERS: <circular dep|missing interface|untested adapter>
 
 - Does not write business logic (receives components to structure)
 - Does not implement adapters (provides pattern)
-- Does not manage deployment (see `app-engine-deploy` in `knowledge-process`)
+- Does not manage deployment (see `app-engine-deploy`)
 - `stop architecture-boundaries`: revert.

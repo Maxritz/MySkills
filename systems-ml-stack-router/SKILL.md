@@ -18,11 +18,13 @@ Choose skills by the unresolved technical boundary, not by every technology ment
 | Module ownership, dependency direction, replacement seams | sys-arch or architecture-boundaries | porting-toolkit |
 | C99 or mixed C/C++ runtime | c99-systems or c-systems | memory-mgmt, rust-safety |
 | Bare metal, Linux kernel or OS process behaviour | bare-metal-kernel, linux-kernel-dev or linux-user | windows-user, memory-mgmt |
+| Windows kernel/device drivers, WDF, PnP/power or DMA | windows-driver-dev | security-hardening, relevant GPU stack |
 | Windows/Linux cross-build and toolchain breakage | cross-compilation | build-ci, porting-toolkit |
 | GPU runtime, driver, device queues or allocation | amd-gpu-stack, nvidia-cuda-stack or vulkan-compute-stack | graphics-shader-kernels |
 | Shader correctness or shader throughput | graphics-shader-kernels or shader-opt | one relevant GPU stack |
 | Model files, tensor layout or quantised kernels | model-formats or gguf-ggml | llm-hardcode, llm-core |
 | LLM execution, MoE or inference semantics | llm-core or llm-advanced | llm-serving |
+| Model quality, logits, quantisation regression or evaluation release gates | llm-evaluation | model-formats, test-engineering |
 | Serving scheduler or engine-specific defects | llm-serving, vllm-dev, sglang-dev or tensorrt-llm-dev | llm-advanced |
 | Performance investigation | sherlock-it | kernel-tuning or optimization-toolkit |
 | Test strategy or flaky validation | test-engineering | debug-verify |

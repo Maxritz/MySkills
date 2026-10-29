@@ -2,7 +2,7 @@
 
 This file is derived from actual top-level skill directories, not a planned or historical inventory.
 
-**Catalogue size on this branch: 63 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
+**Catalogue size on this branch: 65 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
 
 ## 1. Debugging and Diagnostics (14)
 
@@ -21,7 +21,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - debug-verify
 - ponytail-diag
 
-## 2. Systems, Operating Systems and Architecture (13)
+## 2. Systems, Operating Systems and Architecture (14)
 
 - c-systems
 - c99-systems
@@ -32,6 +32,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - linux-kernel-dev
 - linux-user
 - windows-user
+- windows-driver-dev
 - memory-mgmt
 - x86-arch
 - low-level-toolkit
@@ -48,7 +49,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - optimization-toolkit
 - demoscene-opt
 
-## 4. LLM, Model Formats and Serving (9)
+## 4. LLM, Model Formats and Serving (10)
 
 - llm-core
 - llm-advanced
@@ -56,6 +57,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - gguf-ggml
 - model-formats
 - llm-serving
+- llm-evaluation
 - vllm-dev
 - sglang-dev
 - tensorrt-llm-dev

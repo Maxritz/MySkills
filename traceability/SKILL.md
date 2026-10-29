@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
-  role: code-quality
+  role: traceability
   trigger_keywords: ["traceability", "trace markers", "source mapping", "DBG_TRACE", "execution trace"]
 ---
 

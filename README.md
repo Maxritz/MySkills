@@ -2,7 +2,7 @@
 
 # MySkills
 
-**63 on-demand skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
+**65 on-demand skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
 
 ## Catalogue
 
@@ -35,7 +35,8 @@
 | **bare-metal-kernel** | x86-64 boot, page tables, interrupts and PCI enumeration. |
 | **linux-kernel-dev** | Linux kernel/driver debugging, KASAN, ftrace and lockdep. |
 | **linux-user** | Linux processes, threads, I/O, IPC and hardening. |
-| **windows-user** | Windows processes, synchronisation, IOCP, ETW and deployment. |
+| **windows-user** | Windows process/thread lifecycle, IOCP, ETW and userspace deployment. |
+| **windows-driver-dev** | KMDF/UMDF/WDM, device lifecycle, IOCTL, DMA, Driver Verifier and signing. |
 | **memory-mgmt** | Virtual memory, allocators, DMA/coherence and NUMA. |
 | **x86-arch** | x86-64 ISA, memory ordering, SIMD and microarchitectural analysis. |
 | **low-level-toolkit** | Assembly, emulation, toolchains, ABI and reproducible builds. |
@@ -62,6 +63,7 @@
 | **gguf-ggml** | GGUF parsing, GGML tensor encodings, quantisation and safe model-file handling. |
 | **model-formats** | GGUF, SafeTensors, ONNX and OpenVINO IR validation/conversion. |
 | **llm-serving** | Architecture and operations across vLLM, SGLang and TensorRT-LLM. |
+| **llm-evaluation** | Quality, logits, tokenisation, safety and performance regression gates for LLMs. |
 | **vllm-dev** | vLLM runtime, scheduling, KV cache and kernel development. |
 | **sglang-dev** | SGLang runtime, RadixAttention, serving and profiling. |
 | **tensorrt-llm-dev** | TensorRT-LLM engine, quantisation, parallelism and plugins. |

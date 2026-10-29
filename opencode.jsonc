@@ -44,6 +44,7 @@
       "linux-user",
       "llm-advanced",
       "llm-core",
+      "llm-evaluation",
       "llm-hardcode",
       "llm-serving",
       "low-level-toolkit",
@@ -71,6 +72,7 @@
       "utility-pair",
       "vllm-dev",
       "vulkan-compute-stack",
+      "windows-driver-dev",
       "windows-user",
       "x86-arch"
     ],
@@ -312,6 +314,16 @@
         "sampling",
         "logits"
       ],
+      "llm-evaluation": [
+        "LLM evaluation",
+        "model eval",
+        "perplexity",
+        "quality regression",
+        "eval dataset",
+        "token accuracy",
+        "logits comparison",
+        "LLM benchmark"
+      ],
       "llm-hardcode": [
         "LLM kernel",
         "quantisation kernel",
@@ -506,13 +518,34 @@
         "command buffer",
         "semaphore"
       ],
+      "windows-driver-dev": [
+        "Windows driver",
+        "WDK",
+        "KMDF",
+        "UMDF",
+        "WDM",
+        "WDF",
+        "WDDM",
+        "Driver Verifier",
+        "IRP",
+        "DMA",
+        "PnP",
+        "DeviceIoControl"
+      ],
       "windows-user": [
         "Windows",
         "Win32",
+        "NT process",
+        "thread",
+        "handle",
         "IOCP",
         "ETW",
-        "WDDM",
-        "MSIX"
+        "SRW lock",
+        "condition variable",
+        "thread pool",
+        "MSI",
+        "MSIX",
+        "Windows userspace"
       ],
       "x86-arch": [
         "x86-64",

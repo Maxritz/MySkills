@@ -1,231 +1,107 @@
 ---
 name: optimization-toolkit
-description: "Extreme optimization: demoscene legends (farbrausch, Ryg, Haujobb) + kernel tuning (roofline, cache, SIMD, GPU occupancy). For when you need maximum performance at any cost."
+description: "Evidence-led optimisation using profiling, data layout, algorithmic simplification, SIMD, memory traffic and architecture-specific tuning."
 compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
   auto_trigger: false
-  trigger_keywords: ["optimization", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "farbrausch", "Ryg", "Haujobb", "extreme performance"]
+  trigger_keywords: ["optimization", "optimisation", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "extreme performance"]
 ---
 
-# Optimization Toolkit
+# Optimisation Toolkit
 
-**Extreme optimization techniques** from demoscene legends + systematic kernel tuning. Use when standard optimization is insufficient.
+Treat optimisation techniques as hypotheses, not rules. Correctness, workload semantics and a measured bottleneck decide which technique is appropriate. This skill covers the search strategy; use kernel-tuning and the relevant CPU/GPU stack for detailed target-specific work.
 
----
+## 1. Establish the objective
 
-## 1. Demoscene Legends Framework
+Before tuning, record:
+- The exact function/request path and representative workload.
+- Required output semantics, precision, determinism and error tolerance.
+- Current end-to-end latency, throughput, memory use, code size and failure rate, as relevant.
+- Compiler, flags, binary revision, hardware, driver/runtime, power state and measurement boundary.
+- The strongest semantically equivalent baseline.
 
-When optimizing any hot path, enumerate what each legend would do:
+Set an acceptance objective before editing. For example, improving a matmul microkernel is not a win if dispatch overhead, data conversion or copies make the application slower.
 
-### farbrausch (Minimalism)
-- **Code size**: Fit in KB, not MB
-- **Hand-tuned asm**: Critical loops in asm
-- **Aggressive inlining**: No call overhead
-- **Lookup tables**: Trade memory for compute
-- **Binary compression**: Crunch/Crinkler
-- **Dead code elimination**: Strip every unused byte
+## 2. Find the actual bottleneck
 
-### Ryg / BeRo (Instruction-Level)
-- **ILP**: Schedule independent ops (VLIW style)
-- **Non-temporal stores**: Bypass cache for streaming
-- **Prefetching**: Software prefetch ahead
-- **Bit manipulation**: Bit tricks over arithmetic
-- **Custom toolchains**: Specialized compilers
+1. Reproduce the workload and validate its output.
+2. Profile end-to-end behaviour, then drill into the measured hot region.
+3. Classify the dominant limit: algorithmic work, dependency latency, instruction throughput, memory bandwidth, cache misses, data movement, launch/dispatch, synchronisation, allocation or queueing.
+4. Write a falsifiable hypothesis that predicts which measurement should change.
+5. Change one principal variable at a time and rerun the same test.
+6. Keep the change only when improvement is reproducible and correctness remains within the declared contract.
 
-### Haujobb (Streaming)
-- **Single-pass**: No intermediate buffers
-- **Register tiling**: Reuse loaded data
-- **SIMD dot-product**: Specialized instructions
-- **Software pipelining**: Overlap dequantize/compute
-- **Coalesced access**: Stride-1, no scatter/gather
-- **Stall hiding**: Schedule to fill bubbles
+Do not hard-code a rule such as “profile the 90% path” or assume Amdahl's law's hot region is already known. Use the measured profile and end-to-end impact.
 
-### Wayfinder / Fiver2 (Procedural)
-- **Procedural generation**: Generate, don't store
-- **Algorithmic compression**: Fractal/noise replace assets
-- **Bit-packing**: Multiple values per register
-- **XNOR + popcount**: Binary neural nets
-- **Fixed-point**: Eliminate float
-- **1-bit quantization**: Extreme compression
+## 3. Candidate techniques
 
-### Chaos Inc / KB (Entropy)
-- **Procedural content**: Generate from seeds
-- **Minimal engines**: 1-4KB outperforming larger
-- **Self-modifying code**: Specialize at runtime
-- **Entropy coding**: Minimum representation
+| Technique | Consider when | Verify before keeping |
+|---|---|---|
+| Algorithmic reduction | Work count or asymptotic cost dominates | Same semantics, edge cases and memory growth |
+| Fusion / remove intermediates | Allocation, writes or intermediate reads dominate | Aliasing, lifetime, parallelism and changed rounding |
+| Data layout / tiling | Poor locality or repeated loads are measured | Stride, alignment, cache footprint, tails and resource pressure |
+| SIMD / matrix instructions | Target ISA supports the operation and arithmetic dominates | Runtime feature dispatch, operand layout, accumulator semantics and scalar fallback |
+| Prefetching | Hardware misses are visible and access is predictable | Extra traffic, cache pollution and end-to-end result |
+| Non-temporal / cache-bypass operations | Streaming access has little near-term reuse | Exact architecture semantics, alignment, ordering and destination consumption |
+| Branch removal / bit tricks | Branch cost or dependency is measured | Valid input domain, overflow and compiler output |
+| Procedural generation / compression | Asset or model-data bandwidth dominates | Decode compute, determinism, quality and memory trade-off |
+| Specialisation / JIT | Workload shape/reuse justifies compile/cache cost | Cache keys, invalidation, security, warm-up and fallback |
+| Smaller binary / reduced runtime | Startup, distribution or footprint is the limit | Debuggability, CPU features, licensing and loader requirements |
 
----
+Demoscene-inspired minimalism, procedural generation, aggressive compression and hand-tuned assembly are useful exploration prompts. They are not automatically faster than a general-purpose algorithm, cache, or compiler-generated implementation. Self-modifying code and runtime code generation add security and portability costs and must be justified separately.
 
-## 2. Generic Application Framework
+## 4. Roofline and resource reasoning
 
-For ANY optimization challenge:
+Use arithmetic intensity as a first-order model:
 
-1. **Find hot path**: Profile → identify 90% time
-2. **Eliminate intermediates**: Fuse all buffers/arrays
-3. **Tighten data layout**: Cache-line friendly, SIMD accessible
-4. **Reduce memory traffic**: Every byte reused multiple times
-5. **Remove branches**: Convert to arithmetic/bit tricks
-6. **Inline everything**: Call overhead = death for inner loops
-7. **Specialize**: Generate code for specific problem
+    arithmetic intensity = operations / bytes transferred at the relevant memory level
 
----
+A rough upper bound is the smaller of attainable compute throughput and arithmetic intensity multiplied by attainable bandwidth. Define what counts as an operation, which memory level supplies the bytes and which precision is being used. The roofline model does not capture launch overhead, dependencies, cache conflicts, synchronisation or irregular control flow by itself.
 
-## 3. Kernel Tuning (Systematic)
+For CPUs, inspect generated instructions, vectorisation reports, cache/TLB misses, branch behaviour, NUMA placement and memory-controller limits. Cache-line sizes and latencies vary by processor; query the target and do not turn sample values into universal constants.
 
-### Roofline Model
-```
-Compute-bound: FLOPs > AI × Bandwidth  (bounded by compute peak)
-Memory-bound:  FLOPs < AI × Bandwidth  (bounded by memory bandwidth)
-AI = FLOPs / Bytes accessed
-```
-Plot on roofline chart → identify bottleneck.
+For GPUs, inspect registers, occupancy, shared/LDS usage, global-memory coalescing, wave/warp and subgroup assumptions, queue/launch overhead and measured achieved throughput. Maximum occupancy is not a universal goal: larger tiles or more register reuse can win even when occupancy falls.
 
-### Profiling Methodology
-1. **Baseline** — hardware counters at entry
-2. **Profile hot loops** — `perf record -g` / VTune / `rocm-smi`
-3. **Identify bottleneck** — CPU cycles, cache misses, branch misses, memory latency
-4. **Optimize one variable** — isolate cause before fixing
-5. **Validate** — re-measure vs baseline, check correctness
+## 5. Architecture-specific discipline
 
-### CPU Cache Optimization
-| Level | Size | Latency | Strategy |
-|-------|------|---------|----------|
-| L1 | 32-48KB/core | ~1 cycle | Hot data, register spill |
-| L2 | 256-512KB/core | ~3 cycles | Working set |
-| L3 | 8-32MB shared | ~12 cycles | Shared data |
-| **Cache line** | **64 bytes** | — | **Sequential access only** |
+- Compile and dispatch for features actually supported by the deployment target. A build flag that enables an instruction is not runtime feature detection.
+- Avoid family-name tables as substitutes for ISA documentation. Verify exact instruction names, operand packing, lane mapping and availability using the target ISA manual, compiler headers and generated code.
+- Cache hints, subgroup operations, matrix instructions and tensor formats have architecture-specific semantics. Never assume a cache-bypass flag means universal non-temporal behaviour.
+- Keep a scalar/reference path and compare edge cases before timing.
+- For AMD, use amd-gpu-stack for HIP/ROCm and shader-opt or vulkan-compute-stack for Vulkan. For NVIDIA, use nvidia-cuda-stack. For x86 instruction selection, use x86-arch.
 
-```bash
-perf stat -e cache-references,cache-misses ./app
-__builtin_prefetch(ptr, rw, locality)  # rw: 0=read, 1=write; locality: 0-3
-```
+## 6. Benchmark discipline
 
-### Memory Access Patterns
-| Pattern | Description | Penalty |
-|---------|-------------|---------|
-| **Coalesced** | Thread i → addr base + i×stride | None (ideal) |
-| **Strided** | Thread i → addr base + i×stride×K | × stride factor |
-| **Random** | Thread i → random addr | Worst (serialize to DRAM latency) |
-| **Bank conflicts** | Multiple threads → same bank | Serialize |
+Run repeated, equivalent trials. Report a robust centre and spread, not only the fastest result. Warm-up, compilation, loading, CPU scheduling, GPU clocks, thermal state, power state and cache state can change results.
 
-### NUMA Awareness
-```bash
-numactl --cpunodebind=N --membind=N ./app
-numactl -H  # show topology
-numa_alloc_onnode(size, node)  # allocate near CPU
-```
+Keep setup outside the timed region unless setup is the target being measured. Synchronise according to the API's actual completion semantics. For asynchronous GPU launches, do not time only the host enqueue call and label it device execution.
 
-### GPU Occupancy (CUDA/HIP)
-```bash
-# Theoretical max
-cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocks, kernel, block_size, shared_mem)
+Use hyperfine, perf, VTune, Nsight or a ROCm profiler only where appropriate to the platform and installed version. Check command help and capture raw output. Do not put a C intrinsic expression inside a shell-command block and imply it is executable. Do not use perf event names that are unsupported on the target CPU.
 
-# Targets
-Occupancy = active warps / max warps per SM → Goal: ~75%
-Block size: multiple of 32 (warp), 128-256 sweet spot
-Registers: reduce with -maxrregcount=N (may spill)
-```
+## 7. Acceptance and report
 
-### CPU Instruction Optimization
-```bash
-# Agner Fog tables for latency/throughput
-# -O3 -march=native -funroll-loops
-# Vectorization reports:
-#   Intel: --report
-#   GCC: -fopt-info-vec
-# Manual: #pragma omp simd, intrinsics
-```
+A proposed optimisation is accepted only when:
+- Reference/boundary tests pass.
+- The same workload and measurement boundary show a reproducible improvement.
+- The final diff has been reviewed for overflow, aliasing, races, error handling and fallback behaviour.
+- Memory, code size, power, startup time, debuggability and portability trade-offs are stated.
+- The end-to-end result is not worse beyond the declared tolerance.
 
-### Tuning Workflow
-```bash
-# 1. Benchmark
-hyperfine --warmup 3 './app'
-
-# 2. Pin & disable scaling
-taskset -c 0 ./app
-cpupower frequency-set -g performance
-
-# 3. Run 10+ comparable iterations and report median, spread and best observed sample. The minimum is not a hardware ceiling and can reflect noise, cache state or measurement bias.
-# 4. Profile
-perf record -g ./app
-perf report --stdio
-```
-
----
-
-## 4. RDNA2/ROCr/HSA Translation (GPU)
-
-| Demoscene Concept | RDNA2/ROCr Mapping |
-|-------------------|---------------------|
-| **Bit-packing** | Pack 8 int4 / 4 int8 into 32-bit VGPR, use `v_dot8_i32_i4` |
-| **Fused pipelines** | Read packed weights, scale via `v_mul`/`v_pk`, accumulate int32 |
-| **Register tiling** | Reuse 8×8 weight tiles across work-items |
-| **LUT optimization** | LDS table indexed by quantized value |
-| **Non-temporal stores** | `glc`/`dlc`/`slc` cache hints on loads/stores |
-| **Bump allocator** | Pre-allocate HSA pool, hand out from bump buffer |
-| **Software pipeline** | Overlap dequant(next) with compute(current) |
-| **ILP** | Schedule independent SGPR/VGPR ops, hide `s_waitcnt` stalls |
-
-### RDNA2 Native Dot Instructions (Raw GCN only)
-```asm
-// v_dot8_i32_i4: 8×int4 × 8×int4 → int32 accumulate
-v_dot8_i32_i4 v0, v1, v2, v3
-
-// v_dot4_i32_i8: 4×int8 × 4×int8 → int32
-v_dot4_i32_i8 v0, v1, v2
-
-// v_dot2_i32_i16: 2×int16 × 2×int16 → int32
-v_dot2_i32_i16 v0, v1, v2
-```
-
----
-
-## 5. Validation Gates
-
-```bash
-# Baseline
-hyperfine --warmup 5 './app' --export-json baseline.json
-
-# After optimization
-hyperfine --warmup 5 './app_opt' --export-json optimized.json
-
-# Compare
-python -c "
-import json
-b = json.load(open('baseline.json'))
-o = json.load(open('optimized.json'))
-print(f'Speedup: {b[0][\"mean\"]/o[0][\"mean\"]:.2f}x')
-print(f'Baseline: {b[0][\"mean\"]*1000:.1f}ms')
-print(f'Optimized: {o[0][\"mean\"]*1000:.1f}ms')
-"
-
-# Correctness
-./test_correctness --compare=reference
-```
-
----
-
-## Output Report
-
-```
-OPTIMIZATION TOOLKIT: <technique> APPLIED
-HOT PATH: <function> (<pct>% of runtime)
-TECHNIQUE: <demoscene legend / kernel tuning>
-BEFORE: <cycles> cycles, <cache_miss>% miss, <bandwidth> GB/s
-AFTER:  <cycles> cycles, <cache_miss>% miss, <bandwidth> GB/s
-SPEEDUP: <x>x (<baseline_ms>ms → <opt_ms>ms)
-CORRECTNESS: differential test ✅/❌
-TRADEOFFS: <code size> <register pressure> <maintainability>
-BLOCKERS: <ISA support|compiler|debuggability>
-```
-
----
+    OPTIMISATION REPORT
+    HOT PATH: symbol/request path and measured share
+    BOTTLENECK: evidence and hypothesis
+    CHANGE: algorithm/layout/ISA/runtime and target
+    BASELINE: workload and repeated measurements
+    RESULT: centre, spread, speedup and end-to-end impact
+    CORRECTNESS: reference and edge-case results
+    TRADE-OFFS: memory, code size, power, portability
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
 
 ## Boundaries
 
-- Does not write algorithmic code (receives hot path to optimize)
-- Does not manage build systems (see `toolchains`)
-- Does not validate correctness beyond differential testing
-- `stop optimization-toolkit`: revert.
+- Use kernel-tuning for a focused measured CPU/GPU kernel.
+- Use demoscene-opt for compact procedural graphics and size-constrained design patterns.
+- Use sherlock-it for multi-layer root-cause performance tracing.
+- Use low-level-toolkit for assembly, disassembly and ABI work.

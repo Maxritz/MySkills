@@ -1,320 +1,208 @@
 ---
 name: python-engineering
-description: "Production Python engineering: packaging, typing, async, native extensions, testing, reproducible environments. Modern tooling (ruff, mypy, uv, meson)."
+description: "Production Python engineering: package metadata, typing, async lifetime, native extensions, tests and reproducible builds."
 compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["Python", "packaging", "typing", "asyncio", "testing", "cffi", "meson", "uv", "ruff", "mypy", "reproducible"]
 ---
 
 # Python Engineering
 
-**Production-grade Python: packaging, typing, async, native extensions, testing, reproducible environments.**
+Use the project’s pinned interpreter and toolchain. A sample dependency version is not a promise that it is current or compatible with every Python release. Keep source, lockfile, build backend and runtime environment aligned.
 
----
+## 1. Package layout and metadata
 
-## Package Layout (src-layout)
+Use a src layout so tests do not accidentally import the checkout instead of the installed package.
 
-```
-pyproject.toml
-README.md
-src/
-  mypkg/
-    __init__.py
-    _version.py          # setuptools-scm or manual
-    contracts.py         # Public interfaces (TypedDict, Protocol)
-    core.py              # Pure Python logic
-    native/              # C/C++/Rust extensions (if any)
-      __init__.py
-      _native.c
-      _native.h
-      pyproject.toml     # meson.build or setup.py for extension
-    async/               # Async services
-      __init__.py
-      server.py
-      client.py
-    sync/                # Sync wrappers
-      __init__.py
-    cli/                 # CLI entry points
-      __init__.py
-      main.py
-tests/
-  unit/
-  integration/
-  contract/              # Differential tests for conversions
-benchmarks/
-```
+    pyproject.toml
+    src/
+      mypkg/
+        __init__.py
+        contracts.py
+        core.py
+        cli/
+          __init__.py
+          main.py
+        async_service/
+          __init__.py
+          server.py
+        native/
+          __init__.py
+    tests/
+      unit/
+      integration/
+      contract/
+    benchmarks/
 
-## pyproject.toml (Modern)
+Do not name an importable package directory async: async is a Python keyword, and paths such as mypkg.async.server cannot be written as ordinary dotted imports. Use async_service or another valid package identifier.
 
-```toml
-[build-system]
-requires = ["setuptools>=68", "wheel", "setuptools-scm[toml]>=8"]
-build-backend = "setuptools.build_meta"
+A minimal PEP 621 pyproject pattern:
 
-[project]
-name = "mypkg"
-version = "0.1.0"
-description = "Production Python package"
-readme = "README.md"
-requires-python = ">=3.11"
-dependencies = [
-    "numpy>=1.26",
-    "pydantic>=2.0",
-    "click>=8.0",
-]
-optional-dependencies = {
-    "dev" = ["pytest", "pytest-asyncio", "pytest-cov", "ruff", "mypy", "pyright"],
-    "perf" = ["numba", "line-profiler", "memory-profiler"],
-    "native" = ["cffi", "meson-python"],
-}
+    [build-system]
+    requires = ["setuptools>=68", "wheel"]
+    build-backend = "setuptools.build_meta"
 
-[project.entry-points]
-console_scripts = ["mypkg = mypkg.cli.main:main"]
+    [project]
+    name = "mypkg"
+    version = "0.1.0"
+    description = "Example package"
+    requires-python = ">=3.11"
+    dependencies = ["numpy>=1.26"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["mypkg*"]
+    [project.optional-dependencies]
+    dev = ["pytest", "pytest-asyncio", "pytest-cov", "ruff", "mypy", "pyright"]
+    native = ["cffi", "meson-python"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-select = ["E", "F", "I", "UP", "B", "C4", "PTH", "T20", "SIM", "ARG"]
-ignore = ["S101"]
+    [project.scripts]
+    mypkg = "mypkg.cli.main:main"
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
-disallow_untyped_defs = true
-check_untyped_defs = true
-```
+    [tool.setuptools.packages.find]
+    where = ["src"]
+    include = ["mypkg*"]
 
-## Contracts (Public Interfaces)
+The versions above are illustrative minimum constraints. For a reproducible application, resolve and commit a platform-appropriate lock file; test installation from a clean environment. If using setuptools-scm, configure dynamic project versioning rather than combining an accidental static version with an unused SCM plugin.
 
-```python
-# contracts.py
-from typing import Protocol, TypedDict, Literal, runtime_checkable
-from dataclasses import dataclass
-from numpy.typing import NDArray
+Ruff configuration should use the current configuration schema supported by the locked tool version. Run ruff check and ruff format --check in CI, and keep formatting separate from lint-fix commands so CI does not silently rewrite source.
 
-class TensorSpec(TypedDict):
-    shape: tuple[int, ...]
-    dtype: Literal["float32", "float16", "bfloat16", "int8", "int4"]
-    device: Literal["cpu", "cuda", "hip"]
+## 2. Public contracts and typing
 
-@runtime_checkable
-class EmbeddingProvider(Protocol):
-    def encode(self, texts: list[str]) -> NDArray[np.float32]: ...
-    def encode_async(self, texts: list[str]) -> Awaitable[NDArray[np.float32]]: ...
+- Import every type used in annotations. A module with NDArray[np.float32] needs the relevant NumPy typing import and the np name; an Awaitable annotation needs Awaitable.
+- Use Protocol for structural interfaces, TypedDict for dictionary-shaped payloads and dataclasses for value objects when they match the actual contract.
+- Type hints do not validate untrusted runtime input. Check shapes, dimensions, enum values, ranges, device/backend support and ownership at public boundaries.
+- Use stable public types and translate internal exceptions/errors at module boundaries.
+- Avoid misleading cross-framework device labels. PyTorch on ROCm commonly presents the device type as cuda even though the underlying platform is AMD; distinguish framework device strings from the actual GPU backend.
+- Document mutability and ownership for NumPy views, native pointers and asynchronous results. Do not return a view whose backing buffer may be freed before the caller uses it.
 
-@dataclass(frozen=True, slots=True)
-class InferenceRequest:
-    prompt: str
-    max_tokens: int = 512
-    temperature: float = 1.0
-    top_p: float = 1.0
-    seed: int | None = None
+A coherent typing example:
 
-@dataclass(frozen=True, slots=True)
-class InferenceResponse:
-    text: str
-    token_ids: list[int]
-    logprobs: list[float] | None
-    usage: dict[str, int]  # prompt, completion, total
-```
+    from collections.abc import Awaitable
+    from dataclasses import dataclass
+    from typing import Literal, Protocol, TypedDict, runtime_checkable
+    import numpy as np
+    from numpy.typing import NDArray
 
-## Type Checking & Linting
+    class TensorSpec(TypedDict):
+        shape: tuple[int, ...]
+        dtype: Literal["float32", "float16", "bfloat16", "int8"]
+        device: str  # Runtime-specific identifier, validated by the package.
 
-```bash
-# Type check
-mypy src/
-pyright src/
+    @runtime_checkable
+    class EmbeddingProvider(Protocol):
+        def encode(self, texts: list[str]) -> NDArray[np.float32]: ...
+        def encode_async(self, texts: list[str]) -> Awaitable[NDArray[np.float32]]: ...
 
-# Lint
-ruff check src/ tests/
-ruff format src/ tests/
+    @dataclass(frozen=True, slots=True)
+    class InferenceRequest:
+        prompt: str
+        max_tokens: int = 512
+        temperature: float = 1.0
+        top_p: float = 1.0
+        seed: int | None = None
 
-# Pre-commit (install: pre-commit install)
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
-      - id: mypy
-```
+        def __post_init__(self) -> None:
+            if self.max_tokens < 1:
+                raise ValueError("max_tokens must be positive")
+            if not 0.0 <= self.temperature:
+                raise ValueError("temperature must be non-negative")
+            if not 0.0 < self.top_p <= 1.0:
+                raise ValueError("top_p must be in (0, 1]")
 
-## Testing
+The interfaces are examples of type shape; production code must also implement the provider, cancellation contract, and runtime checks. An ellipsis in a Protocol is a declaration, not a fake implementation.
 
-```python
-# tests/unit/test_core.py
-import pytest
-from mypkg.core import process_batch
-from mypkg.contracts import TensorSpec
-import numpy as np
+## 3. Async lifetime and cancellation
 
-def test_process_batch_shapes():
-    input_spec = TensorSpec(shape=(32, 1024), dtype="float32", device="cpu")
-    output = process_batch(np.random.randn(*input_spec["shape"]).astype(np.float32))
-    assert output.shape == (32, 512)
-    assert output.dtype == np.float32
+Keep the server or client object alive for the whole async context. Do not create a new context manager in start and a different one in stop. Do not cancel all tasks in the process indiscriminately: that can cancel unrelated service work.
 
-# tests/integration/test_async.py
-@pytest.mark.asyncio
-async def test_server_throughput():
-    from mypkg.async_.server import InferenceServer
-    server = InferenceServer()
-    await server.start()
-    
-    async def request():
-        return await server.generate("Hello", max_tokens=100)
-    
-    results = await asyncio.gather(*[request() for _ in range(100)])
-    assert all(r.text for r in results)
-    
-    await server.stop()
-```
+A simple server lifecycle:
 
-## Async Engineering
+    import asyncio
+    from collections.abc import Awaitable, Callable
 
-```python
-# async/server.py
-import asyncio
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import AsyncIterator
+    ClientHandler = Callable[
+        [asyncio.StreamReader, asyncio.StreamWriter], Awaitable[None]
+    ]
 
-@dataclass(slots=True)
-class ServerConfig:
-    host: str = "0.0.0.0"
-    port: int = 8000
-    max_concurrent: int = 100
-    request_timeout: float = 30.0
+    async def serve(host: str, port: int, handler: ClientHandler) -> None:
+        server = await asyncio.start_server(handler, host, port)
+        async with server:
+            await server.serve_forever()
 
-class InferenceServer:
-    def __init__(self, config: ServerConfig):
-        self.config = config
-        self._semaphore = asyncio.Semaphore(config.max_concurrent)
-        self._server: asyncio.Server | None = None
-    
-    @asynccontextmanager
-    async def lifespan(self) -> AsyncIterator[None]:
-        self._server = await asyncio.start_server(
-            self._handle_client, self.config.host, self.config.port
-        )
+Use this only as a lifecycle pattern. The handler still has to implement a real protocol, framing, authentication, request limits and structured errors. asyncio streams do not automatically implement HTTP or an application wire protocol.
+
+Use bounded concurrency and timeouts at the layer where the deadline is defined. Account for queueing time as well as execution time. Cancelling a coroutine that awaits run_in_executor does not necessarily stop the worker thread; long-running synchronous work needs its own cancellation/cooperative stop contract.
+
+    async def run_with_timeout(operation, timeout_seconds: float):
         try:
-            yield
-        finally:
-            self._server.close()
-            await self._server.wait_closed()
-    
-    async def start(self) -> None:
-        await self.lifespan().__aenter__()
-    
-    async def stop(self) -> None:
-        await self.lifespan().__aexit__(None, None, None)
-    
-    async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        async with self._semaphore:
-            try:
-                data = await asyncio.wait_for(reader.read(65536), timeout=self.config.request_timeout)
-                request = parse_request(data)
-                
-                loop = asyncio.get_running_loop()
-                response = await loop.run_in_executor(None, self._generate_sync, request)
-                
-                writer.write(serialize_response(response))
-                await writer.drain()
-            except asyncio.TimeoutError:
-                writer.write(b"ERROR: timeout")
-            finally:
-                writer.close()
-                await writer.wait_closed()
-    
-    def _generate_sync(self, request) -> InferenceResponse:
-        pass
-```
+            async with asyncio.timeout(timeout_seconds):
+                return await operation()
+        except TimeoutError as exc:
+            raise TimeoutError(
+                f"operation exceeded {timeout_seconds} seconds"
+            ) from exc
 
-## Cancellation & Cleanup
+This example requires Python 3.11 or newer. Use platform-specific signal integration: loop.add_signal_handler is not supported on every platform, including common Windows event-loop configurations. On shutdown, stop accepting requests, drain or cancel owned tasks according to contract, wait for workers, release resources and then close the loop.
 
-```python
-async def with_timeout(coro, timeout: float):
-    try:
-        return await asyncio.wait_for(coro, timeout)
-    except asyncio.TimeoutError:
-        raise TimeoutError(f"Operation timed out after {timeout}s")
+## 4. Testing
 
-# Graceful shutdown
-async def shutdown(signal, loop):
-    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-    for task in tasks:
-        task.cancel()
-    await asyncio.gather(*tasks, return_exceptions=True)
-    loop.stop()
+- Use deterministic fixtures for structural tests. Random unseeded input is appropriate for fuzz/property tests, not a fragile golden test.
+- Test public import paths after building/installing the package, not only from the repository root.
+- Include invalid shapes/types, empty inputs, cancellation, timeout, dependency failure and resource cleanup.
+- Use pytest-asyncio or the framework's current supported async mode, and import asyncio in tests that call asyncio.gather.
+- Ensure integration tests exercise the real boundary at least once; mocks are for isolating dependencies, not for pretending the entire integration works.
+- Do not assert exact timing as a functional guarantee. Keep performance tests separate, repeat them and report variance.
 
-loop = asyncio.get_event_loop()
-for sig in (signal.SIGTERM, signal.SIGINT):
-    loop.add_signal_handler(sig, lambda s=sig: asyncio.create_task(shutdown(s, loop)))
-```
+Example shape test:
 
-## Reproducible Environments
+    import numpy as np
+    from mypkg.core import process_batch
 
-```bash
-# uv (fast, reliable)
-uv pip compile pyproject.toml -o requirements.lock
-uv pip sync requirements.lock
+    def test_process_batch_shapes():
+        source = np.ones((32, 1024), dtype=np.float32)
+        output = process_batch(source)
+        assert output.shape == (32, 512)
+        assert output.dtype == np.float32
 
-# Or pip-tools
-pip-compile pyproject.toml -o requirements.lock
-pip-sync requirements.lock
-```
+This test is valid only if the product contract defines that output shape; change the fixture to the actual contract rather than keeping a fabricated expected value.
 
-## Docker (Reproducible Build)
+## 5. Native extensions and FFI
 
-```dockerfile
-# syntax = docker/dockerfile:1.7
-FROM python:3.11-slim AS builder
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential cmake ninja-build pkg-config \
-    libcuda-dev libcurand-dev libcusolver-dev
-WORKDIR /build
-COPY pyproject.toml requirements.lock ./
-RUN pip install --no-cache-dir -r requirements.lock
-COPY . .
-RUN pip install --no-cache-dir --no-deps .
+- Pin the C/C++ compiler, Python ABI, build backend and target architecture. Wheels are platform/ABI-specific unless deliberately built as a compatible manylinux or other supported tag.
+- Validate dtype, dimensions, strides, contiguity, alignment, byte size and integer overflow before crossing into native code.
+- Define who owns each pointer, how long buffers stay alive, whether calls release the GIL, and how exceptions/errors return to Python.
+- Do not let a C++ exception cross a C ABI. Convert errors at the boundary and keep C declarations in a C-compatible header.
+- Include a scalar/reference implementation and compare extension output with explicit tolerance, including edge sizes and unsupported CPU-feature fallback.
+- Test both a clean wheel build and installation in a fresh environment. An editable install can hide missing package files or extension build inputs.
 
-FROM python:3.11-slim AS runtime
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /build/mypkg /app/mypkg
-WORKDIR /app
-ENTRYPOINT ["python", "-m", "mypkg.cli.main"]
-```
+Use cffi or meson-python when they fit the extension contract. Do not add Numba/CUDA as a generic acceleration path for AMD or Vulkan: the backend support is specific to the installed toolchain and must be proven on the target.
 
-## Output Report
+## 6. Reproducible environment and container
 
-```
-PYTHON ENGINEERING: ANALYSIS
-PACKAGE: <name> <version>
-TYPING: mypy/pyright clean ✅/❌
-LINT: ruff clean ✅/❌
-TESTS: unit✅/❌ integration✅/❌ contract✅/❌
-ENV: reproducible ✅/❌
-BLOCKERS: <missing deps|native build|conversion gap>
-```
+Use a lock-generation tool that matches the project metadata and the target platform. A lockfile records resolved dependencies; it does not prove those packages are compatible with the GPU driver or native ABI.
+
+Example with uv, after installing and pinning an appropriate uv version:
+
+    uv pip compile pyproject.toml -o requirements.lock
+    uv pip sync requirements.lock
+
+Build native extensions in a builder stage compatible with the runtime Python ABI, OS, libc and architecture. Do not install arbitrary CUDA development packages into a generic image and assume they match the host driver. Separate CPU and accelerator images if their dependencies differ. Run the container as a non-root user, keep credentials out of image layers, pin base images for release builds and test the final image rather than only the builder.
+
+## Completion report
+
+    PYTHON: VERSION / PLATFORM / PACKAGE BUILD
+    CONTRACT: inputs, outputs, ownership and error semantics
+    CHECKS: lint/type/build/test commands and exit codes
+    ASYNC: cancellation, deadlines and shutdown tested
+    NATIVE: ABI, wheel compatibility and differential checks
+    REPRODUCIBILITY: lockfile, fresh install and image test
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    LIMITATIONS: explicit list
 
 ## Boundaries
 
-- Does not write kernel code (see `nvidia-cuda-stack`/`amd-gpu-stack`)
-- Does not serve models (see `llm-serving`)
-- Does not validate model formats (see `model-formats`)
-- Does not optimise numerical kernels (see `python-perf`)
-- Does not convert to native targets (see `python-conversion`)
-- `stop python-engineering`: revert.
+- Use python-conversion for language/legacy conversion projects.
+- Use python-perf for profiling, vectorisation and native acceleration.
+- Use c-systems for native ABI/ownership design.
+- Use test-engineering for deeper test architecture and Goli-mat-de for auditing fake or unverified implementation claims.

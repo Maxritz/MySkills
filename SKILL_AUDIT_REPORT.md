@@ -69,3 +69,24 @@ These are source reviews and edits. They have not yet been claimed as compiled o
 The model-format guide now distinguishes GGUF tensor-data-relative offsets and block quantisation sizes from simple element-width estimates; removes the invalid assumption that SafeTensors tensor offsets must be 64-byte aligned; permits empty tensor ranges; treats shard indexes as a separate file; and requires duplicate-key, overlap, bounds and resource-limit checks. It also replaces a nested-tolerance dictionary/type bug with an explicit comparison contract, separates syntactic validity from runtime support and task quality, and directs OpenVINO conversion to the current OVC workflow while requiring version verification.
 
 The guide references upstream specifications rather than claiming that a handcrafted parser or static example is already validated.
+
+
+## Second deep pass: language, ISA and architecture examples
+
+- `c-systems`: consolidated C99/C++ ownership, language-mode, ABI, exception-boundary and concurrency contracts; added checked size arithmetic, C-compatible public-header framing and target-specific validation.
+- `python-engineering`: corrected package metadata layout, invalid `async` import-directory example, typing imports, async lifecycle, unimplemented service handler, broad cancellation behaviour and platform-specific signal assumptions.
+- `python-conversion`: removed a hard-coded model-family shape manifest, mixed source languages in a single build snippet and placeholder CUDA/HIP discovery functions. Added a component-level semantic contract and independent differential-test helper.
+- `porting-toolkit`: replaced unsafe cross-platform allocator macros and an incomplete assembly example with platform-capability contracts, one-delta-at-a-time porting and explicit hardware-versus-emulation acceptance.
+- `low-level-toolkit`: removed a fixed-instruction-length emulator stub and a malformed SIMD reduction sample; added a target-specific assembly contract and runtime-dispatch requirement.
+- `optimization-toolkit`: removed universal cache/occupancy assumptions and unverified RDNA2 dot-instruction claims; tuning techniques are now hypotheses confirmed by same-workload measurements.
+- `nvidia-cuda-stack`: corrected the extended cluster-launch pattern to use launch attributes and added a version/capability gate.
+- `amd-gpu-stack`: distinguishes API, runtime, ISA, OS support and profiling layers; avoids guessing queue placement or supported targets from GPU marketing names.
+- `sys-arch` and `architecture-boundaries`: replace universal exactly-once payment claims and blind provider failover with durable pending state, idempotency scope, outbox/reconciliation and explicit cache-staleness contracts.
+- `windows-user`: separates process exit status from Win32 failure, uses a mutable CreateProcess command-line buffer and documents overlapped-I/O completion lifetime and error paths.
+
+## New specialist skills
+
+- `windows-driver-dev`: WDK, KMDF/UMDF/WDM/WDDM distinctions, PnP/power lifecycle, IOCTL validation, DMA, signing and Driver Verifier/HLK gates.
+- `llm-evaluation`: reproducible functional, numerical, task-quality, safety and performance gates for model/runtime changes.
+
+The catalogue now targets 65 specialist skills and keeps full topic details on-demand. These changes are source-reviewed; this report does not claim all platform-specific samples were compiled or executed on native hardware.
