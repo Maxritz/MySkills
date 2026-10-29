@@ -76,7 +76,7 @@ grep "pattern:" .opencode/analysis.md
   "id": "gguf-parser-v1",
   "topic": "gguf-parser",
   "summary": "Added Q4_0 dequant, header validation, overflow guard at tensor_load().",
-  "key_points": ["block_size=32", "overflow check on n_tensors", "q4_0 scale at offset 10"],
+  "key_points": ["block_size=32", "overflow check on n_tensors", "Q4_0 block layout verified against the pinned GGML revision"],
   "refs": ["gguf.c:87", "test_gguf.c:23"],
   "last_updated": "2026-08-25T22:00:00Z",
   "tokens": 420
@@ -113,7 +113,7 @@ ctx.py unload debug-localize → "debug-localize: applied, validated. 42 tokens 
 
 ---
 
-## 3. Development Process (10-Iteration Validation)
+## 3. Development Process (Risk-Sized Validation)
 
 ### Before Writing Code
 1. **Architecture first.** Component diagram: data flow, interfaces, ownership, error paths, cleanup. No code until covers inputs, outputs, edge cases, resource lifecycle.
@@ -121,7 +121,7 @@ ctx.py unload debug-localize → "debug-localize: applied, validated. 42 tokens 
 3. **Task breakdown.** ≤30-line units. Each: 1 purpose, 1 test, 1 file/function change.
    Format: `[component]: [action] → [expected invariant]`
 
-### 10-Iteration Validation (Never Skip)
+### Ten-check validation catalogue
 | Iter | Check | Tool |
 |------|-------|------|
 | **1** | Compile | `cmake --build -Werror` |
@@ -149,11 +149,11 @@ ctx.py unload debug-localize → "debug-localize: applied, validated. 42 tokens 
 ✅ I10: perf 12.3ms → 12.1ms (-1.6%)
 ```
 
-### Failure Protocol
-1. Generate truth table (debug-tracing).
-2. Generate data model trace.
-3. Inject to `ponytail`: "Trace: [truth table]. Fix minimally."
-4. Re-run all 10 iterations. **No advancement until ✅.**
+### Failure protocol
+1. Record the failing check and minimal evidence.
+2. Use a truth table or data-flow trace only when it can distinguish live hypotheses.
+3. Apply a minimal change tied to the confirmed cause.
+4. Re-run the failing check and affected regression gates; add broader checks when risk or coupling warrants it. A check marked NOT APPLICABLE needs a reason; an unrun check is never PASS.
 
 ### Plan Adherence
 - No deviation from vetted plan.
@@ -191,99 +191,9 @@ kb.py search "block size"     # max 3 results
 
 ---
 
-## 5. App Engine Deployment
+## Deployment boundary
 
-### app.yaml (Python 3.11, Standard)
-```yaml
-runtime: python311
-service: my-service
-env: standard
-
-instance_class: F2  # or B2 for basic
-automatic_scaling:
-  min_instances: 1
-  max_instances: 10
-  target_cpu_utilization: 0.65
-  target_throughput_utilization: 0.9
-
-handlers:
-- url: /static
-  static_dir: static
-- url: /.*
-  script: auto
-```
-
-### Scaling Modes
-| Mode | Behavior | Use Case |
-|------|----------|----------|
-| **Automatic** | Scales with traffic, cold starts on scale-up | Variable traffic |
-| **Basic** | Runs 24/7, scales on CPU/requests | Predictable traffic |
-| **Manual** | Fixed instance count | Steady traffic, no cold starts |
-
-**Reduce cold starts:** `min_idle_instances: 1`
-
-### Services & Routing (dispatch.yaml)
-```yaml
-dispatch:
-- url: "*/api/*"
-  service: api
-- url: "*/static/*"
-  service: static
-```
-
-### IAM & Authentication
-```bash
-# Deploy with service account
-gcloud app deploy --service-account=SA@PROJECT.iam.gserviceaccount.com
-
-# Staging (no promote)
-gcloud app deploy -v v1.2 --no-promote
-
-# Rollback
-gcloud app versions stop VERSION_ID
-
-# View logs
-gcloud app logs tail -s my-service
-```
-
-### Environment Variables & Secrets
-```yaml
-env_variables:
-  DEBUG: "0"
-# NEVER commit secrets to app.yaml!
-```
-
-**Use Secret Manager:**
-```yaml
-env: flex
-beta_settings:
-  secrets:
-  - name: "projects/PROJECT/secrets/SECRET_NAME"
-    version: "latest"
-    env: "SECRET_KEY"
-```
-
-### Cloud SQL
-```python
-# Unix socket (recommended)
-import os
-socket = f"/cloudsql/{os.environ['CONNECTION_NAME']}/.s.PGSQL.5432"
-conn = psycopg2.connect(host=socket, ...)
-
-# Or Cloud SQL Connector
-from google.cloud.sql import connector
-conn = connector.connect("project:region:instance", "pg8000", ...)
-```
-
-### CI/CD (Cloud Build)
-```yaml
-# cloudbuild.yaml
-steps:
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  args: ['gcloud', 'app', 'deploy']
-```
-
----
+For platform-specific deployment, release, rollback and runtime operations, load `deployment-operations` and `ci-release-engineering`. This skill maintains sanitised knowledge and development continuity; do not treat illustrative commands, SDK flags or configuration as valid for a target until checked against its current version and project policy.
 
 ## Cross-Cutting Validation
 
@@ -298,7 +208,7 @@ steps:
 [ ] Sanitization rules understood
 ```
 
-### Per-Change Checklist (10-Iteration)
+### Per-Change Checklist (select applicable gates)
 ```
 [ ] I1: Compile clean (-Werror)
 [ ] I2: Format clean (clang-format/ruff)
@@ -337,6 +247,13 @@ BLOCKERS: <unsanitized|missing repro|failed iter|secret in yaml>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Persist only verified, sanitised deltas. Keep hypotheses distinct from facts, avoid recording secrets or personal identifiers, and never make a saved note or example authoritative for a newer repository revision without rechecking it.
+
 
 ## Boundaries
 

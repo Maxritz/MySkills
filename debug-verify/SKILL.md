@@ -4,6 +4,7 @@ description: "Verification ladder: static→build→targeted→repro→different
 compatibility: opencode
 metadata:
   auto_unload: true
+  auto_trigger: false
   role: debugging
   loading: on-demand
 ---
@@ -151,13 +152,16 @@ kb.py add --category debugging \
 
 Append to `.opencode/analysis.md`:
 ```
-## 2026-10-08: parse_token magic validation
-- Bug: ERR_BAD_MAGIC on valid file
-- Cause: init() not called by caller
-- Fix: guards at parse.c:42
-- Pattern: validate preconditions at boundary
-- Verification: L1-L6 ✅, perf -1.6%
-```
+## Evidence hygiene
+
+Do not preserve one dated debug case as evergreen policy. Store reusable patterns separately from case-specific facts, include the revision and reproduction conditions, and revalidate any saved example before reuse.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Verify the exact changed revision and the original failure predicate. Report commands and results separately; distinguish PASS, FAIL, BLOCKED, NOT RUN and NOT APPLICABLE, and repeat the smallest affected regression set after each subsequent edit.
+
 
 ## Boundaries
 

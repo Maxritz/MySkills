@@ -1,6 +1,6 @@
 ---
 name: code-quality-gate
-description: "Unified quality gate: Doxygen contracts, 10-iteration validation, no-fake-code, traceability, Rust safety, component boundaries. Auto-triggers on all code changes."
+description: "Unified code quality gate: behavioural contracts, no-fake-code, risk-sized verification, traceability, Rust safety and component boundaries. Auto-triggers on implementation changes."
 compatibility: opencode
 metadata:
   auto_unload: true
@@ -17,14 +17,14 @@ metadata:
 ## Pipeline (Run in Order)
 
 ```
-WRITE → DOXYGEN → CONTRACTS → NO-FAKE-CODE → 10-ITER-VALIDATE → TRACEABILITY → COMPONENT-BOUNDARIES → REPORT
+WRITE → CONTRACTS → NO-FAKE-CODE → RISK-SIZED VALIDATION → TRACEABILITY → COMPONENT-BOUNDARIES → REPORT
 ```
 
-Each stage must PASS before next runs. Failure at any stage → STOP, fix, re-run from stage 1.
+Every applicable stage must PASS before completion. If a stage fails, fix it and repeat relevant upstream checks. Mark NOT APPLICABLE only with a reason; never recast an unrun or blocked check as PASS.
 
 ---
 
-## Stage 1: Doxygen Contracts (Every Function/Struct/Enum/Module)
+## Stage 1: Doxygen Contracts (Public APIs and non-trivial interfaces)
 
 **Required tags:** `@brief`, `@param[in|out|in,out]`, `@return`, `@pre`, `@post`, `@note`, `@warning`
 
@@ -124,38 +124,24 @@ int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len);
 
 ---
 
-## Stage 4: 10-Iteration Validation (Every Change)
+## Stage 4: Risk-sized validation (repeat until stable)
 
-| Iter | Check | Tool | Pass Criteria |
-|------|-------|------|---------------|
-| **1** | Compile | `cmake --build build -Werror` | 0 warnings, 0 errors |
-| **2** | Format | `clang-format --dry-run --Werror` | 0 diffs |
-| **3** | Unit Tests | `ctest -R <component> --output-on-failure` | 100% pass |
-| **4** | Reproduce | Capture repro case before fixing | Repro deterministic |
-| **5** | Golden Test | Known input → known output | Bit-exact match |
-| **6** | Fuzz Test | Malformed/random → graceful reject | 0 crashes, 0 hangs, 0 sanitizer hits |
-| **7** | Sanitizers | `ASan + UBSan` (MSVC: `/fsanitize=address,undefined`) | 0 leaks, 0 UB |
-| **8** | Flow Analysis | `debug-core`: truth table + data trace | All branches resolved |
-| **9** | Resource Audit | Every alloc→free, handle→close, lock→unlock | 0 leaks, 0 double-free |
-| **10** | Performance | Benchmark vs baseline | No >5% regression |
+The ten checks below form a validation catalogue. Do not force an irrelevant build, fuzz run or benchmark onto a documentation-only or unrelated edit. For every code change, inspect the diff and run the cheapest applicable checks; increase depth for changes to binary parsing, memory safety, concurrency, numerical code, kernels, public ABI, security boundaries or critical paths. Mark each check PASS, FAIL, BLOCKED, NOT RUN or NOT APPLICABLE with a reason. Repeat failed checks after the patch, and re-run linked regression gates when the change alters shared contracts.
 
-**Log format:**
-```
-✅ I1: compile clean (0W, 0E)
-✅ I2: format clean
-✅ I3: test_gguf ✅ (12/12)
-✅ I4: repro captured (test/inputs/corrupt.bin)
-✅ I5: golden test_gguf_golden ✅
-✅ I6: fuzz 10000 iterations ✅
-✅ I7: ASan+UBSan clean
-✅ I8: truth table: 3 branches, all resolved
-✅ I9: resource audit: 3 alloc/3 free, 0 leaks
-✅ I10: perf 12.3ms → 12.1ms (-1.6%)
-```
+| Gate | Tool/example | Pass criteria | When required |
+|---|---|---|---|
+| 1. Static/build | Project build, strict warnings, formatter | Applicable build/lint checks pass | Buildable code change |
+| 2. Unit/contract | Project test runner | Assertions exercise the changed behaviour | Behaviour or contract change |
+| 3. Reproducer | Exact failing invocation | Original failure is reproduced before fix where possible, then no longer occurs | Bug fix, regression or incident |
+| 4. Golden/reference | Pinned oracle or known vectors | Results match exact expected contract/tolerance | Parsers, formats, numerical paths, conversions |
+| 5. Fuzz/property | Bounded fuzz/property run | No crash, hang or invariant violation in tested corpus | Untrusted parsers, complex state or broad input domains |
+| 6. Sanitizers | ASan/UBSan/TSan or platform equivalent | No relevant reported violation | Native memory/concurrency paths where supported |
+| 7. Flow/branch | Call/data-flow, state model or truth table | Material paths and error branches accounted for | Multi-branch, async or stateful change |
+| 8. Resource/lifecycle | Allocation/handle/lock/cancellation audit | Ownership and cleanup hold across success/failure | Resource, async, OS or GPU changes |
+| 9. Integration | Target runtime/platform/hardware | Real wiring and completion path exercised | Cross-layer or platform-dependent change |
+| 10. Performance | Repeated workload benchmark with baseline | No unexplained material regression; correctness retained | Performance-sensitive change |
 
-**Bypass ONLY if user explicitly says:** "skip validation", "trust me", "I'll validate later", "no tests needed for this".
-
----
+A compile is not an end-to-end pass. A skipped test is not evidence. The user can narrow requested scope, but the report must retain all unrun checks and residual risks.
 
 ## Stage 5: Traceability Markers (Lean)
 
@@ -255,6 +241,13 @@ TRACEABILITY: <missing markers>
 RUST: <violations>
 BOUNDARIES: <cross-layer violations>
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Choose verification by change risk and touched contract. Treat the ten checks as a reusable validation catalogue, not ten mandatory executions for every trivial edit; every N/A needs a reason and every unrun check stays UNVALIDATED.
+
 
 ## Boundaries
 
