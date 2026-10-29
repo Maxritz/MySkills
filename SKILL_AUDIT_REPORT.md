@@ -47,3 +47,13 @@ The Goli-mat-de core is 696 words (5,516 characters); its optional deep-audit ma
 ## Verification contract
 
 Before merging this work, the current branch must pass repository CI. Passing structural checks demonstrates catalogue consistency, not that every skill is semantically correct or that every GPU, operating-system and cloud workflow has been executed. Hardware-specific or credentialed tests must be reported as BLOCKED or NOT RUN when unavailable.
+
+## Targeted implementation defects corrected
+
+- Bare-metal examples: replaced the wrapping 8-bit PCI bus loop with a bounded wider counter; corrected the PML4 → PDPT → PD hierarchy; made BSS clearing byte-exact; removed destructive BAR-size probing from enumeration; clarified that the BIOS transition is illustrative and that exception-frame layout must match assembly stubs.
+- Linux kernel example: replaced a character-driver sketch with undefined read/write callbacks by a self-contained read-only misc-device example; removed misleading generic debugfs toggles for KASAN/lockdep and documented build-configuration prerequisites.
+- Python performance example: fixed the AVX2 matrix kernel to vectorise contiguous output columns, added CPU feature dispatch, scalar fallback, dimension/overflow guards, strict C-contiguity and dtype checks, and a consistent CFFI header contract.
+- Inference engine guides: replaced duplicated vLLM/SGLang/TensorRT-LLM internal snippets with version-pinned investigation workflows, accurate smoke-test expectations and correctness/performance evidence requirements.
+- Windows IOCP guidance: explicitly covers overlapped-I/O lifetime, immediate completion versus pending completion, and completion errors. Removed an unrelated Kubernetes chaos tool from generic Windows validation.
+
+These are source reviews and edits. They have not yet been claimed as compiled or executed; CI and platform-specific checks must supply that evidence.

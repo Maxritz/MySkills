@@ -19,11 +19,17 @@ metadata:
 ```python
 # ❌ Slow: Python loop
 def slow_cosine_sim(a, b):
-    return sum(x * y for x, y in zip(a, b)) / (np.linalg.norm(a) * np.linalg.norm(b))
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    if denom == 0:
+        raise ValueError("cosine similarity is undefined for a zero vector")
+    return sum(x * y for x, y in zip(a, b)) / denom
 
 # ✅ Fast: NumPy vectorized
 def fast_cosine_sim(a: NDArray[np.float32], b: NDArray[np.float32]) -> float:
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+    denom = np.linalg.norm(a) * np.linalg.norm(b)
+    if denom == 0:
+        raise ValueError("cosine similarity is undefined for a zero vector")
+    return float(np.dot(a, b) / denom)
 
 # ✅ Batch: einsum for tensor contractions
 # [B, S, H] @ [B, H, T] -> [B, S, T]
@@ -40,9 +46,12 @@ from numba import njit, prange
 @njit(cache=True, parallel=True, fastmath=True)
 def matmul_numba(A: np.ndarray, B: np.ndarray) -> np.ndarray:
     """A: [M, K], B: [K, N] -> C: [M, N]"""
+    if A.ndim != 2 or B.ndim != 2:
+        raise ValueError("A and B must be two-dimensional")
     M, K = A.shape
     K2, N = B.shape
-    assert K == K2
+    if K != K2:
+        raise ValueError("A.shape[1] must equal B.shape[0]")
     C = np.empty((M, N), dtype=A.dtype)
     for i in prange(M):
         for j in range(N):
@@ -52,6 +61,8 @@ def matmul_numba(A: np.ndarray, B: np.ndarray) -> np.ndarray:
             C[i, j] = s
     return C
 ```
+
+The CPU example uses `fastmath=True`, which permits floating-point transformations that can change rounding and exceptional-value behaviour. Disable it when strict IEEE-style reproducibility is required, or compare results against an independent implementation with explicit tolerances.
 
 ### GPU JIT
 
@@ -69,6 +80,8 @@ def matmul_gpu(A, B, C, M, N, K):
         C[row, col] = s
 
 def launch_gpu(A, B):
+    if A.ndim != 2 or B.ndim != 2 or A.shape[1] != B.shape[0]:
+        raise ValueError("expected A[M,K] and B[K,N] with matching K")
     M, K = A.shape
     K2, N = B.shape
     C = cuda.device_array((M, N), dtype=A.dtype)
@@ -80,78 +93,159 @@ def launch_gpu(A, B):
     return C.copy_to_host()
 ```
 
-## C Extensions (cffi)
+## C Extensions (CFFI)
+
+Native code is justified only after profiling. This example targets GCC/Clang on x86 and dispatches to AVX2+FMA only when the running CPU supports both. The scalar path is the fallback. Do not apply `-march=native` to a distributable binary without a deliberate deployment-CPU contract.
+
+### Native implementation
+
+```c
+#include <errno.h>
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
+#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+#include <immintrin.h>
+#endif
+
+/* C-contiguous row-major: A[M,K] * B[K,N] -> C[M,N]. */
+static void matmul_scalar(const float *A, const float *B, float *C,
+                          int M, int N, int K)
+{
+    for (int m = 0; m < M; ++m)
+        for (int n = 0; n < N; ++n) {
+            float sum = 0.0f;
+            for (int k = 0; k < K; ++k)
+                sum += A[(size_t)m * (size_t)K + (size_t)k] *
+                       B[(size_t)k * (size_t)N + (size_t)n];
+            C[(size_t)m * (size_t)N + (size_t)n] = sum;
+        }
+}
+
+#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+__attribute__((target("avx2,fma")))
+static void matmul_avx2(const float *A, const float *B, float *C,
+                        int M, int N, int K)
+{
+    for (int m = 0; m < M; ++m) {
+        int n = 0;
+        /* Vectorise contiguous output columns, not the mismatched K lanes. */
+        for (; n <= N - 8; n += 8) {
+            __m256 acc = _mm256_setzero_ps();
+            for (int k = 0; k < K; ++k) {
+                __m256 a = _mm256_set1_ps(A[(size_t)m * K + k]);
+                __m256 b = _mm256_loadu_ps(&B[(size_t)k * N + n]);
+                acc = _mm256_fmadd_ps(a, b, acc);
+            }
+            _mm256_storeu_ps(&C[(size_t)m * N + n], acc);
+        }
+        for (; n < N; ++n) {
+            float sum = 0.0f;
+            for (int k = 0; k < K; ++k)
+                sum += A[(size_t)m * K + k] * B[(size_t)k * N + n];
+            C[(size_t)m * N + n] = sum;
+        }
+    }
+}
+#endif
+
+int matmul_f32(const float *A, const float *B, float *C,
+               int M, int N, int K)
+{
+    if (M < 0 || N < 0 || K < 0) return -EINVAL;
+    if (M == 0 || N == 0) return 0;
+    if (!C) return -EINVAL;
+    if ((size_t)M > SIZE_MAX / (size_t)N) return -EOVERFLOW;
+    size_t mn = (size_t)M * (size_t)N;
+    if (mn > SIZE_MAX / sizeof(float)) return -EOVERFLOW;
+    if (K == 0) { memset(C, 0, mn * sizeof(float)); return 0; }
+    if (!A || !B) return -EINVAL;
+    if ((size_t)M > SIZE_MAX / (size_t)K ||
+        (size_t)K > SIZE_MAX / (size_t)N) return -EOVERFLOW;
+    if ((size_t)M * (size_t)K > SIZE_MAX / sizeof(float) ||
+        (size_t)K * (size_t)N > SIZE_MAX / sizeof(float)) return -EOVERFLOW;
+
+#if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
+    __builtin_cpu_init();
+    if (__builtin_cpu_supports("avx2") && __builtin_cpu_supports("fma")) {
+        matmul_avx2(A, B, C, M, N, K);
+        return 0;
+    }
+#endif
+    matmul_scalar(A, B, C, M, N, K);
+    return 0;
+}
+```
+
+### Header used by the CFFI declaration
+
+Create `native/matmul.h` and keep this prototype in sync with the C implementation and `cdef` declaration:
+
+```c
+#ifndef MYPKG_MATMUL_H
+#define MYPKG_MATMUL_H
+int matmul_f32(const float *A, const float *B, float *C,
+               int M, int N, int K);
+#endif
+```
+
+### CFFI build and wrapper
 
 ```python
 # native/build.py
 from cffi import FFI
 
 ffibuilder = FFI()
-
 ffibuilder.cdef("""
-    int matmul_f32(const float* A, const float* B, float* C, int M, int N, int K);
-    int matmul_f16(const half* A, const half* B, half* C, int M, int N, int K);
+    int matmul_f32(const float *A, const float *B, float *C,
+                   int M, int N, int K);
 """)
-
-ffibuilder.set_source("mypkg._native",
+ffibuilder.set_source(
+    "mypkg._native",
     '#include "matmul.h"',
     sources=["native/matmul.c"],
     include_dirs=["native"],
-    extra_compile_args=["-O3", "-march=native", "-ffast-math"],
-    libraries=["m"],
+    extra_compile_args=["-O3"],
 )
-
 if __name__ == "__main__":
     ffibuilder.compile(verbose=True)
 ```
 
-```c
-// native/matmul.c
-#include <immintrin.h>
-
-int matmul_f32(const float* A, const float* B, float* C, int M, int N, int K) {
-    for (int m = 0; m < M; m++) {
-        for (int n = 0; n < N; n++) {
-            __m256 sum = _mm256_setzero_ps();
-            int k = 0;
-            for (; k <= K - 8; k += 8) {
-                __m256 a = _mm256_loadu_ps(&A[m * K + k]);
-                __m256 b = _mm256_loadu_ps(&B[k * N + n]);
-                sum = _mm256_fmadd_ps(a, b, sum);
-            }
-            float tmp[8];
-            _mm256_storeu_ps(tmp, sum);
-            float s = 0.0f;
-            for (int i = 0; i < 8; i++) s += tmp[i];
-            for (; k < K; k++) s += A[m * K + k] * B[k * N + n];
-            C[m * N + n] = s;
-        }
-    }
-    return 0;
-}
-```
-
 ```python
 # native/__init__.py
-from mypkg._native import ffi, lib
 import numpy as np
+from mypkg._native import ffi, lib
 
 def matmul_f32(A: np.ndarray, B: np.ndarray) -> np.ndarray:
-    assert A.flags["C_CONTIGUOUS"] and B.flags["C_CONTIGUOUS"]
-    assert A.dtype == np.float32 and B.dtype == np.float32
+    if A.ndim != 2 or B.ndim != 2 or A.shape[1] != B.shape[0]:
+        raise ValueError("expected A[M,K] and B[K,N] with matching K")
+    if A.dtype != np.dtype(np.float32) or B.dtype != np.dtype(np.float32):
+        raise TypeError("inputs must use native-endian float32")
+    if not A.flags.c_contiguous or not B.flags.c_contiguous:
+        raise ValueError("inputs must be C-contiguous")
     M, K = A.shape
     K2, N = B.shape
-    assert K == K2
-    C = np.empty((M, N), dtype=np.float32, order="C")
-    err = lib.matmul_f32(
-        ffi.cast("const float*", A.ctypes.data),
-        ffi.cast("const float*", B.ctypes.data),
-        ffi.cast("float*", C.ctypes.data),
-        M, N, K
-    )
-    if err: raise RuntimeError(f"matmul_f32 failed: {err}")
+    limit = np.iinfo(np.int32).max
+    if max(M, N, K, K2) > limit:
+        raise ValueError("dimension exceeds the native int API")
+    if M == 0 or N == 0:
+        return np.empty((M, N), dtype=np.float32)
+    if K == 0:
+        return np.zeros((M, N), dtype=np.float32)
+
+    C = np.empty((M, N), dtype=np.float32)
+    # Keep the exported buffer handles alive for the duration of the call.
+    a_buf = ffi.from_buffer("const float[]", A)
+    b_buf = ffi.from_buffer("const float[]", B)
+    c_buf = ffi.from_buffer("float[]", C)
+    status = lib.matmul_f32(a_buf, b_buf, c_buf, M, N, K)
+    if status:
+        raise RuntimeError(f"matmul_f32 failed with status {status}")
     return C
 ```
+
+ 
+The native buffers must not overlap: `C` must not alias either input. The AVX2 kernel changes reduction order through FMA, so compare with an independent reference using explicit absolute and relative tolerances. Add tests for non-multiple-of-eight N, non-square shapes, zero dimensions, invalid shapes, oversized dimensions and CPUs without AVX2/FMA before using this example. The FP16/“half” ABI is intentionally omitted until its representation, alignment and conversion semantics are defined.
 
 ## Profiling
 

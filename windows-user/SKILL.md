@@ -88,6 +88,8 @@ WaitForSingleObject(event, INFINITE);
 
 ## I/O Completion Ports (IOCP)
 
+> The following is a control-flow sketch, not a drop-in server. With overlapped I/O, treat both immediate completion and `ERROR_IO_PENDING` correctly according to completion-notification mode. Keep each `OVERLAPPED`, buffer and owning handle alive until its completion has been dequeued. A failed `GetQueuedCompletionStatus` with a non-null `OVERLAPPED` represents a completed operation that failed; it is not equivalent to a shutdown packet. Establish a deliberate cancellation/drain protocol before closing the port or freeing operation state.
+
 ```c
 HANDLE iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 0);
 
@@ -163,6 +165,8 @@ msiexec /i MyApp.msi /qn /norestart
 
 ## Validation Gates
 
+Run tests on the actual Windows build and document which toolchain, Windows version and driver model were exercised. Do not treat a generic tool name as evidence that the check ran.
+
 | Gate | Tool |
 |------|------|
 | **Build** | MSVC `/W4 /WX` |
@@ -170,8 +174,8 @@ msiexec /i MyApp.msi /qn /norestart
 | **Sanitizers** | ASan (experimental) |
 | **Unit Tests** | `ctest` / GoogleTest |
 | **Integration** | `pytest` / custom |
-| **Chaos** | `chaos-mesh` |
-| **Load** | `wrk` / `locust` |
+| **Fault handling** | Targeted tests for cancellation, handle closure, timeouts, resource exhaustion and process restart |
+| **Load** | `wrk` / `locust` or an application-specific Windows client |
 
 ## Boundaries
 
