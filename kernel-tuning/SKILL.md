@@ -2,10 +2,6 @@
 name: kernel-tuning
 description: Measure and improve CPU/GPU compute kernels using profiling, bandwidth and arithmetic-intensity models, memory/layout analysis and controlled experiments.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  trigger_keywords: ["kernel tuning", "kernel performance", "roofline", "cache misses", "arithmetic intensity", "vectorisation", "vectorization", "occupancy"]
 ---
 
 # Kernel Tuning
@@ -50,6 +46,13 @@ Use a roofline model as a screening tool, not a replacement for profiling. Arith
 ## Output contract
 
 Provide baseline and result, raw measurements, repetitions/spread, target and compiler configuration, correctness evidence, first limiting resource, changed variables, expected-versus-observed effect and residual bottlenecks.
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Record workload shape, target/compiler, warm-up, synchronisation boundary, repetitions and spread. Establish correctness before tuning, identify the measured limiting resource, and report median plus variance rather than the fastest sample alone.
+
 
 ## Boundaries
 

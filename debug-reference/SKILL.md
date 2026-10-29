@@ -3,10 +3,7 @@ name: debug-reference
 description: Compare a failing result with the lowest-cost trustworthy specification or implementation reference.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
   role: debugging
-  trigger_keywords: ["differential test", "golden reference", "reference comparison", "oracle", "expected output"]
 ---
 
 # Debug Reference
@@ -37,6 +34,13 @@ Use the lowest sufficient level.
 ## Output
 
 State the reference, what was compared, tolerance, first divergence, raw evidence, and remaining uncertainty.
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Pin the reference source and version. Compare contract-relevant outputs, not incidental formatting; normalise only known nondeterminism and distinguish specification violations from differences between implementations.
+
 
 ## Boundaries
 

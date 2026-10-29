@@ -1,13 +1,9 @@
 ---
 name: debug-core
-description: "Debug orchestrator: 12-step loop, truth tables, auto-unload, knowledge capture. Default entry for all debugging."
+description: "Evidence-first debugging workflow: reproduce, localise divergence, test hypotheses, establish causality and verify fixes."
 compatibility: opencode
 metadata:
-  auto_unload: true
   role: debugging
-  loading: on-demand
-  auto_trigger: true
-  priority: critical
 ---
 
 # Debug Core
@@ -39,33 +35,9 @@ See `knowledge-process` → Knowledge Base for the two-tier protocol and Analysi
 
 Evidence tags: `FACT=observed`, `HYPOTHESIS=unproven`, `RESULT=outcome`, `CONCLUSION=supported cause`, `VALIDATION=tests passed`.
 
-## Instrumentation (When Needed)
+## Escalate when needed
 
-Instrument the relevant failure path only when existing observations cannot distinguish the live hypotheses. Trace the entry, branch decisions, state transitions and exits needed to answer the diagnostic question; do not add logging mechanically to every function.
-```c
-#define DBG_TRACE(fmt, ...) fprintf(stderr, "[T] %s:%d %s: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
-#define DBG_ASSERT(cond) do { if(!(cond)) { DBG_TRACE("ASSERT: %s", #cond); abort(); } } while(0)
-```
-Mark branches: `DBG_TRACE("path=A: n<32 -> skip quant")`.
-
-## Truth Table Escalation (When Fast Loop Stalls)
-
-Tag every conditional branch with [T] or [F] based on DBG_TRACE:
-
-```
-FUNCTION: parse_token()
-  if (!buf)            [F] -> ERR_NULL   (trace: buf=NULL)
-  if (len < 4)         [T] -> continue    (trace: len=1024)
-  if (buf[0]!=MAGIC)   [F] -> ERR_BAD    (trace: buf[0]=0x00, expected 0x46)
-```
-
-| Branch | Cond | T | F | Observed | Result |
-|--------|------|---|---|----------|--------|
-| buf    |!buf  |   | X | NULL     | FAIL   |
-| len    |<4    | X |   | 1024     | PASS   |
-| magic  |!=M   |   | X | 0x00     | FAIL   |
-
-First [F] = root cause candidate. @see debug-deep to validate.
+If the fast loop stalls, load [instrumentation and escalation](references/escalation-techniques.md) for state-flow traces, truth tables and diagnostic probes. Choose the method that distinguishes active hypotheses.
 
 ## Specialization (Conditional Loading)
 
@@ -81,22 +53,22 @@ Load ONLY the smallest debug skill:
 
 **Never preload domain packs.** Max 2 specialized skills per cycle.
 
-## Auto-Skill Unload (Prevent Lingering Context)
+## Context budget and continuity
 
-On-demand debug skills must be UNLOADED after serving their purpose:
+OpenCode does not guarantee removal of a loaded skill body from the current conversation. Do not claim that a skill was unloaded or that its tokens were reclaimed unless the active runtime exposes and confirms such an operation.
 
-1. **Unload trigger:** After `VALIDATION: tests passed` (step 12)
-2. **Unload scope:** All debug-* skills loaded during this cycle, EXCEPT debug-core + debug-domain-router
-3. **Unload action:** Remove skill body from context. Keep only summary:
-   > "debug-localize: applied, fixed n%32 check, validated."
-4. **Context-tracker:** Log unload via `ctx.py unload debug-localize` — summary persists in sessions/
-5. **Exception:** Keep debug-deep loaded until root cause is confirmed+validated
-
-See `knowledge-process` → Context Tracker for session memory and unload logging.
+After a diagnostic phase, stop repeating specialist instructions and keep a compact status record: applied skill, evidence collected, current hypothesis status, tests actually run and the next action. Read additional reference files only when they answer a live question. If a local context-management command is proposed, first verify that the command exists and inspect its implementation; otherwise record the action as a recommendation, not an executed operation.
 
 ## Compact Status
 
 `repro | facts | boundary | hypotheses | next test | result | fix | validation | unknowns`
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Keep a coverage ledger of observations, hypotheses, experiments and results. Choose the cheapest experiment that separates live hypotheses; do not escalate through every diagnostic method by rote or close the issue without retesting the original failure.
+
 
 ## Boundaries
 

@@ -2,11 +2,6 @@
 name: goli-mat-de
 description: Evidence-led audit for fake, skipped, incomplete or misleading implementation and verification. Audits code, wiring, tests and claims; prioritises fixes and gates task creation on acknowledgement.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["goli-mat-de", "goli mat de", "implementation integrity audit", "fake code", "stub audit", "placeholder audit", "skipped implementation", "kaam chalau code", "thook patti code"]
 ---
 
 # Goli-mat-de
@@ -50,10 +45,16 @@ Each finding: ID, priority/confidence, file:line or symbol, expected versus obse
 
 Report verdict, scope/revision, coverage, prioritised evidence-backed findings, executed versus unrun checks, missing wiring, useful specialist skills, proposed tasks and residual risks. Inspect skill headers first; read full instructions only for relevant skills. Check skill references, triggers, loading, conflicts, stale/orphaned entries and loader config. State whether each skill was only inspected or actually applied.
 
+## Skill-catalogue maintenance
+
+For catalogue work, inspect every skill path, header, trigger, loader entry and cross-reference; find missing coverage and duplicated scope; optimise core token cost; then validate the final inventory and diff. Use the detailed checklist in `references/audit-matrix.md`. Apply this method throughout catalogue maintenance without loading every skill for routine tasks.
+
 ## Acknowledgement gate
 
 Present prioritised tasks with IDs, dependencies, effort, implementation steps and acceptance criteria, then ask the user to acknowledge.
 
 **Before explicit acknowledgement, create no issues, tickets, reminders or task records.** An audit request alone is not consent. After acknowledgement, use the requested authorised task system. For GitHub Issues, require explicit approval of that destination. Avoid duplicates; report actual IDs/URLs. If unavailable, provide ready-to-copy tasks and say none were created.
 
-This gate applies to tasks derived from findings, not separately authorised edits. A report is not a fix; completion requires honest coverage, evidence, explicit limitations and the proposed task list.
+## Final self-check
+
+Verify coverage, evidence, limitations and the task gate before finishing. An audit report is not a fix.

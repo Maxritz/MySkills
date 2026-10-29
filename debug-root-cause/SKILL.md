@@ -3,10 +3,7 @@ name: debug-root-cause
 description: Establish a causal chain from the observed failure to the first bad state, triggering operation and violated contract.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
   role: debugging
-  trigger_keywords: ["root cause", "causal chain", "underlying defect", "cause confirmed"]
 ---
 
 # Debug Root Cause
@@ -35,6 +32,13 @@ A root cause is more than a plausible explanation. Establish how the observed fa
 - Evidence for/against competing causes.
 - Confirmation test and result.
 - Residual uncertainty.
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Connect trigger to the first bad state, operation and violated contract, and explain why competing causes fit less well. Validate the cause through an intervention or distinguishing test before recommending a fix.
+
 
 ## Boundaries
 

@@ -1,53 +1,71 @@
 ---
 name: sglang-dev
-description: SGLang development, runtime diagnostics, KV-cache correctness, model execution, serving and profiling.
+description: "SGLang: KVCache, parallelism, speculative."
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["SGLang", "RadixAttention", "SGLang KV cache", "sglang serve"]
 ---
 
 # SGLang Development
 
-## Version gate
+## Architecture
 
-SGLang changes module paths, launcher flags, kernel backends and model coverage rapidly. Before giving a version-specific command or patch, record the installed package version or Git commit, inspect the matching source checkout and run `python -m sglang.launch_server --help` (or the installed launcher’s own help). Do not assume API names remembered from another release still exist.
+- **Frontend**: Python (`sglang/` package). Entry point: `sglang/entrypoints/http_server.py`.
+- **Backend**: Rust runtime (`sglang-rust/`) for token fusion, KV cache ops, scheduler.
+- **Model executor**: `sglang/model_executor/` — HF model loading, attention, sampling.
+- **Scheduler**: `sglang/scheduler/` — DP, TP, speculative decoding coordination.
 
-## Architecture to trace
+## Key Modules
 
-Follow the actual path for the checked-out version: request/API layer → scheduler and request state → model runner/executor → attention and KV cache → kernels and device runtime. Do not treat these conceptual areas as guarantees that a particular file or Python symbol exists.
+- `sglang/model_executor/model_pool/`: Per-model forward pass (Llama, Qwen, Gemma, etc.).
+- `sglang/speculative/decoding/`: Draft model + verification (Eagle, Medusa).
+- `sglang/distributed/`: Tensor parallelism (`--tp-size`), pipeline parallelism.
+- `sglang/kernels/`: Custom CUDA/HIP kernels (flashinfer ops, quant kernels).
 
-Inspect the current equivalents of:
-- Model loading, model configuration, tokenizer/chat template and weight-format handling.
-- Request scheduling, batching, cancellation and pre-emption.
-- KV-cache allocation, prefix reuse/RadixAttention, eviction and cache consistency.
-- Tensor/data/pipeline/expert parallelism and process-group lifecycle.
-- Attention, quantisation, custom kernels and backend selection.
-- Streaming API, metrics, error surfaces and shutdown.
+## KVCache
 
-## Run and smoke-test
+- `KVCache` in `sglang/kv_cache.py` — manages per-sequence KV states.
+- `kv_cache = KVCache(max_num_seqs, max_context_len, num_heads, head_dim, layers)`.
+- `kv_cache.can_append_input()`: checks space. `kv_cache.append_input_tokens()`: inserts.
+- `kv_cache.set_kv_buffer_at()`. `kv_cache.get_flat_data()`: for tensor parallel transfer.
 
-The upstream quickstart currently documents a launcher form like:
+## Tensor Parallelism
 
-```bash
-python3 -m sglang.launch_server --model-path MODEL_ID_OR_PATH --host 127.0.0.1 --port 30000
-```
+- `--tp-size N` splits attention heads and MLP across N GPUs.
+- `sglang/distributed/parallel_state.py` — `initialize_tensor_model_parallel`.
+- Each TP rank loads the full model, slices weights. `weight = weight.chunk(tp_size)[rank]`.
 
-Treat this as version-specific guidance: verify the matching official quickstart and the installed help output before relying on flags. Prefer loopback binding for a local test; use externally reachable binding only with deliberate network controls. The documented OpenAI-compatible chat route is commonly `/v1/chat/completions`; the native `/generate` route and parameters have separate contracts.
+## FlashInfer
 
-Test in order: process startup and readiness, a single deterministic request, a streaming request, malformed/unsupported input, client cancellation, overload or memory pressure, and clean shutdown. Verify the model ID, chat template, output structure and actual error codes. Do not report “server working” from process startup alone.
+- FlashAttention-2/Fused attention via `flashinfer`. 
+- Install: `pip install flashinfer --index-url https://flashinfer.ai/whl`.
+- API: `flash_attn_varlen_qkvpacked_256bit`, `paged_kv_cache`.
+- Custom kernels in `sglang/kernels/flashinfer_ops.py`.
 
-## Performance and correctness
+## Server API
 
-- Separate model load, warm-up, prefill and decode. Fix model/tokenizer revision, precision, context, concurrency, batch policy, cache settings, seed and request set before comparison.
-- Record time-to-first-token, inter-token latency, request throughput, tail latency, peak memory and error rate separately.
-- Verify output semantics against a trusted baseline before comparing speed. A backend change may alter numerical tolerances or supported operators.
-- Use the profiler supported by the target runtime/backend. Do not assume a CUDA profiling command applies to AMD, CPU or other backend paths.
-- Preserve failing requests and runtime configuration for regressions; test cache reuse against uncached reference output.
+- HTTP: `POST /generate` — `{model, prompt, sampling_params, stream}`.
+- Response: `{"text": "...", "token_ids": [...], "meta_info": {...}}`.
+- Use `--port`, `--host`, `--log-level`.
+- `--cuda-graph`: captures compute graph for fixed batch sizes (latency ↓ 30-50%).
+- `--speculative-draft`: draft model name (e.g., `lms/lms-chat-relation`).
 
-## Report
+## Profiling
 
-Record SGLang version/commit, hardware, driver/runtime, model and tokenizer revisions, launch arguments, endpoint exercised, exact commands, tests, output comparisons and unrun checks. Use `llm-serving` for serving design across engines and `llm-core` for model-component semantics.
+- `SGLANG_PROFILING=1 python -m sglang.benchmark.bench_latency ...`
+- `nsys profile` for CUDA kernel-level profiling.
+- Memory: `torch.cuda.max_memory_allocated()` — track fragmentation.
+- `--cpu-idle`: spin-wait vs block-wait trade-off.
+
+## Development Flow
+
+1. `pip install -e .[dev]` — editable install.
+2. `python -m pytest tests/` — unit tests.
+3. `python -m sglang.entrypoints.http_server --model /path/model ...`
+4. Validate with `curl -X POST http://localhost:30000/generate ...`
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Pin the SGLang and kernel-library revisions and verify command flags against that installation. Trace request scheduling, prefix/radix cache hits, KV allocation and stream completion; compare generated outputs and benchmark a stated workload.
+

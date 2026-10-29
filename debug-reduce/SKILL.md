@@ -3,10 +3,7 @@ name: debug-reduce
 description: Minimise a failing input or execution while preserving a defined failure predicate.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
   role: debugging
-  trigger_keywords: ["reduce reproducer", "minimise test case", "minimize test case", "shrink failing input", "delta debugging"]
 ---
 
 # Debug Reduce
@@ -34,3 +31,10 @@ Preserve a copy of the original input. Do not reduce away the condition under in
 - Reduction steps retained/rejected.
 - Reproduction rate and signature comparison.
 - Known limitations.
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Define the failure predicate before reduction and preserve the environment, revision and failure class. Re-run the final reduced case several times when nondeterminism is possible, and record any changed assumptions.
+

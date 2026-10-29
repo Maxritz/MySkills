@@ -3,10 +3,7 @@ name: debug-invariants
 description: Check the contracts and invariants that can distinguish live failure hypotheses.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
   role: debugging
-  trigger_keywords: ["invariant", "precondition", "postcondition", "contract violation", "bounds", "ownership"]
 ---
 
 # Debug Invariants
@@ -36,6 +33,13 @@ Identify properties that must hold for valid execution, then use the cheapest re
 | Boundary | Invariant | Evidence | Status | Next discriminating check |
 |---|---|---|---|---|
 | Input | <required property> | <observed value> | <status> | <test> |
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- State invariants as observable predicates with an evaluation point and scope. Check them at state transitions, error paths and cleanup boundaries; do not present assumptions as verified properties.
+
 
 ## Boundaries
 

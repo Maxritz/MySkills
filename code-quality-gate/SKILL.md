@@ -1,52 +1,50 @@
 ---
 name: code-quality-gate
-description: "Lightweight automatic gate for implementation contracts, fake-code detection, focused verification, traceability and safe handoff."
+description: "Implementation review checklist for behavioural contracts, placeholder detection, risk-sized verification, traceability, Rust safety and component boundaries. Invoke for code changes."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: true
-  trigger_keywords: ["write", "edit", "create", "add", "refactor", "implement", "fix"]
-  priority: critical
 ---
-
 # Code Quality Gate
 
-Run this lightweight gate on code changes. Scale checks to risk and scope; do not require ten iterations, blanket comments on every local function, or expensive full-suite testing for every trivial edit.
+Invoke for implementation changes. Run the smallest complete quality pass that covers the changed contracts; deepen it for risk, not by ritual.
 
-## 1. State the contract
+## Pipeline
 
-Identify the in-scope behaviour, public interfaces, invariants, error semantics and compatibility promises. For a small change, one sentence is sufficient. For cross-module or safety-critical work, use architecture-boundaries or Goli-mat-de.
+`DIFF → CONTRACTS → IMPLEMENTATION INTEGRITY → RISK-SIZED VALIDATION → TRACEABILITY → BOUNDARIES → REPORT`
 
-## 2. Inspect the real path
+## Required checks
 
-Trace the modified entry point through configuration, callers, implementation, failure/cleanup paths and observable output. Check for placeholders, hidden stubs, unwired flags, success-shaped fallback, swallowed errors and tests that never exercise the real path. Search markers are leads, not proof of defects.
+1. **Contracts:** for public or non-trivial interfaces, document only material guarantees: purpose, ownership/lifetime, preconditions, postconditions, errors, side effects, threading/async safety and relevant performance constraints. Use [detailed contract recipes](references/quality-recipes.md) for examples.
+2. **Implementation integrity:** inspect TODO/FIXME/HACK markers, empty bodies, canned outputs, constant success, test-only mocks, unimplemented branches and fake metrics. Verify the live call path and contract before calling a pattern defective. Deliberate no-ops and explicit unsupported-operation errors can be valid.
+3. **Validation:** select applicable checks below. Keep each result as PASS, FAIL, BLOCKED, NOT RUN or NOT APPLICABLE with a reason; never treat unrun or skipped checks as PASS.
+4. **Traceability:** add low-overhead markers at diagnostic boundaries only when they answer a concrete question. Cover important error exits without leaking secrets. See [traceability](../traceability/SKILL.md).
+5. **Rust:** when Rust is touched, apply ownership, unsafe-boundary, error and async rules from [rust-safety](../rust-safety/SKILL.md).
+6. **Architecture:** check real imports, registration, dispatch, ownership and failure handling against [architecture-boundaries](../architecture-boundaries/SKILL.md); do not rely on directory names alone.
 
-## 3. Make the smallest complete change
+## Risk-sized validation
 
-Preserve unrelated behaviour. Document public API contracts, ownership/lifetime and non-obvious invariants where they help maintenance. Do not require Doxygen on every trivial local function or duplicate comments that merely restate the code. Keep implementation, tests, registration, build wiring and user-facing documentation in sync.
+| Check | Use when |
+|---|---|
+| Diff, static analysis, format and build | Every relevant code change; run only tools supported by the project |
+| Focused unit/contract test | Behaviour or interface changed |
+| Original reproducer and regression test | Bug fix or regression |
+| Golden/differential test | Binary formats, numerical code, conversion or a reference exists |
+| Fuzz/property testing | Untrusted parsers, broad input domains or complex state |
+| Sanitizers | Native memory/concurrency risk and tooling supports it |
+| Flow, state and resource lifecycle audit | Branching, async, ownership, GPU/OS resources or cleanup changed |
+| Integration/real target | Cross-module, platform, runtime or device behaviour changed |
+| Repeatable benchmark | Performance-sensitive code changed |
 
-## 4. Verify proportionally
+Repeat failed checks after the fix and rerun linked regression gates. A compile proves buildability, not runtime correctness. Do not force irrelevant checks onto documentation-only edits; record why they are not applicable.
 
-1. Run the narrowest decisive build/test first.
-2. Run relevant regression and integration tests.
-3. Add boundary/negative tests for new error paths. Use sanitizers, fuzzing or concurrency tests when the risk warrants them and the environment supports them.
-4. Inspect the final diff and rerun checks affected by any follow-up edits.
-5. Repeat trials only where flakiness, concurrency or statistical variance is material. A fixed ten-pass rule is not evidence.
+## Report
 
-If a check cannot run, label it BLOCKED or NOT RUN with the reason. Never invent output, claim unexecuted tests passed, or hide failed exit codes.
+Return scope/revision, findings with evidence and locations, each check's actual status, untested paths, residual risks and next action. Never claim a build, test, trace, benchmark or security check ran without its output.
 
-## 5. Route deeper review
+## Goli-mat-de integrity gate
 
-- Repository or feature completeness, TODO/stub audit: goli-mat-de.
-- Source/runtime markers and execution-path tracing: traceability.
-- Test strategy, fuzz/property/differential testing: test-engineering.
-- Cross-module ownership or dependency direction: architecture-boundaries.
-- Rust unsafe/FFI invariants: rust-safety.
-- A confirmed runtime defect: debug-core, followed by debug-verify.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
-Load references/implementation-checklist.md only for higher-risk, multi-module or release-gate reviews.
+## Boundaries
 
-## Output
-
-Report changed scope, contract, tests/commands actually run, results, known limitations and remaining risks. Do not create issues or tasks from findings until the user acknowledges the proposed list and authorises the destination.
+- Use [quality recipes](references/quality-recipes.md) for detailed examples.
+- This gate does not replace domain testing, security review or deployment validation.

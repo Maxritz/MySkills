@@ -3,10 +3,7 @@ name: debug-mde
 description: Choose the minimum distinguishing experiment that best separates competing failure hypotheses.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
   role: debugging
-  trigger_keywords: ["minimum distinguishing experiment", "MDE", "cheapest experiment", "falsify hypothesis"]
 ---
 
 # Debug MDE: Minimum Distinguishing Experiment
@@ -34,6 +31,13 @@ Prefer an experiment that is safe and reversible, low-cost, deterministic, minim
 - Shrink one input dimension while preserving the failure.
 - Repeat controlled runs to test nondeterminism.
 - Compare a feature-enabled path with a supported baseline fallback.
+
+## Goli-mat-de integrity gate
+
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+
+- Choose the experiment with the best expected separation per unit cost. Write the prediction before running it, change one variable when possible, and retain a control. Stop when the result distinguishes the competing causes.
+
 
 ## Boundaries
 
