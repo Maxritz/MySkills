@@ -441,6 +441,11 @@
         "AVX2",
         "CPUID",
         "memory ordering"
+      ],
+      "caveman": [
+        "caveman",
+        "ultra-terse",
+        "terse human-facing output"
       ]
     }
   }
