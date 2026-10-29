@@ -11,15 +11,15 @@ metadata:
 
 # Knowledge & Process
 
-**Unified across analysis logging, context tracking, development process, knowledge capture, and deployment.**
+**Sanitised analysis logs, compact context tracking, knowledge retention and risk-sized development validation.**
 
 ---
 
 ## 1. Analysis Log (Append-Only Delta)
 
 ### Flow
-1. **Full analysis** → append to `.opencode/analysis.md`
-2. **Every change** → **append** (never rewrite) — `@appended {timestamp}: ...`
+1. **Useful findings** → append to `.opencode/analysis.md`
+2. **Every update** → append a timestamped delta; never rewrite prior findings — `@appended {timestamp}: ...`
 3. **Next analysis** → read prior deltas first, then re-check current source before reusing any recorded fact; logs are leads, not source truth.
 
 ### Format (Append-Only Markdown)
@@ -85,6 +85,8 @@ grep "pattern:" .opencode/analysis.md
 
 ### Operations
 
+The names `ctx.py` and `kb.py` below describe optional interfaces, not proof that the scripts exist in this repository. Check that a tool is installed and inspect its implementation before using it; if absent, use the documented files manually and do not claim an operation succeeded.
+
 **Save/Update** (idempotent, append-style):
 ```
 Save {topic}: "{new info}" → append to existing summary, update refs, bump timestamp. Recheck the current source for claims that may have changed.
@@ -125,7 +127,7 @@ Example output only: a tool may report unloaded topics and an estimated token de
 
 Use these checks according to risk. Always inspect the diff and run relevant targeted checks for behavioural changes. Add golden/differential, fuzz, sanitizer, state-flow, lifecycle, integration and performance checks when the changed contract justifies them. A check may be NOT APPLICABLE only with a reason. Use PASS, FAIL, BLOCKED, NOT RUN or NOT APPLICABLE honestly; an unrun check is never PASS.
 
-| Iter | Check | Tool |
+| Gate | Check | Tool |
 |------|-------|------|
 | **1** | Compile | `cmake --build -Werror` |
 | **2** | Format | `clang-format` / `ruff format` |
@@ -138,7 +140,9 @@ Use these checks according to risk. Always inspect the diff and run relevant tar
 | **9** | Resource audit | Every alloc→free, handle→close |
 | **10** | Performance | No >5% regression vs baseline |
 
-**Log format:**
+**Illustrative log format:**
+
+The following values are examples of the report shape only. Replace every status and measurement with actual observed results; never copy sample PASS claims into a real report.
 ```
 ✅ I1: compile clean
 ✅ I2: format clean
@@ -159,10 +163,10 @@ Use these checks according to risk. Always inspect the diff and run relevant tar
 4. Re-run the failing check and affected regression gates; add broader checks when risk or coupling warrants it. A check marked NOT APPLICABLE needs a reason; an unrun check is never PASS.
 
 ### Plan Adherence
-- No deviation from vetted plan.
-- If approach changes → update plan first via diff.
-- Rationale recorded for every change.
-- "I'll fix it later" is **forbidden**.
+- Keep implementation aligned with agreed scope and acceptance criteria.
+- If scope or approach materially changes, update the plan and record why; do not require a plan edit for every routine implementation detail.
+- Record rationale for material trade-offs and deferred work.
+- Do not present deferred work as completed.
 
 ---
 
@@ -237,14 +241,14 @@ For platform-specific deployment, release, rollback and runtime operations, load
 
 ```
 KNOWLEDGE & PROCESS: <phase> STATUS
-PHASE: <analysis|context|dev|kb|deploy>
+PHASE: <analysis|context|dev|kb|handoff>
 SESSION: <id> | CONTEXT: <topics loaded> | KB: <entries added>
 VALIDATION: <gate/status/result for each applicable check>
 ANALYSIS: <findings> critical, <findings> high, <findings> medium
 CONTEXT: <stored> entries, <unloaded> topics
 KB: <central> + <project> entries
 DEPLOY: delegated to deployment-operations / ci-release-engineering
-BLOCKERS: <unsanitized|missing repro|failed iter|secret in yaml>
+BLOCKERS: <sanitisation gap|source not rechecked|failed gate|tool unavailable|unrun check>
 ```
 
 ---
