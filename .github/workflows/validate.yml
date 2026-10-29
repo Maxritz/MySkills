@@ -1,4 +1,4 @@
-name: Validate Skills
+name: Validate MySkills
 
 on:
   push:
@@ -12,12 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Validate skill structure and loader configuration
+      - name: Install pinned OpenCode plugin API
+        run: npm install --prefix .opencode --ignore-scripts --no-audit --no-fund
+
+      - name: Validate native discovery and router inventory
         shell: bash
         run: |
           python3 - <<'PY'
@@ -28,19 +36,12 @@ jobs:
 
           root = Path(".")
           failures = []
-          skills = {
-              path.parent.name: path
-              for path in root.glob("*/SKILL.md")
-              if path.is_file()
-          }
-
+          skills = {p.parent.name: p for p in root.glob("*/SKILL.md") if p.is_file()}
           if not skills:
               failures.append("No skill directories containing SKILL.md were found.")
 
           for dirname, path in sorted(skills.items()):
-              content = path.read_text(encoding="utf-8")
-              lines = content.splitlines()
-
+              lines = path.read_text(encoding="utf-8").splitlines()
               if not lines or lines[0].strip() != "---":
                   failures.append(f"{path}: missing opening YAML front-matter delimiter")
                   continue
@@ -49,112 +50,99 @@ jobs:
               except StopIteration:
                   failures.append(f"{path}: missing closing YAML front-matter delimiter")
                   continue
-
               front = "\n".join(lines[1:closing])
-              name = re.search(r"(?m)^name:\s*([A-Za-z0-9._-]+)\s*$", front)
+              name = re.search(r"(?m)^name:\s*([a-z0-9-]+)\s*$", front)
               description = re.search(r"(?m)^description:\s*(\S.*)$", front)
-
-              if not name:
-                  failures.append(f"{path}: missing single-line name")
-              elif name.group(1) != dirname:
-                  failures.append(f"{path}: name '{name.group(1)}' does not match folder '{dirname}'")
+              if not name or name.group(1) != dirname:
+                  failures.append(f"{path}: name must match directory '{dirname}'")
               if not description:
                   failures.append(f"{path}: missing description")
-              if not re.search(r"(?m)^metadata:\s*$", front):
-                  failures.append(f"{path}: missing metadata block")
-              if not re.search(r"(?m)^  loading:\s*on-demand\s*$", front):
-                  failures.append(f"{path}: missing metadata loading: on-demand")
-              if not re.search(r"(?m)^  auto_unload:\s*true\s*$", front):
-                  failures.append(f"{path}: missing metadata auto_unload: true")
-
+              unsupported = re.findall(r"(?m)^  (auto_trigger|auto_unload|trigger_keywords|loading|priority):", front)
+              if unsupported:
+                  failures.append(f"{path}: remove unsupported OpenCode loader metadata: {sorted(set(unsupported))}")
               if len(lines) > 800:
                   failures.append(f"{path}: {len(lines)} lines exceeds the 800-line hard limit")
-              elif len(lines) > 500:
-                  print(f"WARNING: {path} has {len(lines)} lines (>500 suggested limit)")
 
           try:
-              config = json.loads(Path("opencode.jsonc").read_text(encoding="utf-8"))
+              native_config = json.loads(Path("opencode.jsonc").read_text(encoding="utf-8"))
           except Exception as exc:
               failures.append(f"opencode.jsonc is not strict JSON: {exc}")
-              config = {}
+              native_config = {}
+          if "./" not in native_config.get("skills", []):
+              failures.append('opencode.jsonc must register the root through skills: ["./"]')
+          if native_config.get("permission", {}).get("skill", {}).get("*") != "allow":
+              failures.append("opencode.jsonc must allow the discovered skill set")
 
-          instructions = config.get("instructions", [])
-          if not isinstance(instructions, list) or not instructions:
-              failures.append("Missing top-level instructions list in opencode.jsonc")
-          else:
-              for instruction in instructions:
-                  if not isinstance(instruction, str) or not instruction.strip():
-                      failures.append("Instruction paths must be non-empty strings")
-                  elif not Path(instruction).is_file():
-                      failures.append(f"Configured instruction file does not exist: {instruction}")
-          if "SKILL_QUALITY_STANDARD.md" not in instructions:
-              failures.append("SKILL_QUALITY_STANDARD.md must be loaded as a shared instruction")
+          try:
+              router_config = json.loads(Path("myskills.config.json").read_text(encoding="utf-8"))
+          except Exception as exc:
+              failures.append(f"myskills.config.json is invalid JSON: {exc}")
+              router_config = {}
+          triggers = router_config.get("routing", {}).get("triggers", {})
+          if set(triggers) != set(skills):
+              failures.append(f"Router inventory mismatch: missing={sorted(set(skills)-set(triggers))}, stale={sorted(set(triggers)-set(skills))}")
+          for name, keywords in triggers.items():
+              if not isinstance(keywords, list) or not keywords or not all(isinstance(k, str) and k.strip() for k in keywords):
+                  failures.append(f"Trigger keywords for {name} must be a non-empty list of strings")
+
+          for required in [".opencode/plugins/myskills-runtime.js", "runtime/router-core.mjs", "AGENTS.md", "SKILL_QUALITY_STANDARD.md"]:
+              if not Path(required).is_file():
+                  failures.append(f"Missing runtime/shared instruction file: {required}")
+
+          goli_path = root / "goli-mat-de" / "SKILL.md"
+          if goli_path.is_file() and len(goli_path.read_text(encoding="utf-8").split()) > 750:
+              failures.append("goli-mat-de/SKILL.md exceeds the 750-word core budget")
 
           category_text = Path("SKILL_CATEGORIES.md").read_text(encoding="utf-8")
           category_entries = re.findall(r"(?m)^- ([a-z0-9-]+)\s*$", category_text)
           if len(category_entries) != len(set(category_entries)):
-              failures.append("SKILL_CATEGORIES.md contains duplicate skill entries")
+              failures.append("SKILL_CATEGORIES.md contains duplicate entries")
           if set(category_entries) != set(skills):
-              failures.append(
-                  "Category map mismatch; missing="
-                  + str(sorted(set(skills) - set(category_entries)))
-                  + "; stale="
-                  + str(sorted(set(category_entries) - set(skills)))
-              )
+              failures.append(f"Category map mismatch: missing={sorted(set(skills)-set(category_entries))}, stale={sorted(set(category_entries)-set(skills))}")
 
-          for dirname, path in sorted(skills.items()):
-              if dirname == "goli-mat-de":
-                  word_count = len(path.read_text(encoding="utf-8").split())
-                  if word_count > 750:
-                      failures.append(
-                          f"{path}: {word_count} words exceeds the 750-word core budget; move deep detail into references"
-                      )
-
-          skill_config = config.get("skill", {})
-          auto = set(skill_config.get("auto_trigger", []))
-          conditional = set(skill_config.get("conditional_load", []))
-          duplicates = auto & conditional
-          if duplicates:
-              failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
-
-          expected_auto = {"debug-core", "code-quality-gate", "knowledge-process"}
-          if auto != expected_auto:
-              failures.append(
-                  "Auto-trigger set changed unexpectedly; expected="
-                  + str(sorted(expected_auto))
-                  + "; actual="
-                  + str(sorted(auto))
-              )
-          for dirname, path in sorted(skills.items()):
-              skill_text = path.read_text(encoding="utf-8")
-              declared_auto = re.search(r"(?m)^  auto_trigger:\s*(true|false)\s*$", skill_text)
-              if declared_auto:
-                  declared = declared_auto.group(1) == "true"
-                  if declared != (dirname in auto):
-                      failures.append(
-                          f"{path}: metadata auto_trigger={str(declared).lower()} "
-                          "does not match opencode.jsonc registration"
-                      )
-
-          registered = auto | conditional
-          for missing in sorted(registered - set(skills)):
-              failures.append(f"Loader configuration references missing skill directory: {missing}")
-          for unregistered in sorted(set(skills) - registered):
-              failures.append(f"Skill directory is not registered in loader configuration: {unregistered}")
-
-          triggers = skill_config.get("trigger_keywords", {})
-          for name, keywords in triggers.items():
-              if name not in skills:
-                  failures.append(f"Trigger map references missing skill directory: {name}")
-              if not isinstance(keywords, list) or not all(isinstance(k, str) and k.strip() for k in keywords):
-                  failures.append(f"Trigger keywords for {name} must be a list of non-empty strings")
+          for source in root.glob("**/*.md"):
+              if source.parts[0] in {".git", ".opencode", "node_modules"}:
+                  continue
+              body = source.read_text(encoding="utf-8")
+              for target in re.findall(r"!?\[[^\]]*\]\(([^)]+)\)", body):
+                  target = target.split("#", 1)[0].strip()
+                  if not target or "://" in target or target.startswith("mailto:") or target.startswith("#"):
+                      continue
+                  resolved = (source.parent / target).resolve()
+                  if not resolved.exists():
+                      failures.append(f"{source}: broken relative link target {target}")
 
           if failures:
               print("VALIDATION FAILED:")
               for failure in failures:
-                  print(f" - {failure}")
+                  print(" -", failure)
               sys.exit(1)
-
-          print(f"Validated {len(skills)} skills and loader references.")
-          print(f"Auto-trigger: {len(auto)}; conditional-load: {len(conditional)}.")
+          print(f"Validated {len(skills)} skill directories, native discovery, router inventory, category parity and relative links.")
           PY
+
+      - name: Run deterministic routing, evidence and reference tests
+        run: node --test tests/runtime-router.test.mjs
+
+      - name: Smoke-test OpenCode plugin registration and gates
+        run: |
+          node --input-type=module - <<'JS'
+          import assert from "node:assert/strict";
+          import { MySkillsRuntime } from "./.opencode/plugins/myskills-runtime.js";
+          const plugin = await MySkillsRuntime({ directory: process.cwd(), worktree: process.cwd() });
+          assert.equal(typeof plugin.tool.myskills_route.execute, "function");
+          assert.equal(typeof plugin["tool.execute.before"], "function");
+          assert.equal(typeof plugin.event, "function");
+          await assert.rejects(
+            () => plugin["tool.execute.before"]({ tool: "read", sessionID: "smoke" }, { args: { filePath: "README.md" } }),
+            /call myskills_route/,
+            "unrouted session should not use tools"
+          );
+          const routed = await plugin.tool.myskills_route.execute(
+            { task: "Implement a Vulkan compute shader fix with semaphore synchronisation.", max_skills: 4 },
+            { sessionID: "smoke", directory: process.cwd(), worktree: process.cwd() }
+          );
+          assert.match(routed, /LOADED code-quality-gate/);
+          assert.match(routed, /LOADED vulkan-compute-stack/);
+          await plugin["tool.execute.before"]({ tool: "edit", sessionID: "smoke" }, { args: { filePath: "src/example.cpp" } });
+          console.log("MySkills router and gate smoke test passed.");
+          JS
