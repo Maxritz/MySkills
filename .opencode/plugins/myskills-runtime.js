@@ -1,6 +1,6 @@
 import { tool } from "@opencode-ai/plugin";
-import { appendFileSync, existsSync, readFileSync, mkdirSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { appendFileSync, existsSync, readFileSync, mkdirSync, realpathSync, statSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { estimateTokensFromBytes, isLikelySourceMutation, routeTask } from "../../runtime/router-core.mjs";
 
 function readJson(path) {
@@ -11,8 +11,43 @@ function sourceMutation(toolName, args, configuredNames) {
   return isLikelySourceMutation(toolName, args, configuredNames);
 }
 
+function isContainedPath(parent, candidate) {
+  const rel = relative(parent, candidate);
+  return rel !== "" && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+export function resolveSkillCorePath(root, skill) {
+  if (typeof skill !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(skill)) {
+    throw new Error(`MySkills runtime: invalid skill identifier ${String(skill)}`);
+  }
+
+  const canonicalRoot = realpathSync(root);
+  const candidate = resolve(canonicalRoot, skill, "SKILL.md");
+  if (!isContainedPath(canonicalRoot, candidate)) {
+    throw new Error(`MySkills runtime: skill path escapes repository root: ${skill}`);
+  }
+  if (!existsSync(candidate)) {
+    throw new Error(`MySkills runtime: route selected missing skill ${skill}`);
+  }
+
+  const canonicalCandidate = realpathSync(candidate);
+  if (!isContainedPath(canonicalRoot, canonicalCandidate)) {
+    throw new Error(`MySkills runtime: skill path resolves outside repository root: ${skill}`);
+  }
+  if (!statSync(canonicalCandidate).isFile()) {
+    throw new Error(`MySkills runtime: skill core is not a file: ${skill}`);
+  }
+  return canonicalCandidate;
+}
+
+export function stripSkillFrontMatter(raw) {
+  const source = String(raw);
+  const match = source.match(/^(?:\uFEFF)?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/);
+  return match ? source.slice(match[0].length) : source;
+}
+
 export const MySkillsRuntime = async ({ directory, worktree, client }) => {
-  const root = resolve(worktree || directory || process.cwd());
+  const root = realpathSync(resolve(worktree || directory || process.cwd()));
   const configPath = resolve(root, "myskills.config.json");
   if (!existsSync(configPath)) throw new Error(`MySkills runtime: missing ${configPath}`);
   const config = readJson(configPath);
@@ -41,12 +76,9 @@ export const MySkillsRuntime = async ({ directory, worktree, client }) => {
       const bodies = [];
       let totalBytes = 0;
       for (const skill of plan.skills) {
-        const path = resolve(root, skill, "SKILL.md");
-        if (!path.startsWith(root + "/") || !existsSync(path)) {
-          throw new Error(`MySkills runtime: route selected missing skill ${skill}`);
-        }
+        const path = resolveSkillCorePath(root, skill);
         const raw = readFileSync(path, "utf8");
-        const body = raw.replace(/^---\\r?\\n[\\s\\S]*?\\r?\\n---\\s*\\r?\\n/, "");
+        const body = stripSkillFrontMatter(raw);
         const bytes = Buffer.byteLength(body, "utf8");
         totalBytes += bytes;
         bodies.push({ skill, path: `${skill}/SKILL.md`, bytes, body });

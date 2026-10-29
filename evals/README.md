@@ -4,7 +4,7 @@ The suite has two layers.
 
 ## Deterministic CI layer
 
-`node --test tests/runtime-router.test.mjs` checks that each task routes to its required specialists, out-of-domain prompts do not load an arbitrary skill, context loading remains capped, mutation detection catches common paths, and all optional reference links resolve. It reports selected-core bytes and a rough token estimate. The CI smoke test also executes the real route tool and checks that the pre-tool gate blocks an unrouted session. These tests do **not** claim that a language model found the seeded defect.
+`node --test tests/runtime-router.test.mjs` checks required-skill coverage, route precision/recall against the fixed rubric, out-of-domain prompts, context caps, mutation heuristics and reference links. It also imports the production plugin, exercises the route tool and both pre-tool gates, verifies front-matter removal against LF/CRLF/BOM fixtures, and rejects invalid or missing skill paths. CI runs this suite on Linux and Windows so platform-specific path behaviour is exercised. Context size remains a UTF-8 byte count with a rough token estimate. These tests do **not** claim that a language model found the seeded defect.
 
 ## Model-backed layer
 
@@ -14,7 +14,7 @@ The suite has two layers.
 OPENCODE_EVAL_MODEL=provider/model node evals/run-model-evals.mjs
 ```
 
-The script runs every case with `opencode run --format json`, stores raw events in `evals/results/latest.json` (or the directory in `MYSKILLS_EVAL_OUT`) and records token-usage objects when the CLI exposes them. `evals/prompt.mjs` excludes the case ID, expected findings, target skill list, required tests and expected verdict from model input to prevent rubric leakage. It does not auto-grade findings: the saved record carries the rubric for manual or separate-judge grading. Model and provider credentials must already be configured in OpenCode.
+The script runs every case with `opencode run --format json`, stores raw events in `evals/results/latest.json` (or the directory in `MYSKILLS_EVAL_OUT`) and records token-usage objects when the CLI exposes them. The report also records the Git revision, whether the worktree was clean at launch, the runtime plugin SHA-256, launch errors and termination signal so results can be tied to the implementation that produced them. `evals/prompt.mjs` excludes the case ID, expected findings, target skill list, required tests and expected verdict from model input to prevent rubric leakage. It does not auto-grade findings: the saved record carries the rubric for manual or separate-judge grading. Model and provider credentials must already be configured in OpenCode.
 
 For each case, grade:
 - **Skill selection:** compare IDs returned by the `myskills_route` tool with `required_skills`.

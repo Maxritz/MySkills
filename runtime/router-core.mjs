@@ -84,7 +84,17 @@ export function estimateTokensFromBytes(bytes) {
 export function isLikelySourceMutation(toolName, args = {}, mutationTools = []) {
   const name = String(toolName ?? "").toLowerCase();
   if (mutationTools.includes(name)) return true;
-  const command = String(args.command ?? args.cmd ?? "");
-  if (name !== "bash" && name !== "shell") return false;
-  return /(?:\bsed\s+-i\b|\bperl\s+-i\b|\btee\s+\S|\bgit\s+(?:apply|commit|cherry-pick|rebase|merge)\b|\bapply_patch\b|\bcat\s+[^\n]*>\s*\S|\b(?:printf|echo)\s+[^\n]*>\s*\S|>>\s*\S|\bpython(?:3)?\s+-c\s+[^\n]*(?:open\(|write_text\(|write_bytes\())/i.test(command);
+
+  const command = String(args.command ?? args.cmd ?? args.script ?? args.code ?? "");
+  const shellTools = new Set(["bash", "shell", "powershell", "pwsh", "cmd", "terminal", "run_command"]);
+  if (!shellTools.has(name)) return false;
+
+  const posixMutation =
+    /(?:\bsed\s+-i\b|\bperl\s+-i\b|\btee\s+(?:--append\s+)?\S|\bgit\s+(?:apply|commit|cherry-pick|rebase|merge|reset|restore|checkout|clean|stash|push)\b|\bapply_patch\b|\b(?:rm|mv|cp|install|truncate|dd)\b|\bcat\s+[^\n]*>\s*\S|\b(?:printf|echo)\s+[^\n]*>\s*\S|>>\s*\S|\bpython(?:3)?\s+-c\s+[^\n]*(?:open\(|write_text\(|write_bytes\())/i;
+  const windowsMutation =
+    /(?:\b(?:Set-Content|Add-Content|Out-File|Remove-Item|Move-Item|Copy-Item|Clear-Content|New-Item|Rename-Item)\b|\b(?:copy|move|del|erase|ren|rd|rmdir|md|mkdir)\s+\S|(?:^|[;&|]\s*)type\s+[^\n]*>\s*\S|>>\s*\S)/i;
+
+  if (["powershell", "pwsh"].includes(name)) return windowsMutation.test(command) || posixMutation.test(command);
+  if (name === "cmd") return windowsMutation.test(command) || posixMutation.test(command);
+  return posixMutation.test(command) || windowsMutation.test(command);
 }

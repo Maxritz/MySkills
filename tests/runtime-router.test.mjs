@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { routeTask, estimateTokensFromBytes, isLikelySourceMutation } from "../runtime/router-core.mjs";
+import { MySkillsRuntime, resolveSkillCorePath, stripSkillFrontMatter } from "../.opencode/plugins/myskills-runtime.js";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(readFileSync(join(root, "myskills.config.json"), "utf8"));
@@ -28,7 +29,22 @@ test("fixed evaluation prompts route to every required specialist within the con
     assert.ok(entry.required_verdict, `${entry.id}: missing verdict rubric`);
 
     const bytes = route.skills.reduce((sum, skill) => sum + Buffer.byteLength(readCore(skill), "utf8"), 0);
-    results.push({ id: entry.id, selected: route.skills, coreBytes: bytes, estimatedTokens: estimateTokensFromBytes(bytes) });
+    const required = new Set(entry.required_skills);
+    const selected = new Set(route.skills);
+    const matched = [...required].filter((skill) => selected.has(skill)).length;
+    const missing = [...required].filter((skill) => !selected.has(skill));
+    const additional = [...selected].filter((skill) => !required.has(skill));
+    results.push({
+      id: entry.id,
+      requiredSkills: [...required],
+      selected: route.skills,
+      missingSkills: missing,
+      additionalSkills: additional,
+      rubricPrecision: selected.size ? matched / selected.size : 0,
+      requiredSkillRecall: required.size ? matched / required.size : 1,
+      coreBytes: bytes,
+      estimatedTokens: estimateTokensFromBytes(bytes),
+    });
   }
   console.log("ROUTING_MATRIX " + JSON.stringify(results));
 });
@@ -55,10 +71,16 @@ test("router respects the skill cap and labels bytes-to-token conversion as an e
   assert.equal(estimateTokensFromBytes(0), 0);
 });
 
-test("common source mutations are detected but harmless shell commands are not", () => {
+test("common POSIX and Windows source mutations are detected without flagging read-only commands", () => {
   assert.equal(isLikelySourceMutation("edit", { filePath: "src/main.cpp" }, config.routing.mutationTools), true);
   assert.equal(isLikelySourceMutation("bash", { command: "git commit -am 'fix'" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("bash", { command: "git push origin main" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("bash", { command: "rm -f src/generated.cpp" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("powershell", { command: "Set-Content src/main.cpp 'changed'" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("pwsh", { command: "Remove-Item src/old.cpp" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("cmd", { command: "copy src\\a.cpp src\\b.cpp" }, config.routing.mutationTools), true);
   assert.equal(isLikelySourceMutation("bash", { command: "ctest --output-on-failure" }, config.routing.mutationTools), false);
+  assert.equal(isLikelySourceMutation("powershell", { command: "Get-Content src/main.cpp" }, config.routing.mutationTools), false);
 });
 
 test("diagnostics preserve evidence-first investigation guidance", () => {
@@ -133,4 +155,56 @@ test("model-evaluation prompts do not leak labels or rubric expectations", async
   for (const secret of ["SECRET_CASE_ID", "SECRET_SKILL", "SECRET_FINDING", "SECRET_TEST", "SECRET_VERDICT"]) {
     assert.equal(prompt.includes(secret), false, `prompt leaked ${secret}`);
   }
+});
+
+
+test("production front-matter parser strips LF, CRLF and BOM-delimited headers", () => {
+  const fixtures = [
+    ["---\nname: test\ndescription: example\n---\n# Body\n", "# Body\n"],
+    ["---\r\nname: test\r\ndescription: example\r\n---\r\n# Body\r\n", "# Body\r\n"],
+    ["\uFEFF---\r\nname: test\r\ndescription: example\r\n---\r\n# Body\r\n", "# Body\r\n"],
+    ["# Body without front matter\n", "# Body without front matter\n"],
+  ];
+  for (const [source, expected] of fixtures) {
+    assert.equal(stripSkillFrontMatter(source), expected);
+  }
+});
+
+test("skill core paths are validated portably and traversal is rejected", () => {
+  const skillPath = resolveSkillCorePath(root, "ponytail-diag");
+  assert.equal(statSafe(skillPath), true);
+  assert.throws(() => resolveSkillCorePath(root, "../outside"), /invalid skill identifier/);
+  assert.throws(() => resolveSkillCorePath(root, "missing-skill"), /missing skill/);
+});
+
+test("real MySkills plugin loads stripped skill cores and enforces route gates", async () => {
+  const plugin = await MySkillsRuntime({ directory: root, worktree: root });
+  const sessionID = "runtime-integration-test";
+
+  await assert.rejects(
+    () => plugin["tool.execute.before"]({ tool: "edit", sessionID }, { args: { filePath: "src/main.cpp" } }),
+    /call myskills_route/
+  );
+
+  const result = await plugin.tool.myskills_route.execute(
+    { task: "ponytail-diag: determine whether a defect is established from one performance measurement" },
+    { sessionID }
+  );
+  assert.match(result, /MYSKILLS ROUTE/);
+  assert.match(result, /===== LOADED ponytail-diag /);
+  assert.doesNotMatch(result, /===== LOADED [^\n]+ =====\r?\n---(?:\r?\n|$)/);
+
+  await assert.rejects(
+    () => plugin["tool.execute.before"]({ tool: "edit", sessionID }, { args: { filePath: "src/main.cpp" } }),
+    /code-quality-gate was not loaded/
+  );
+
+  const implementation = await plugin.tool.myskills_route.execute(
+    { task: "Implement a small source-code refactor." },
+    { sessionID }
+  );
+  assert.match(implementation, /===== LOADED code-quality-gate /);
+  await assert.doesNotReject(
+    () => plugin["tool.execute.before"]({ tool: "edit", sessionID }, { args: { filePath: "src/main.cpp" } })
+  );
 });

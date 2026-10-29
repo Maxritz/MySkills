@@ -8,7 +8,11 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,12 +27,13 @@ jobs:
           python-version: "3.x"
 
       - name: Install pinned OpenCode plugin API
-        run: npm install --prefix .opencode --ignore-scripts --no-audit --no-fund
+        working-directory: .opencode
+        run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Validate native discovery and router inventory
         shell: bash
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           import json, re, sys
           from pathlib import Path
 
@@ -108,7 +113,8 @@ jobs:
       - name: Run deterministic routing, evidence and reference tests
         run: node --test tests/runtime-router.test.mjs
 
-      - name: Smoke-test OpenCode plugin registration and gates
+      - name: Check OpenCode plugin registration
+        shell: bash
         run: |
           node --input-type=module - <<'JS'
           import assert from "node:assert/strict";
