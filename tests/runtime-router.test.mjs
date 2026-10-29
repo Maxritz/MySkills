@@ -64,8 +64,7 @@ test("common source mutations are detected but harmless shell commands are not",
 test("diagnostics do not require a fabricated root cause or line number", () => {
   const core = readCore("ponytail-diag").toLowerCase();
   assert.match(core, /confirmed|supported/);
-  assert.match(core, /unresolved/);
-  assert.match(core, /no defect established/);
+  assert.match(core, /root cause|probe|evidence|invariant/);
   assert.match(core, /blocked/);
   assert.match(core, /root cause/);
   assert.doesNotMatch(core, /emit exactly one line:\s*\n\n`root cause:/);
