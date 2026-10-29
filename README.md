@@ -139,3 +139,12 @@ Example explicit calls:
 ## Licence
 
 MIT at repository level. Respect individual skill licence and attribution notes where present.
+
+
+## Runtime behaviour and evaluation
+
+The collection uses OpenCode's native skill discovery through `skills: ["./"]`. A local plugin registers the `myskills_route` tool, which applies the deterministic keyword map in `myskills.config.json`, returns only the selected skill cores, and reports selected-core bytes with a rough bytes-to-token estimate. References stay on disk and are read only when a selected procedure needs them.
+
+The plugin requires routing before other tool use in a task and blocks common source-mutation tools unless `code-quality-gate` was selected. This is a workflow guard, not a security boundary: arbitrary shell scripts or external tools can mutate files outside its static detector. CI and review remain necessary. OpenCode does not guarantee that a skill body can be unloaded from existing conversation history, so the runtime does not claim automatic unloading.
+
+Run deterministic tests with `node --test tests/runtime-router.test.mjs`. The fixed tasks are in `evals/cases.json`. CI checks routing, core-size estimates, mutation detection, native configuration, and relative reference links. This does not establish that a language model found each seeded defect. Model-backed accuracy and actual provider token usage must be recorded separately from the deterministic CI run; the router reports an estimate based only on the selected skill-core text.
