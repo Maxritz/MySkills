@@ -99,9 +99,9 @@ This file is derived from actual top-level skill directories, not a planned or h
 - ponytail
 - utility-pair
 
-## Observations
+## Runtime notes
 
-- The current catalogue includes the original 65 main-branch skills plus nine additional specialist skills introduced by the runtime branch.
-- Legacy loader fields such as `auto_trigger`, `conditional_load` and `trigger_keywords` are not OpenCode runtime controls. Native discovery is configured through `skills: ["./"]`; deterministic routing is implemented by the MySkills plugin.
-- Use Goli-mat-de for systematic completeness audits, ponytail-diag for evidence-calibrated diagnosis, and sherlock-it for measured performance investigations.
-- CI checks real directories, front matter, links, categories, routing inventory and runtime tests. Hardware-specific or credentialed evaluations must not be claimed unless evidence exists.
+- Catalogue has 74 directories containing `SKILL.md`.
+- OpenCode native discovery is configured via `skills: ["./"]`.
+- Keyword routing and selected-core context injection are implemented by the MySkills runtime plugin, not by front-matter metadata.
+- Keep evaluation claims tied to actual deterministic or model-backed run evidence.
