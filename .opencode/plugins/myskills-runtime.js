@@ -45,7 +45,8 @@ export const MySkillsRuntime = async ({ directory, worktree, client }) => {
         if (!path.startsWith(root + "/") || !existsSync(path)) {
           throw new Error(`MySkills runtime: route selected missing skill ${skill}`);
         }
-        const body = readFileSync(path, "utf8");
+        const raw = readFileSync(path, "utf8");
+        const body = raw.replace(/^---\\r?\\n[\\s\\S]*?\\r?\\n---\\s*\\r?\\n/, "");
         const bytes = Buffer.byteLength(body, "utf8");
         totalBytes += bytes;
         bodies.push({ skill, path: `${skill}/SKILL.md`, bytes, body });
