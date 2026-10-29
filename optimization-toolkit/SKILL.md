@@ -1,177 +1,97 @@
 ---
 name: optimization-toolkit
-description: "Extreme optimization: demoscene legends (farbrausch, Ryg, Haujobb) + kernel tuning (roofline, cache, SIMD, GPU occupancy). For when you need maximum performance at any cost."
+description: Measurement-driven CPU/GPU performance analysis, profiling and architecture-specific optimisation. Use when a measured workload needs improvement.
 compatibility: opencode
 metadata:
-  auto_unload: true
   loading: on-demand
+  auto_unload: true
   auto_trigger: false
-  trigger_keywords: ["optimization", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "farbrausch", "Ryg", "Haujobb", "extreme performance"]
+  trigger_keywords: ["optimisation", "optimization", "profiling", "cache", "SIMD", "occupancy"]
 ---
 
 # Optimization Toolkit
 
-**Extreme optimization techniques** from demoscene legends + systematic kernel tuning. Use when standard optimization is insufficient.
+Optimise a measured bottleneck, not a slogan. Every technique below is a hypothesis whose benefit must be verified on the target workload and hardware.
 
----
+## 1. Route to the narrowest technique
 
-## Specialised techniques
+- For byte/cycle budgets and demoscene code-size work, use [demoscene-opt](../demoscene-opt/SKILL.md); details are in [specialised techniques](references/specialised-techniques.md).
+- For AMD GPU architecture/runtime selection, use [amd-gpu-stack](../amd-gpu-stack/SKILL.md).
+- For a single GPU kernel, use [kernel-tuning](../kernel-tuning/SKILL.md).
+- For an end-to-end latency claim, use [sherlock-it](../sherlock-it/SKILL.md) to check measurement and instrumentation effects.
 
-- For byte/cycle budgets and procedural-code techniques, use [demoscene-opt](../demoscene-opt/SKILL.md); original framework notes remain in [specialised reference](references/specialised-techniques.md).
-- For AMD GPU architecture, runtime and instruction selection, use [amd-gpu-stack](../amd-gpu-stack/SKILL.md); RDNA2-specific notes are retained in the same reference.
+## 2. Establish a baseline first
 
-## 2. Generic Application Framework
+Record the exact revision, compiler and flags, hardware, runtime, input shape, data type/precision, batch size, warm-up, power/clock state, and concurrency. Confirm correctness before timing. Keep the original implementation and a repeatable benchmark command.
 
-For ANY optimization challenge:
+Use a profiler or counters to determine whether the limit is compute, bandwidth, cache/memory latency, launch/synchronisation, occupancy/register pressure, I/O, or host scheduling. Do not infer a bottleneck from high-level timing alone.
 
-1. **Find hot path**: Profile → identify 90% time
-2. **Eliminate intermediates**: Fuse all buffers/arrays
-3. **Tighten data layout**: Cache-line friendly, SIMD accessible
-4. **Reduce memory traffic**: Every byte reused multiple times
-5. **Remove branches**: Convert to arithmetic/bit tricks
-6. **Inline everything**: Call overhead = death for inner loops
-7. **Specialize**: Generate code for specific problem
+## 3. Choose an intervention from evidence
 
----
+- **Fuse intermediates** only when avoided launch/allocation/traffic outweighs higher register pressure, reduced occupancy, lost reuse or code complexity.
+- **Change data layout** only when measurements show the existing access pattern wastes bandwidth, cache capacity or SIMD lanes.
+- **Remove branches** only when misprediction/divergence costs exceed extra instructions and data movement.
+- **Inline or unroll** only when call/loop overhead or vectorisation improves enough to offset code growth, instruction-cache pressure and register spills.
+- **Prefetch** only after evidence of predictable latency that hardware prefetch does not handle well. Measure both benefit and cache pollution.
+- **Specialise** only when the dispatch condition is stable and the specialised path preserves a correct fallback.
+- **NUMA placement** matters only on a NUMA system with demonstrated remote-memory effects. The numactl examples below are Linux-specific.
+- **SIMD/instruction selection** must follow the actual target ISA, compiler code generation and CPUID/runtime dispatch requirements.
 
-## 3. Kernel Tuning (Systematic)
+## 4. Use the right model
 
-### Roofline Model
-```
-Compute-bound: FLOPs > AI × Bandwidth  (bounded by compute peak)
-Memory-bound:  FLOPs < AI × Bandwidth  (bounded by memory bandwidth)
-AI = FLOPs / Bytes accessed
-```
-Plot on roofline chart → identify bottleneck.
+Roofline attainable throughput is bounded by both compute and bandwidth:
 
-### Profiling Methodology
-1. **Baseline** — hardware counters at entry
-2. **Profile hot loops** — `perf record -g` / VTune / `rocm-smi`
-3. **Identify bottleneck** — CPU cycles, cache misses, branch misses, memory latency
-4. **Optimize one variable** — isolate cause before fixing
-5. **Validate** — re-measure vs baseline, check correctness
+attainable performance <= min(peak compute, peak memory bandwidth × arithmetic intensity)
 
-### CPU Cache Optimization
-| Level | Size | Latency | Strategy |
-|-------|------|---------|----------|
-| L1 | 32-48KB/core | ~1 cycle | Hot data, register spill |
-| L2 | 256-512KB/core | ~3 cycles | Working set |
-| L3 | 8-32MB shared | ~12 cycles | Shared data |
-| **Cache line** | **64 bytes** | — | **Sequential access only** |
+Keep units consistent. Arithmetic intensity is operations per byte transferred at the memory level being modelled; cache reuse can make the effective traffic at different levels very different. The roofline model does not explain launch-bound, dependency-bound, synchronisation-bound or host-bound work by itself.
 
-```bash
-perf stat -e cache-references,cache-misses ./app
-__builtin_prefetch(ptr, rw, locality)  # rw: 0=read, 1=write; locality: 0-3
-```
+Cache capacity and latency vary by CPU, cache topology, workload and contention. Do not use fixed L1/L2/L3 latency tables as evidence. Measure counters and working-set behaviour on the target. On Linux, for example:
 
-### Memory Access Patterns
-| Pattern | Description | Penalty |
-|---------|-------------|---------|
-| **Coalesced** | Thread i → addr base + i×stride | None (ideal) |
-| **Strided** | Thread i → addr base + i×stride×K | × stride factor |
-| **Random** | Thread i → random addr | Worst (serialize to DRAM latency) |
-| **Bank conflicts** | Multiple threads → same bank | Serialize |
+~~~bash
+perf stat -e cycles,instructions,cache-misses ./app
+~~~
 
-### NUMA Awareness
-```bash
-numactl --cpunodebind=N --membind=N ./app
-numactl -H  # show topology
-numa_alloc_onnode(size, node)  # allocate near CPU
-```
+Memory access descriptions such as contiguous, strided and random are starting points. The penalty depends on cache residency, transaction width, memory subsystem, coalescing rules and actual reuse. Verify with counters and a representative workload.
 
-### GPU Occupancy (CUDA/HIP)
-```bash
-# Theoretical max
-cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocks, kernel, block_size, shared_mem)
+## 5. CPU and GPU tuning
 
-# Targets
-Occupancy = active warps / max warps per SM → Goal: ~75%
-Block size: multiple of 32 (warp), 128-256 sweet spot
-Registers: reduce with -maxrregcount=N (may spill)
-```
+### CPU
 
-### CPU Instruction Optimization
-```bash
-# Agner Fog tables for latency/throughput
-# -O3 -march=native -funroll-loops
-# Vectorization reports:
-#   Intel: --report
-#   GCC: -fopt-info-vec
-# Manual: #pragma omp simd, intrinsics
-```
+Use compiler vectorisation reports before rewriting loops by hand. Examples:
 
-### Tuning Workflow
-```bash
-# 1. Benchmark
-hyperfine --warmup 3 './app'
+~~~bash
+# GCC
+g++ -O3 -fopt-info-vec-optimized -fopt-info-vec-missed ...
+# Clang
+clang++ -O3 -Rpass=loop-vectorize -Rpass-missed=loop-vectorize ...
+# MSVC
+cl /O2 /Qvec-report:2 ...
+~~~
 
-# 2. Pin & disable scaling
-taskset -c 0 ./app
-cpupower frequency-set -g performance
+Flags differ by compiler; use only the relevant command. Compare generated code and measured throughput. -march=native is suitable for local benchmarks, not automatically for distributable binaries. Use runtime dispatch or a declared minimum ISA where portability matters.
 
-# 3. Run 10+ comparable iterations and report median, spread and best observed sample. The minimum is not a hardware ceiling and can reflect noise, cache state or measurement bias.
-# 4. Profile
-perf record -g ./app
-perf report --stdio
-```
+### GPU
 
----
+Occupancy, wave/warp size, block size, register use and shared/local memory limits are architecture-specific. Maximum occupancy is not the objective; sufficient occupancy to cover latency while preserving reuse and instruction efficiency is the goal. Change one variable at a time and check correctness. Do not force register limits or fixed block sizes without profiling for spills, occupancy and throughput.
 
-## Architecture-specific note
+### NUMA (Linux only)
 
-Avoid assuming an instruction or occupancy rule is portable across GPU generations. Load [RDNA2 and demoscene notes](references/specialised-techniques.md) only when the target matches.
+~~~bash
+numactl -H
+numactl --cpunodebind=<node> --membind=<node> ./app
+~~~
 
-## 5. Validation Gates
+Use only when the machine exposes NUMA nodes and the benchmark shows locality effects. Do not apply CPU affinity or performance governors blindly on shared systems.
 
-```bash
-# Baseline
-hyperfine --warmup 5 './app' --export-json baseline.json
+## 6. Benchmark and validate
 
-# After optimization
-hyperfine --warmup 5 './app_opt' --export-json optimized.json
+1. Warm up and run repeated baseline/candidate measurements on the same workload and environment.
+2. Alternate or randomise run order when thermal, clock or background drift could bias the comparison.
+3. Report sample count, median, spread/percentiles, throughput and relevant counters. Keep best-observed latency separate; it is not a hardware ceiling.
+4. Make one material change per experiment and preserve a control.
+5. Re-run correctness and the original reproducer. Keep fallback behaviour and unsupported-hardware paths valid.
+6. Accept the change only if the measured improvement exceeds observed noise and the workload's acceptance threshold without violating correctness, memory, latency or portability constraints.
 
-# Compare
-python -c "
-import json
-b = json.load(open('baseline.json'))
-o = json.load(open('optimized.json'))
-print(f'Speedup: {b[0][\"mean\"]/o[0][\"mean\"]:.2f}x')
-print(f'Baseline: {b[0][\"mean\"]*1000:.1f}ms')
-print(f'Optimized: {o[0][\"mean\"]*1000:.1f}ms')
-"
-
-# Correctness
-./test_correctness --compare=reference
-```
-
----
-
-## Output Report
-
-```
-OPTIMIZATION TOOLKIT: <technique> APPLIED
-HOT PATH: <function> (<pct>% of runtime)
-TECHNIQUE: <demoscene legend / kernel tuning>
-BEFORE: <cycles> cycles, <cache_miss>% miss, <bandwidth> GB/s
-AFTER:  <cycles> cycles, <cache_miss>% miss, <bandwidth> GB/s
-SPEEDUP: <x>x (<baseline_ms>ms → <opt_ms>ms)
-CORRECTNESS: differential test ✅/❌
-TRADEOFFS: <code size> <register pressure> <maintainability>
-BLOCKERS: <ISA support|compiler|debuggability>
-```
-
----
-
-## Goli-mat-de integrity gate
+Report the hot path and its measured share, baseline and candidate distributions, profiler evidence, compiler/hardware context, correctness results, regressions and trade-offs. If no repeatable improvement was demonstrated, say so.
 
 Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Optimise only a bottleneck shown by measurement. Preserve a baseline, isolate one change, report median and spread on the same workload, and retain correctness and fallback behaviour; do not mistake best observed latency for a hardware ceiling.
-
-
-## Boundaries
-
-- Does not write algorithmic code (receives hot path to optimize)
-- Does not manage build systems (see `toolchains`)
-- Does not validate correctness beyond differential testing
-- `stop optimization-toolkit`: revert.
