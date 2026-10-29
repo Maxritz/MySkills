@@ -1,10 +1,12 @@
 ---
 name: traceability-gate
-description: "Code quality gate: trace markers [T-XXX], Doxygen contracts, implementation integrity (no fake code), 10-iter validation. Auto-triggers on all code changes."
+description: "On-demand gate for trace markers, code contracts and implementation-integrity verification."
 compatibility: opencode
 metadata:
-  auto_trigger: true
-  trigger_keywords: ["write", "edit", "create", "add", "refactor", "implement", "fix", "Doxygen", "trace", "implementation integrity", "contracts"]
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["traceability gate", "Doxygen contract check", "implementation integrity gate"]
   priority: critical
 ---
 
