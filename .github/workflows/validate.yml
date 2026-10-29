@@ -118,5 +118,23 @@ jobs:
           assert.equal(typeof plugin.tool.myskills_route.execute, "function");
           assert.equal(typeof plugin["tool.execute.before"], "function");
           assert.equal(typeof plugin.event, "function");
-          console.log("MySkills route tool and runtime guard registered.");
+
+          await assert.rejects(
+            () => plugin["tool.execute.before"]({ tool: "read", sessionID: "smoke" }, { args: { filePath: "README.md" } }),
+            /call myskills_route/,
+            "unrouted session should not use tools"
+          );
+
+          const routed = await plugin.tool.myskills_route.execute(
+            { task: "Implement a Vulkan compute shader fix with semaphore synchronisation.", max_skills: 4 },
+            { sessionID: "smoke", directory: process.cwd(), worktree: process.cwd() }
+          );
+          assert.match(routed, /LOADED code-quality-gate/);
+          assert.match(routed, /LOADED vulkan-compute-stack/);
+
+          await plugin["tool.execute.before"](
+            { tool: "edit", sessionID: "smoke" },
+            { args: { filePath: "src/example.cpp" } }
+          );
+          console.log("MySkills router loads selected skill cores and gates tool use.");
           JS
