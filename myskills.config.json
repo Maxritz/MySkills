@@ -294,7 +294,10 @@
       "ponytail-diag": [
         "ponytail-diag",
         "what should vs did happen",
-        "one-line verdict"
+        "one-line verdict",
+        "no defect established",
+        "uncertain diagnosis",
+        "diagnosis without reproduction"
       ],
       "porting-toolkit": [
         "port",
