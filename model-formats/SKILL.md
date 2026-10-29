@@ -1,316 +1,145 @@
 ---
 name: model-formats
-description: "Unified model formats: GGUF, SafeTensors, ONNX, OpenVINO IR. Validate, convert, shard, quantize, integrate with runtimes. Binary contract verification."
+description: "Binary model-format validation, conversion, sharding, quantisation, runtime integration and cross-format equivalence testing."
 compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["GGUF", "SafeTensors", "ONNX", "OpenVINO", "model format", "quantization", "tensor", "shard", "convert", "ggml", "safetensors"]
 ---
 
 # Model Formats
 
-**Treat every model file as an untrusted binary contract.** Validate before load, convert with provenance, integrate with runtime expectations.
+Treat each model file as an untrusted binary contract. Validate structure and provenance before mapping or allocating tensor memory. Conversion is not automatically lossless.
 
-## Format Matrix
+## Version gate and workflow
 
-| Format | Extension | Primary Use | Quantization | Streaming | Runtime |
-|--------|-----------|-------------|--------------|-----------|---------|
-| **GGUF** | `.gguf` | llama.cpp, local LLMs | Q4_K, Q5_K, Q8_0, IQ4_XS | mmap + partial | llama.cpp, ollama, LM Studio |
-| **SafeTensors** | `.safetensors` | HF, PyTorch, TensorFlow | FP16, BF16, INT8 (external) | mmap + shard index | HF Transformers, vLLM, SGLang |
-| **ONNX** | `.onnx` | Cross-framework, OpenVINO | QOperator, QDQ | N/A | ONNX Runtime, OpenVINO, TensorRT |
-| **OpenVINO IR** | `.xml` + `.bin` | Intel CPU/GPU/NPU | PTQ INT8, QAT | N/A | OpenVINO |
+1. Record source model revision, tokenizer/config revision, file hashes, converter version/commit, destination format version, quantisation parameters and target runtime.
+2. Inspect the format specification and parser from the exact upstream revision before relying on field order, metadata names, type sizes or CLI flags.
+3. Validate file sizes, offsets, element counts, arithmetic overflow, duplicate names, tensor coverage, shard indexes and resource limits before allocation.
+4. Convert into a temporary output path. Reopen and validate every artifact, compare outputs against the source runtime, then atomically publish the files and manifest. Never mark a partial conversion complete.
+5. Keep weight conversion and quantisation as separate steps where possible. Record every lossy transform and its numerical effect.
+6. Distinguish syntactic validity, loadability by a particular runtime, numerical equivalence and task quality. Passing one does not imply the others.
 
----
+Primary references:
+- GGUF: [format specification](https://github.com/ggml-org/ggml/blob/master/docs/gguf.md) and [reader tooling](https://github.com/ggml-org/llama.cpp/tree/master/gguf-py).
+- SafeTensors: [format specification](https://github.com/huggingface/safetensors#format).
+- ONNX: [checker API](https://onnx.ai/onnx/api/checker.html).
+- OpenVINO: [legacy component migration notes](https://docs.openvino.ai/2026/documentation/legacy-features.html).
 
-## 1. GGUF (llama.cpp Format)
+## Format selection
 
-### Structure
-```
-Magic: "GGUF" (0x46554747)
-Version: uint32 (3 = current)
-Tensor count: uint64
-Metadata KV count: uint64
-[Metadata KV pairs...]
-[TensorInfo array...]
-[Tensor data (aligned)...]
-```
+| Format | Common use | Key contract |
+|---|---|---|
+| GGUF | ggml-based inference runtimes | Metadata, architecture mapping, general.alignment, quantisation block layout, tensor offsets and split-file metadata |
+| SafeTensors | Framework checkpoints | 8-byte little-endian header length, JSON header, payload-relative data offsets, separate shard index |
+| ONNX | Framework-neutral graph exchange | Opset imports, graph IO, external tensor data, operator/provider support and preprocessing |
+| OpenVINO IR | OpenVINO deployment | Model XML, weight payload, supported runtime/API and target-device compilation |
 
-### Validation Checklist (Mandatory)
-```python
-def validate_gguf(filepath):
-    with open(filepath, 'rb') as f:
-        # 1. Magic & version
-        assert f.read(4) == b'GGUF'
-        version = read_u32(f)
-        assert version in (2, 3), f"Unsupported version: {version}"
-        
-        # 2. Counts
-        tensor_count = read_u64(f)
-        kv_count = read_u64(f)
-        assert tensor_count <= MAX_TENSORS
-        assert kv_count <= MAX_KV
-        
-        # 3. Metadata KVs - validate bounds, types, names
-        for _ in range(kv_count):
-            key = read_string(f)
-            val_type = read_u32(f)
-            validate_kv_value(f, val_type, key)
-        
-        # 4. TensorInfos - validate names, shapes, dtypes, offsets
-        tensors = []
-        for _ in range(tensor_count):
-            name = read_string(f)
-            n_dims = read_u32(f)
-            shape = [read_u64(f) for _ in range(n_dims)]
-            dtype = read_u32(f)  # GGML_TYPE_*
-            offset = read_u64(f)
-            validate_tensor_info(name, shape, dtype, offset)
-            tensors.append((name, shape, dtype, offset))
-        
-        # 5. Check alignment & shard completeness
-        for name, shape, dtype, offset in tensors:
-            assert offset % ALIGNMENT == 0, f"Tensor {name} misaligned: {offset}"
-            expected_size = shape_product(shape) * dtype_size(dtype)
-            # Verify data exists at offset
-```
+Do not assume every runtime supports the newest format version, every quantisation type or every architecture. Probe the installed runtime and use documentation matching that version.
 
-### Quantization Types (GGML)
+## GGUF
 
-| Type | Bits | Block | Use Case |
-|------|------|-------|----------|
-| `Q4_0` | 4 | 32 | Legacy, fast dequant |
-| `Q4_K` | 4 | 256 | Best quality/speed (recommended) |
-| `Q5_K` | 5 | 256 | Higher quality |
-| `Q8_0` | 8 | 32 | Near-FP16 quality |
-| `IQ4_XS` | 4 | 32 | Importance-weighted, small |
-| `IQ4_NL` | 4 | 32 | Importance-weighted, non-linear |
-| `FP16` | 16 | — | No quantization |
+### Parse contract
 
-### Conversion Pipeline
-```
-Source (HF PyTorch) 
-  → gguf-my-repo convert (preserve metadata)
-  → quantize (llama.cpp quantize: Q4_K_M default)
-  → validate (logits diff vs reference < 1e-3)
-  → shard (if >2GB: split by tensor families)
-  → record provenance (source commit, converter version, quantization params)
-```
+- Verify the literal GGUF magic, supported version and endianness. Fail closed when the parser does not support the version.
+- Bound tensor and metadata counts, string/array lengths, dimension count, nesting and total allocation before iterating.
+- Validate metadata types and array element types. Parse general.architecture before interpreting architecture-specific keys.
+- Validate unique tensor names, dimension ranges, data type IDs, per-type block constraints, offsets, required alignment and the complete referenced byte range.
+- Tensor offsets are relative to the tensor-data section, not the beginning of the whole file. Account for header/table padding and the actual general.alignment metadata; if absent, use the default specified by the pinned parser revision.
+- Calculate storage size from the matching ggml quantisation traits, including elements per block and bytes per block. Never use element_count multiplied by bits-per-weight divided by eight as a universal formula for block-quantised tensors.
+- Check overflow before multiplication, addition and alignment rounding. Ensure every referenced range fits in the actual file and ranges do not overlap.
+- For split models, validate every required part and its exact metadata. Do not invent a universal size threshold or split tensors by family unless the chosen writer/runtime explicitly supports that layout.
 
-### Integration Contract
-- **Tokenizer metadata**: `tokenizer.ggml.model`, `tokenizer.ggml.tokens`, `tokenizer.ggml.scores`, `tokenizer.ggml.token_type`, `tokenizer.ggml.merges`
-- **Config metadata**: `general.architecture`, `llama.block_count`, `llama.attention.head_count`, `llama.embedding_length`, `llama.feed_forward_length`, `llama.rope.freq_base`
-- **Runtime expectations**: Context length, rope scaling, sliding window, attention type
+### Prefer the pinned reader
 
----
+Prefer the reader and dump tools shipped with the exact ggml/llama.cpp revision before writing a parser. The upstream Python package and command-line entry points can change, so verify the installed package and help output before relying on a command.
 
-## 2. SafeTensors
+    python -m pip show gguf
+    gguf-dump --help
+    gguf-dump path/to/model.gguf
 
-### Structure
-```
-Header (8 bytes): u64 header_length (little-endian)
-Header (JSON): {"__metadata__": {...}, "tensor_name": {"dtype": "F16", "shape": [..], "data_offsets": [start, end]}, ...}
-Tensor data: concatenated, aligned to 64 bytes
-```
+If implementing a custom parser, use bounded reads and explicit error results. Do not use Python assert as production validation because optimisation can disable assertions. Do not rely on unspecified helpers such as read_u32 or shape_product without defining and testing their contracts.
 
-### Validation Checklist (Mandatory)
-```python
-def validate_safetensors(filepath):
-    with open(filepath, 'rb') as f:
-        # 1. Header length
-        header_len = read_u64(f)
-        assert header_len < MAX_HEADER_SIZE
-        
-        # 2. Parse JSON header
-        header_json = json.loads(f.read(header_len))
-        
-        # 3. Validate each tensor
-        file_size = os.path.getsize(filepath)
-        data_start = 8 + header_len
-        
-        for name, info in header_json.items():
-            if name == "__metadata__":
-                continue
-            dtype = info["dtype"]  # F32, F16, BF16, I32, I64, U8, BOOL
-            shape = info["shape"]
-            offsets = info["data_offsets"]  # [start, end] relative to data_start
-            
-            # Bounds check
-            assert 0 <= offsets[0] < offsets[1] <= file_size - data_start
-            
-            # Non-overlap check (across all tensors)
-            # Shape product * dtype_size == offsets[1] - offsets[0]
-            expected = shape_product(shape) * dtype_size(dtype)
-            actual = offsets[1] - offsets[0]
-            assert expected == actual, f"Tensor {name}: size mismatch {expected} vs {actual}"
-        
-        # 4. Shard index (if present)
-        if "__metadata__" in header_json and "shard_index" in header_json["__metadata__"]:
-            validate_shard_index(header_json["__metadata__"]["shard_index"])
-```
+### Runtime contract
 
-### Sharding (Large Models)
-```json
-// model.safetensors.index.json
-{
-  "metadata": {"total_size": 12345678900},
-  "weight_map": {
-    "model.embed_tokens.weight": "model-00001-of-00003.safetensors",
-    "model.layers.0.self_attn.q_proj.weight": "model-00001-of-00003.safetensors",
-    ...
-  }
-}
-```
+Read general.architecture first and map only metadata keys defined for that architecture. Validate tokenizer vocabulary and merge/score/type arrays, layer/head counts, RoPE settings, sliding-window settings, expert counts and tensor shapes against the architecture and runtime requirements. Do not apply llama-specific metadata keys blindly to other model families.
 
-### Zero-Copy Loading (After Validation)
-```python
-# Memory-map validated file
-mmap = np.memmap(filepath, mode='r', offset=data_start + tensor_offset, 
-                 dtype=dtype_numpy, shape=shape)
-# Or torch.from_numpy for PyTorch
-tensor = torch.from_numpy(mmap.copy())  # Copy if mutation needed
-```
+## SafeTensors
 
-### Conversion (SafeTensors ↔ GGUF)
+### Header and payload checks
 
-Conversion is not automatically lossless. Converting a quantised GGUF tensor to FP32 and then writing SafeTensors dequantises the stored approximation; it does not recover the original FP16/BF16/FP32 weights. Record source hashes, quantisation types, tool revision, metadata mapping, tokenizer/config files, and numerical comparison results. Use the original higher-precision source weights when exact recovery is required.
-```python
-# SafeTensors → GGUF (llama.cpp convert)
-python convert-hf-to-gguf.py --model model.safetensors --outfile model.gguf --quantize Q4_K_M
+- Read the first 8 bytes as an unsigned little-endian header length. Reject a header that exceeds policy limits or extends beyond the file before parsing JSON.
+- Parse UTF-8 JSON with duplicate-key detection. Reject duplicate tensor names instead of allowing a normal dictionary parser to overwrite an earlier key.
+- The optional __metadata__ member is a string-to-string map. It is not the standard shard index.
+- Tensor data_offsets are relative to the beginning of the payload after the header. Validate 0 <= start <= end <= payload_size; equal offsets are valid for empty tensors.
+- Check that shape and dtype imply exactly end - start bytes. Use the format's dtype sizes, including packed dtypes where supported.
+- Validate all ranges together: no overlaps, and complete payload coverage according to the current specification. Do not assume each tensor begins at a 64-byte boundary.
+- Scalars and empty tensors are legal; do not reject them using a blanket start < end rule.
+- Validate a separate sharding index, such as a .safetensors.index.json file, independently. Each weight-map entry must refer to an existing shard and a tensor that exists in that shard. Reject missing, duplicate and unsafe paths.
+- Set explicit limits for header size, tensor count, rank, shape product and decoded memory before loading external models.
 
-# GGUF → SafeTensors (for HF ecosystem)
-# 1. Load GGUF → FP32 tensors
-# 2. Save as SafeTensors with metadata preserved
-# 3. Reconcile tokenizer config separately
-```
+Prefer the official SafeTensors library for ordinary loading. For manual memory mapping, prove all bounds before mapping, preserve read-only behaviour unless mutation is required, and document who owns the map and how long views remain valid. Memory mapping alone does not prove safe parsing or end-to-end zero-copy behaviour.
 
----
+## ONNX
 
-## 3. ONNX
+Run the checker for the pinned ONNX version, then inspect graph inputs/outputs, opset imports, symbolic dimensions, external-data references and custom operators. Confirm the target execution provider supports required operators and dtypes.
 
-### Validation
-```python
-import onnx
-model = onnx.load("model.onnx")
-onnx.checker.check_model(model)
+    import onnx
 
-# Check opset, inputs/outputs, dynamic axes
-for inp in model.graph.input:
-    print(inp.name, inp.type.tensor_type.shape)
-for out in model.graph.output:
-    print(out.name, out.type.tensor_type.shape)
-```
+    model = onnx.load("model.onnx", load_external_data=True)
+    onnx.checker.check_model(model)
+    for item in model.graph.input:
+        print(item.name, item.type.tensor_type.shape)
+    for item in model.graph.output:
+        print(item.name, item.type.tensor_type.shape)
 
-### Quantization (ONNX Runtime)
-```python
-from onnxruntime.quantization import quantize_dynamic, QuantType
-quantize_dynamic("model.onnx", "model_int8.onnx", weight_type=QuantType.QInt8)
+For external tensor data, ensure referenced files exist and paths stay within the model package. Static quantisation needs a representative calibration dataset. Validate on the intended execution provider, not only on a CPU reference.
 
-# Static quantization (QDQ format)
-from onnxruntime.quantization import quantize_static, CalibrationDataReader
-quantize_static("model.onnx", "model_qdq.onnx", calibration_data_reader)
-```
+## OpenVINO
 
----
+Prefer the OpenVINO Runtime and OpenVINO Converter (OVC) workflow for releases that support them. Legacy Model Optimizer and Conversion API commands in older guides may be removed or unsupported. Verify the installed version and ovc help before adopting flags.
 
-## 4. OpenVINO IR
+    ovc --help
+    ovc path/to/model.onnx --output_model path/to/staging/model.xml
 
-### Structure
-- `.xml`: Topology (layers, connections, shapes)
-- `.bin`: Weights (FP32/FP16/INT8)
+Treat this as a template for compatible OVC versions, not a guarantee that every framework or option is supported. Inspect the generated model and weights, then compile on the target device with the API documented for the installed release. Validate preprocessing, output shapes, unsupported operations, memory use and numerical differences. Quantisation and weight compression are transformations, not lossless conversions.
 
-### Conversion (ONNX → IR)
-```bash
-mo --input_model model.onnx --output_dir ir/ --data_type FP16
-# Input shape override
---input_shape [1,3,224,224]
-# Quantization (PTQ)
-mo --input_model model.onnx --compress_weights 0  # FP32
-```
+## Conversion and numerical equivalence
 
-### Python PTQ (NNCF)
-```python
-import nncf
-import openvino as ov
+Keep a manifest with hashes, source revisions, tokenizer/config files, converter versions, target format/runtime versions, quantisation parameters and validation status. Validate staged outputs before atomically publishing them. Preserve the last known-good artifact if conversion fails.
 
-model = ov.Core().read_model("model.xml")
-dataset = nncf.Dataset(calibration_loader)
-quantized_model = nncf.quantize(model, dataset, subset_size=300)
-ov.serialize(quantized_model, "model_int8.xml")
-```
+Compare equivalent tensors or logits only when inputs, tokenisation, preprocessing, shapes, output ordering and semantic conventions match. Compare pre-sampling logits where available; generated text alone is too sensitive to sampling and small numerical changes.
 
----
+Use an independent comparison function that verifies shapes before arithmetic, rejects empty or non-finite outputs, and reports maximum absolute error and RMS error as well as whether explicit absolute/relative tolerances pass. Define the tolerances from the exact dtype, quantiser and runtime contract. There is no universal tolerance attached to a format name. Add task-level checks such as top-k agreement, perplexity or benchmark-task accuracy when appropriate, and report those separately from elementwise error.
 
-## Cross-Format Validation (Golden Test)
+## Security and failure handling
 
-```python
-def cross_format_validate(formats: dict[str, str], tolerance: dict):
-    """Validate multiple formats produce equivalent outputs."""
-    reference_logits = None
-    
-    for name, path in formats.items():
-        if name == "gguf":
-            logits = run_llama_cpp(path)
-        elif name == "safetensors":
-            logits = run_hf_transformers(path)
-        elif name == "onnx":
-            logits = run_onnx_runtime(path)
-        elif name == "openvino":
-            logits = run_openvino(path)
-        
-        if reference_logits is None:
-            reference_logits = logits
-        else:
-            diff = np.abs(logits - reference_logits).mean()
-            max_diff = np.abs(logits - reference_logits).max()
-            tol = tolerance.get(name, 1e-3)
-            assert diff < tol, f"{name}: mean diff {diff} > {tol}"
-            assert max_diff < tol * 10, f"{name}: max diff {max_diff}"
+- Treat model files, JSON headers and shard paths as untrusted input.
+- Check integer overflow and bounds before mapping or allocating. Bound file size, header size, tensor count, dimension count and decoded memory.
+- Reject truncated data, duplicate names, overlapping/out-of-range ranges, unsupported types and incomplete shards.
+- Never evaluate model-controlled strings or execute converter output as code.
+- Write conversions to temporary files, verify hashes and only then publish the final manifest. Use fsync where crash durability is required.
+- Preserve the previous artifact and a machine-readable failure reason when conversion or validation fails.
 
-# Tolerances by format
-TOLERANCE = {
-    "gguf": {"Q4_K": 1e-2, "Q8_0": 1e-3, "FP16": 1e-4},
-    "safetensors": {"FP16": 1e-4, "BF16": 1e-4},
-    "onnx": {"FP32": 1e-5, "INT8": 1e-2},
-    "openvino": {"FP16": 1e-3, "INT8": 1e-2},
-}
-```
+## Completion report
 
----
-
-## Security & Safety
-
-| Rule | Enforcement |
-|------|-------------|
-| **Never execute file contents** | No `eval`, no JIT from model data |
-| **Validate before mmap** | All offsets/bounds checked first |
-| **Reject malformed** | Truncated, duplicate names, unsupported dtypes → FAIL |
-| **No partial loads** | Complete file or explicit shard index required |
-| **Provenance tracking** | Record source commit, converter, quantization params |
-
----
-
-## Output Report
-
-```
-MODEL FORMATS: <format> VALIDATION
-FORMAT: <GGUF|SafeTensors|ONNX|OpenVINO IR>
-FILE: <path>
-MAGIC/VERSION: <valid/invalid>
-METADATA: <tensor_count> tensors, <kv_count> KVs
-QUANTIZATION: <type> (<bits> bit, <block> block)
-TENSORS: <validated>/<total> (<failures>)
-SHARDS: <complete/incomplete>
-CROSS-FORMAT: <passed>/<total> (mean diff: <value>)
-PROVENANCE: source=<commit> converter=<ver> quant=<params>
-BLOCKERS: <list>
-```
-
----
+    MODEL FORMATS: VALIDATION
+    SOURCE: format, revision, hash
+    TARGET: format, version, converter/runtime
+    METADATA: parsed counts and architecture
+    TENSORS: checked / total, unsupported or invalid entries
+    SHARDS: complete / incomplete
+    CONVERSION: lossless steps and lossy steps
+    NUMERICAL: tests, tolerances, max error, RMS error, task metrics
+    SECURITY: bounds, duplicate/path/overlap checks
+    PROVENANCE: source revision, converter version, parameters
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: explicit list
 
 ## Boundaries
 
-- Does not train or fine-tune models
-- Does not write conversion tools (uses existing: llama.cpp, HF, ONNX Runtime, MO)
-- `stop model-formats`: revert.
+- Does not train or fine-tune models.
+- Uses existing readers and converters as the default; a custom parser/converter is a separate engineering task.
+- For GGUF tensor block layouts, use authoritative upstream ggml type/quantisation definitions for the exact revision rather than maintaining a handwritten size table.

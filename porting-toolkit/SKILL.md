@@ -1,383 +1,117 @@
 ---
 name: porting-toolkit
-description: "Unified cross-porting toolkit: capability matrix, change isolation, cross-compilation, toolchains, assembly, emulation. Port semantics, not syntax."
+description: "Ports existing systems code across operating systems, language runtimes, CPU ISAs, ABIs and execution environments while preserving observable semantics."
 compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
-  trigger_keywords: ["port", "cross-compile", "cross-platform", "adapter", "fallback", "capability probe", "platform delta", "ISA", "ABI", "sysroot", "emulator"]
+  auto_trigger: false
+  trigger_keywords: ["port", "cross-platform", "adapter", "fallback", "capability probe", "platform delta", "ISA", "ABI", "emulator", "porting"]
 ---
 
 # Porting Toolkit
 
-**Port semantics, not syntax.** Start with a capability and behavior matrix for source and target. Freeze observable behavior, ABI, numeric tolerances, synchronization, ownership, error, and performance requirements.
-
-## Phase 0: Capability & Behavior Matrix (Mandatory First Step)
-
-Before ANY code changes, produce:
-
-| Capability | Source | Target | Delta | Adapter Needed? |
-|------------|--------|--------|-------|-----------------|
-| Memory model | | | | |
-| Thread model | | | | |
-| Sync primitives | | | | |
-| Error handling | | | | |
-| Numeric precision | | | | |
-| ABI / calling convention | | | | |
-| File I/O | | | | |
-| Time/clock | | | | |
-| Random/entropy | | | | |
-| Dynamic loading | | | | |
-| Signal/exception | | | | |
-| GPU/accelerator | | | | |
-
-**Observable behavior contract (frozen):**
-- Input/output formats (bit-exact where possible)
-- Error codes and semantics
-- Timing tolerances (latency, throughput)
-- Concurrency guarantees (atomicity, ordering)
-- Resource lifecycle (alloc/free, open/close)
-
----
-
-## Phase 1: Cross-Compilation Setup
-
-**Record complete toolchain graph:**
-```
-Target triple:        aarch64-linux-gnu
-Compiler:             clang-18 (host: x86_64-linux-gnu)
-Linker:               lld-18
-Libc/CRT:             glibc-2.39 (sysroot: /opt/sysroots/aarch64)
-SDK:                  None (bare metal: /opt/sysroots/baremetal)
-ABI:                  LP64, ELF, hard-float
-Deployment format:    Static PIE + .debug section
-Emulator:             qemu-aarch64-static (user) / qemu-system-aarch64 (system)
-Test executor:        qemu-aarch64-static ./test_bin
-```
-
-**CMake toolchain file (explicit, reproducible, no host leakage):**
-```cmake
-# toolchain-aarch64.cmake
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_SYSROOT /opt/sysroots/aarch64)
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_ASM_COMPILER clang)
-set(CMAKE_AR llvm-ar)
-set(CMAKE_RANLIB llvm-ranlib)
-set(CMAKE_LINKER lld)
-set(CMAKE_C_FLAGS "--target=aarch64-linux-gnu -fPIC -g3" CACHE STRING "")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "")
-set(CMAKE_EXE_LINKER_FLAGS "-static-pie -Wl,--build-id=sha256" CACHE STRING "")
-# Feature tests MUST be target-aware:
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-```
-
-**Validation:**
-```bash
-# Clean rebuild
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build -Werror
-
-# Dependency inspection
-aarch64-linux-gnu-objdump -p build/app | grep NEEDED
-aarch64-linux-gnu-readelf -d build/app | grep -E "(NEEDED|RUNPATH)"
-
-# Representative execution
-qemu-aarch64-static ./build/app --selftest
-```
-
----
-
-## Phase 2: Semantic Porting (Core Logic → Platform Adapters)
-
-### Separation Pattern
-
-```
-src/
-  portable/           # Pure logic, no platform deps
-    math.c
-    parser.c
-    protocol.c
-  platform/
-    linux/            # Linux adapters
-      memory.c
-      thread.c
-      fs.c
-    windows/          # Windows adapters
-      memory.c
-      thread.c
-      fs.c
-    baremetal/        # No-OS adapters
-      memory.c
-      thread.c
-  capability.h        # Compile-time capability probes
-```
-
-### Capability Probe Header
-
-```c
-// capability.h - included by portable code
-#pragma once
-
-// Memory
-#ifndef PLATFORM_ALIGNED_ALLOC
-#  if defined(_WIN32)
-#    define PLATFORM_ALIGNED_ALLOC(align, size) _aligned_malloc(size, align)
-#    define PLATFORM_ALIGNED_FREE(ptr) _aligned_free(ptr)
-#  elif defined(__linux__) || defined(__APPLE__)
-#    define PLATFORM_ALIGNED_ALLOC(align, size) aligned_alloc(align, size)
-#    define PLATFORM_ALIGNED_FREE(ptr) free(ptr)
-#  else
-#    error "PLATFORM_ALIGNED_ALLOC not defined for this target"
-#  endif
-#endif
-
-// Threading
-#ifndef PLATFORM_THREAD_CREATE
-// ... platform-specific signatures
-#endif
-
-// Atomic ops (C11 preferred, fallback to platform)
-#ifndef PLATFORM_ATOMIC_U64_CAS
-#  if __has_include(<stdatomic.h>) && !defined(__EMSCRIPTEN__)
-#    include <stdatomic.h>
-#    define PLATFORM_ATOMIC_U64_CAS(ptr, expected, desired) \
-        atomic_compare_exchange_strong_explicit((_Atomic uint64_t*)(ptr), (expected), (desired), memory_order_acq_rel, memory_order_acquire)
-#  else
-// platform-specific fallback
-#  endif
-#endif
-```
-
-### Adapter Contract (Example: Memory)
-
-```c
-// platform/linux/memory.c
-#include "capability.h"
-#include <stdlib.h>
-#include <errno.h>
-
-void* platform_aligned_alloc(size_t align, size_t size) {
-    void* ptr = aligned_alloc(align, size);
-    if (!ptr) errno = ENOMEM;
-    return ptr;
-}
-
-void platform_aligned_free(void* ptr) {
-    free(ptr);
-}
-```
-
-**Rules:**
-- Portable code includes ONLY `capability.h` and standard headers
-- Platform adapters implement `capability.h` signatures
-- **No `#ifdef PLATFORM` in portable code** — use capability probes
-- One adapter per platform per capability
-
----
-
-## Phase 3: Change Isolation (Porting Change Isolation)
-
-**Make platform deltas explicit, small, reversible.**
-
-### Isolation Checklist
-
-| Check | Requirement |
-|-------|-------------|
-| **Stable contract identified** | Exact behavior spec frozen (Phase 0) |
-| **Narrow adapter** | Single capability, single file, ≤50 lines |
-| **Capability probe** | Compile-time trait, not runtime `#ifdef` sprawl |
-| **Fallback explicit** | Observable, semantically equivalent where possible |
-| **One boundary at a time** | Land memory → test → thread → test → fs → test |
-| **Contract/differential tests** | Before cleanup/optimization |
-| **Temp code removal** | Only after target matrix proves safe |
-
-### Delta Landing Template
-
-```diff
-# Commit: "port: add Linux memory adapter (1/5)"
-+ platform/linux/memory.c (new, 45 lines)
-+ platform/capability.h (updated: PLATFORM_ALIGNED_ALLOC)
-  test/memory_adapter_test.c (new, differential vs reference)
-```
-
-**Test before next delta:**
-```bash
-# Differential test: portable logic + new adapter vs reference implementation
-./test_memory_adapter --compare=reference_impl
-```
-
----
-
-## Phase 4: Assembly & Binary Interface (When Needed)
-
-**Only when portable + adapter insufficient.**
-
-### Pre-Hand-Coding Checklist
-
-- [ ] ISA, mode, ABI, object format, assembler syntax, toolchain recorded
-- [ ] Correct scalar/reference implementation exists in portable/
-- [ ] Generated assembly inspected (`-S -O2 -march=native`)
-- [ ] Flags, masking, alignment, memory ordering, exceptions, ABI-visible state preserved
-- [ ] Guarded fallback when target feature unavailable
-
-### Hand-Coded Assembly Template
-
-```asm
-// platform/linux/aarch64/simd.S
-// Capability: NEON-accelerated Q4_0 dequantize
-// Fallback: portable/dequantize.c (scalar)
-// Guard: #if defined(__aarch64__) && defined(__ARM_NEON)
-
-.text
-.align 4
-.global ggml_dequantize_q4_0_neon
-.type ggml_dequantize_q4_0_neon, %function
-
-// SAFETY: Requires src aligned to 16B, dst aligned to 16B, block_count % 2 == 0
-// Input:  x0=src, x1=dst, x2=block_count
-// Output: x0=0 success, x0=-1 alignment fault
-ggml_dequantize_q4_0_neon:
-    // Alignment check
-    tbz x0, #3, 1f        // src % 16 != 0 -> alignment_fault
-    tbz x1, #3, 1f        // dst % 16 != 0 -> alignment_fault
-    ands x3, x2, #1
-    b.ne alignment_fault  // block_count odd -> alignment_fault
-
-    // NEON implementation here...
-    // Preserve: x19-x28 (callee-saved), SP 16-byte aligned
-    // Return: x0=0
-
-1:  alignment_fault:
-    mov x0, #-1
-    ret
-
-.size ggml_dequantize_q4_0_neon, .-ggml_dequantize_q4_0_neon
-```
-
-**Validation:**
-```bash
-# Disassembly check
-aarch64-linux-gnu-objdump -d build/libportable.so | grep -A20 dequantize_q4_0_neon
-
-# Symbol/unwind check
-aarch64-linux-gnu-readelf -u build/libportable.so
-
-# Instruction-feature probe
-./test_cpu_features --require=neon && ./test_dequantize_neon
-
-# Functional + bench
-./test_dequantize --impl=neon --verify=reference
-./bench_dequantize --impl=neon --compare=scalar
-```
-
----
-
-## Phase 5: Emulation & Validation (When Target Unavailable)
-
-### Emulation Fidelity Matrix
-
-| Fidelity | Use Case | Approach |
-|----------|----------|----------|
-| **Functional** | Logic correctness | User-mode emulator (qemu-user) |
-| **Timing-approximate** | Performance modeling | User-mode + cycle estimates |
-| **Cycle-accurate** | Timing-dependent logic | Full-system emulator (qemu-system) |
-| **Hardware-accurate** | Device drivers, firmware | FPGA / real hardware |
-
-### Emulation Setup (User-mode Example)
-
-```bash
-# Static binary for maximum portability
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake \
-  -DCMAKE_EXE_LINKER_FLAGS="-static-pie"
-cmake --build build
-
-# Run under emulator
-qemu-aarch64-static -L /opt/sysroots/aarch64 \
-  ./build/app --test-suite=portable
-
-# Differential test vs reference (x86_64 native)
-./build_x86/app --test-suite=portable --output=ref.json
-qemu-aarch64-static ./build_aarch64/app --test-suite=portable --output=target.json
-python diff_json.py ref.json target.json
-```
-
-### Conformance & Determinism
-
-- **Snapshot/restore:** `qemu-aarch64-static -snapshot` + savevm/loadvm
-- **Deterministic replay:** `rr record` (Linux) / `qemu -icount shift=auto,rr=record`
-- **Fuzzing:** `libfuzzer` + qemu-user for target-arch fuzzing
-- **Invalid input handling:** Corpus of malformed inputs per format spec
-
----
-
-## Phase 6: Toolchain Management (Reproducible Builds)
-
-### Toolchain Lockfile
-
-```yaml
-# toolchain.lock.yaml
-compiler:
-  name: clang
-  version: "18.1.8"
-  target: aarch64-linux-gnu
-  sha256: "abc123..."
-linker:
-  name: lld
-  version: "18.1.8"
-libc:
-  name: glibc
-  version: "2.39"
-  sysroot_sha256: "def456..."
-flags:
-  c: "--target=aarch64-linux-gnu -fPIC -g3 -O2 -ffunction-sections -fdata-sections"
-  cxx: "--target=aarch64-linux-gnu -fPIC -g3 -O2 -ffunction-sections -fdata-sections"
-  ld: "-static-pie -Wl,--build-id=sha256 -Wl,--gc-sections"
-environment:
-  CC: clang
-  CXX: clang++
-  AR: llvm-ar
-  RANLIB: llvm-ranlib
-  STRIP: llvm-strip
-```
-
-### Reproducibility Validation
-
-```bash
-# Build twice, compare bit-for-bit (excluding build-id)
-cmake -B build1 -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build1
-cmake -B build2 -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build2
-
-# Strip build IDs, compare
-strip --strip-all build1/app
-strip --strip-all build2/app
-diff <(sha256sum build1/app) <(sha256sum build2/app) && echo "REPRODUCIBLE"
-```
-
----
-
-## Output Report
-
-```
-PORTING TOOLKIT: PHASE <N>/6 COMPLETE
-MATRIX: <capabilities mapped>/<total> (<deltas> deltas)
-CROSS-COMPILE: <toolchain> ✅/❌
-ADAPTERS: <landed>/<planned> (<next capability>)
-ASSEMBLY: <functions hand-coded>/<total> (fallback: <status>)
-EMULATION: <fidelity level> ✅/❌
-TOOLCHAIN: <locked> ✅/❌
-DIFFERENTIAL: <passed>/<total> tests
-BLOCKERS: <list>
-```
+**Port semantics, not syntax.** A successful build proves neither behavioural equivalence nor deployability. For detailed compiler/sysroot setup, load cross-compilation. For hand-written assembly, disassembly and ABI details, load low-level-toolkit.
+
+## Phase 0: Freeze the contract
+
+Before changing code, write a source-to-target capability and behaviour matrix.
+
+| Contract | Questions |
+|---|---|
+| Data | Endianness, field widths, alignment, packing, file/protocol format |
+| Numeric | Precision, rounding, overflow, NaN/denormal behaviour, reduction order |
+| Memory | Ownership, lifetime, allocation/free pairing, virtual/physical/DMA address meaning |
+| Concurrency | Thread model, atomic guarantees, memory ordering, cancellation, shutdown |
+| OS | Files, clocks, entropy, signals/exceptions, dynamic libraries, permissions |
+| ABI | Calling convention, symbol visibility, object format, CRT/libc and struct layout |
+| Hardware | ISA features, SIMD width, cache/atomic capabilities, GPU APIs and fallback |
+| Failure | Error codes, partial results, timeout, retry, cleanup and unsupported capability |
+| Performance | Representative workload, baseline, target limit and acceptance range |
+
+Classify each row as equivalent, adapter-required, unsupported or not yet verified. Do not silently weaken a guarantee to make the target compile.
+
+## Phase 1: Separate portable logic from platform capabilities
+
+Keep business/protocol/math logic free of OS headers and SDK calls. Put OS, runtime and hardware-specific behaviour behind narrow interfaces with documented lifetime, ownership and failure semantics.
+
+- Expose capability queries or feature-specific entry points. Do not make a fake fallback that returns success without doing the operation.
+- Return an explicit unsupported status when semantics cannot be preserved.
+- Keep allocation/deallocation pairs in the same platform adapter. Windows aligned allocation requires its matching deallocator; POSIX aligned allocation has different validation and error rules. Do not copy C11 aligned_alloc into a C99 or cross-platform contract.
+- C99 does not provide standard atomics or threads. A C11 atomic type, compiler intrinsic or OS primitive must be part of an explicit language/platform contract, not hidden behind an unimplemented preprocessor branch.
+- Use compile-time feature selection when the target is fixed. Use runtime dispatch only when the binary is intended to run on machines with differing capabilities.
+- Ensure the scalar/reference implementation remains available until the accelerated adapter passes differential tests.
+
+## Phase 2: Cross-compilation and target discovery
+
+Use cross-compilation for toolchain files, target triples, sysroots, package discovery, host/target separation, artifact inspection and target-aware CI. Freeze the target tuple: OS, architecture, ABI, libc/runtime, compiler/linker, sysroot, minimum OS and deployment CPU/features.
+
+A CMake toolchain example must be adapted to the actual SDK and compiler. Do not assume a flag or linker mode is supported by every target. Host feature tests must not execute target binaries. A clean compile or link is not a substitute for running the resulting artifact on target hardware or a suitable emulator.
+
+Before accepting a cross-build, inspect the actual compiler/link commands, object formats, architecture, interpreter/dependencies, exported symbols and minimum-runtime requirements.
+
+## Phase 3: Implement one semantic delta at a time
+
+1. Add or update the interface contract and scalar/reference test first.
+2. Implement one adapter or capability change in isolation.
+3. Test the adapter's normal, boundary and failure paths.
+4. Differentially compare the portable path and target path with explicit numeric tolerances or exact output comparison.
+5. Inspect the final diff and remove temporary compatibility code only when the supported target matrix proves it is no longer needed.
+
+Avoid platform conditional branches scattered across core logic. A platform conditional is acceptable at the boundary that owns the capability; it is not a substitute for an architectural seam.
+
+## Phase 4: ISA and assembly
+
+Do not register a stub or assembly placeholder under the name of a complete accelerated implementation. Before hand-writing instructions, record ISA, execution mode, ABI, object format, assembler syntax, calling convention, stack/unwind rules, preserved registers, flags, memory ordering and feature-detection policy.
+
+- Inspect compiler-generated assembly from the portable implementation first.
+- Check the full target feature set, including operating-system state requirements for vector extensions.
+- Preserve callee-saved registers, stack alignment, unwind metadata and ABI-visible state.
+- Handle tails, alignment and unsupported instructions explicitly. Never impose an alignment or even-block-count requirement without enforcing and documenting it.
+- Compare functional output with the portable oracle before measuring speed.
+- Use low-level-toolkit for concrete assembly templates, disassembly, relocations, symbols and instruction probes.
+
+## Phase 5: Emulation and test limits
+
+Use an emulator for fast functional checks when it models the required target behaviour. Record emulator/version, configuration, CPU/device model and unsupported instructions or peripherals.
+
+- Differential tests must compare the same inputs, observable outputs and defined architectural state. Exact PC traces are meaningful only when the instruction-level contract and stepping mode are aligned.
+- Emulator success does not prove real driver, timing, cache, DMA, interrupt, power-state or device performance.
+- Mark hardware-specific checks BLOCKED or NOT RUN if target hardware is unavailable. Do not turn an emulator run into a hardware-support claim.
+- Preserve crash inputs and reduce them to a minimal reproducer where possible.
+
+## Phase 6: Reproducibility
+
+Record source revision, compiler/linker, SDK/sysroot, dependency versions, relevant environment variables, build configuration and generated artefact hashes. Use a pinned lockfile as a record of a chosen toolchain, not as a claim that the listed versions are current or universally compatible.
+
+Build twice from clean, equivalent environments when reproducibility is required. Compare artefacts while accounting for documented nondeterminism such as timestamps, build IDs, archive ordering and absolute paths. Explain any difference instead of blindly stripping metadata until hashes match.
+
+## Acceptance gates
+
+- [ ] Contract matrix covers changed capabilities and error semantics.
+- [ ] Target tuple and actual compiler/link commands recorded.
+- [ ] No host library/header leakage into the target artifact.
+- [ ] Unsupported features fail explicitly or use a verified equivalent fallback.
+- [ ] Boundary and failure paths are tested.
+- [ ] Differential test passes against an independent reference.
+- [ ] Target runtime checks are distinguished from emulation.
+- [ ] Performance is measured against an equivalent baseline only after correctness.
+
+## Report
+
+    PORTING: SOURCE -> TARGET
+    CONTRACT: preserved / adapted / unsupported / unverified
+    TOOLCHAIN: triple, compiler, linker, SDK/sysroot
+    ADAPTERS: changed capabilities and fallback rules
+    DIFFERENTIAL: workload, oracle, tolerance and result
+    TARGET TEST: hardware / emulator / NOT RUN
+    PERFORMANCE: baseline and repeated measurement, if relevant
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: explicit list
 
 ## Boundaries
 
-- Does not write portable logic (receives it)
-- Does not optimize hand-coded assembly beyond correctness
-- Does not run on target hardware (emulation only)
-- `stop porting-toolkit`: revert.
+- Use cross-compilation for concrete toolchain/target configuration.
+- Use low-level-toolkit for assembly, ABI disassembly and emulator fidelity.
+- Use c-systems and c99-systems for language-specific ownership and portability constraints.
+- Use goli-mat-de to audit a port for missing wiring, fake fallbacks or overstated completion.

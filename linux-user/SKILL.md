@@ -248,7 +248,7 @@ prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 
 ## Boundaries
 
-- Does not write kernel code (see `os-kernel-systems`)
+- Does not write kernel code (see `linux-kernel-dev`)
 - Does not manage C/C++ ownership (see `c-systems`)
 - Does not cover Windows (see `windows-user`)
 - Does not cover architecture patterns (see `sys-arch`)

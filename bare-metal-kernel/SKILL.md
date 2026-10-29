@@ -14,7 +14,9 @@ metadata:
 
 ---
 
-## Boot Process (GRUB/Stivale2 → Long Mode)
+## Boot Protocol and Long-Mode Transition (Illustrative BIOS Sketch)
+
+> This is an incomplete legacy BIOS teaching sketch, not a GRUB or Stivale2 entry point and not a complete bootloader. Real boot protocols define the entry mode, register state, memory map, image placement and hand-off contract. Verify those requirements against the selected protocol and linker script before using any code.
 
 ```asm
 ; boot.asm (NASM)
@@ -68,12 +70,15 @@ protected_mode:
 
 [BITS 64]
 long_mode:
-    ; Clear BSS
+    ; Clear exactly the linker-defined BSS byte range.
+    ; The symbols must resolve to valid, writable addresses in this mapping.
     extern _bss_start, _bss_end
-    mov rdi, _bss_start
-    mov rcx, (_bss_end - _bss_start) / 8
-    xor rax, rax
-    rep stosq
+    cld
+    lea rdi, [rel _bss_start]
+    lea rcx, [rel _bss_end]
+    sub rcx, rdi
+    xor eax, eax
+    rep stosb
     
     ; Call kernel_main
     extern kernel_main
@@ -86,41 +91,46 @@ long_mode:
 ## Page Tables (4-Level, 4KB Pages)
 
 ```c
-// x86_64 paging structures
+// x86-64 paging structures. Allocate each table on a PAGE_SIZE-aligned,
+// zeroed page. phys_addr() must translate the pointer to a physical address;
+// a C pointer is not automatically a physical address.
 #define PAGE_SIZE 4096
-#define PML4_ENTRIES 512
-#define PDPT_ENTRIES 512
-#define PD_ENTRIES 512
-#define PT_ENTRIES 512
-
+#define TABLE_ENTRIES 512
+#define LARGE_PAGE_SIZE (2ULL * 1024 * 1024)
 typedef uint64_t pte_t;
 
-#define PTE_PRESENT    (1ULL << 0)
-#define PTE_WRITABLE   (1ULL << 1)
-#define PTE_USER       (1ULL << 2)
-#define PTE_NX         (1ULL << 63)
+#define PTE_PRESENT  (1ULL << 0)
+#define PTE_WRITABLE (1ULL << 1)
+#define PTE_USER     (1ULL << 2)
+#define PTE_PS       (1ULL << 7)
+#define PTE_NX       (1ULL << 63) /* Use only after enabling EFER.NXE. */
 
-// Identity map first 1GB (512 * 2MB = 1GB via huge pages)
-void setup_identity_mapping(pte_t* pml4) {
-    // PDPT entry 0 -> PD
-    pte_t* pd = alloc_page();
-    pml4[0] = (uint64_t)pd | PTE_PRESENT | PTE_WRITABLE;
-    
-    // PD entries 0-511 -> 2MB pages
-    for (int i = 0; i < 512; i++) {
-        pd[i] = (i * 2 * 1024 * 1024) | PTE_PRESENT | PTE_WRITABLE | (1ULL << 7); // PS=1 (2MB)
+// Platform/allocator-specific helper, intentionally not implemented here.
+uint64_t phys_addr(const void *virtual_address);
+
+// Identity-map the first 1 GiB using 2 MiB pages.
+// pml4, pdpt and pd are distinct aligned, zero-initialised page-table pages.
+// Before loading CR3, also verify physical-address masks, CPU paging features,
+// large-page support, reserved-bit rules and the required EFER.NXE setup.
+void setup_identity_mapping(pte_t *pml4, pte_t *pdpt, pte_t *pd) {
+    pml4[0] = phys_addr(pdpt) | PTE_PRESENT | PTE_WRITABLE;
+    pdpt[0] = phys_addr(pd)   | PTE_PRESENT | PTE_WRITABLE;
+
+    for (uint64_t i = 0; i < TABLE_ENTRIES; ++i) {
+        pd[i] = (i * LARGE_PAGE_SIZE) |
+                PTE_PRESENT | PTE_WRITABLE | PTE_PS;
     }
 }
 
-// Kernel virtual address space (higher-half)
-#define KERNEL_BASE 0xFFFFFFFF80000000
-void map_kernel(pte_t* pml4, void* phys_start, size_t size) {
-    // Map kernel at KERNEL_BASE with 4KB pages
-    // ...
-}
+// The caller must also establish the required mappings for the kernel image,
+// stack, page tables, boot data and MMIO. A higher-half mapping is a separate
+// operation and must use the virtual/physical layout defined by the linker.
+#define KERNEL_BASE 0xFFFFFFFF80000000ULL
 ```
 
 ## IDT & Interrupts
+
+> The following is a layout sketch, not a complete exception-entry implementation. The assembly stubs must normalise CPU exceptions that push an error code and those that do not, and push a vector number before entering a shared handler. The shown frame layout must exactly match that assembly. Compiler interrupt attributes have target-specific restrictions; validate generated code and calling conventions.
 
 ```c
 // IDT entry (16 bytes each)
@@ -175,35 +185,60 @@ void idt_init() {
 ## PCI Enumeration
 
 ```c
-// PCI config space access (IO ports)
-#define PCI_CONFIG_ADDR  0xCF8
-#define PCI_CONFIG_DATA  0xCFC
+// Legacy PCI Configuration Mechanism #1. This requires privileged I/O-port
+// access and is not a userspace routine or a substitute for PCI/ECAM support.
+#define PCI_CONFIG_ADDR 0xCF8
+#define PCI_CONFIG_DATA 0xCFC
 
-uint32_t pci_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset) {
-    uint32_t addr = (1U << 31) | (bus << 16) | (dev << 11) | (func << 8) | (offset & 0xFC);
+static uint32_t pci_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t offset) {
+    uint32_t addr = (1U << 31) | ((uint32_t)bus << 16) |
+                    ((uint32_t)dev << 11) | ((uint32_t)func << 8) |
+                    ((uint32_t)offset & 0xFCU);
     outl(PCI_CONFIG_ADDR, addr);
     return inl(PCI_CONFIG_DATA);
 }
 
-void pci_scan() {
-    for (uint8_t bus = 0; bus < 256; bus++) {
-        for (uint8_t dev = 0; dev < 32; dev++) {
-            for (uint8_t func = 0; func < 8; func++) {
-                uint32_t vendor_device = pci_read(bus, dev, func, 0);
-                if ((vendor_device & 0xFFFF) != 0xFFFF) {
-                    uint16_t vendor = vendor_device & 0xFFFF;
-                    uint16_t device = vendor_device >> 16;
-                    kprintf("PCI %02x:%02x.%d: %04x:%04x\n", bus, dev, func, vendor, device);
-                    
-                    for (int bar = 0; bar < 6; bar++) {
-                        uint32_t bar_val = pci_read(bus, dev, func, 0x10 + bar * 4);
-                        if (bar_val) {
-                            pci_write(bus, dev, func, 0x10 + bar * 4, 0xFFFFFFFF);
-                            uint32_t size_mask = pci_read(bus, dev, func, 0x10 + bar * 4);
-                            pci_write(bus, dev, func, 0x10 + bar * 4, bar_val);
-                            size_t size = (~size_mask) + 1;
-                            kprintf("  BAR%d: %08x size=%zu\n", bar, bar_val, size);
+// Read-only enumeration: do not probe BAR sizes by writing all ones here.
+// BAR sizing must account for I/O vs memory BARs, 64-bit BAR pairs, resource
+// decoding and platform ownership; use the platform PCI framework for real drivers.
+static void pci_scan(void) {
+    for (unsigned int bus = 0; bus < 256; ++bus) {
+        for (unsigned int dev = 0; dev < 32; ++dev) {
+            uint32_t id0 = pci_read((uint8_t)bus, (uint8_t)dev, 0, 0x00);
+            if ((id0 & 0xFFFFU) == 0xFFFFU) continue;
+
+            uint32_t hdr = pci_read((uint8_t)bus, (uint8_t)dev, 0, 0x0C);
+            unsigned int function_count = ((hdr >> 16) & 0x80U) ? 8U : 1U;
+
+            for (unsigned int func = 0; func < function_count; ++func) {
+                uint32_t id = (func == 0) ? id0 :
+                    pci_read((uint8_t)bus, (uint8_t)dev, (uint8_t)func, 0x00);
+                if ((id & 0xFFFFU) == 0xFFFFU) continue;
+
+                uint16_t vendor = (uint16_t)(id & 0xFFFFU);
+                uint16_t device = (uint16_t)(id >> 16);
+                kprintf("PCI %02x:%02x.%u: %04x:%04x\n",
+                        bus, dev, func, vendor, device);
+
+                for (unsigned int bar = 0; bar < 6; ++bar) {
+                    uint8_t offset = (uint8_t)(0x10U + bar * 4U);
+                    uint32_t low = pci_read((uint8_t)bus, (uint8_t)dev,
+                                            (uint8_t)func, offset);
+                    if (low == 0 || low == UINT32_MAX) continue;
+
+                    unsigned int type = (low >> 1) & 3U;
+                    if ((low & 1U) == 0 && type == 2U) {
+                        if (bar == 5) {
+                            kprintf("  BAR%u: malformed 64-bit BAR at final slot\n", bar);
+                            continue;
                         }
+                        uint32_t high = pci_read((uint8_t)bus, (uint8_t)dev,
+                                                 (uint8_t)func, (uint8_t)(offset + 4U));
+                        kprintf("  BAR%u: 64-bit raw=%08x:%08x\n", bar, high, low);
+                        ++bar; // The next BAR slot is the upper half.
+                    } else {
+                        kprintf("  BAR%u: raw=%08x type=%s\n", bar, low,
+                                (low & 1U) ? "I/O" : "memory");
                     }
                 }
             }

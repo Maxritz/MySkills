@@ -51,116 +51,80 @@ cat /sys/kernel/debug/tracing/trace
 crash vmlinux /var/crash/vmcore
 
 # 4. Memory: KASAN
-echo 1 > /sys/kernel/debug/kasan/enable
-# Boot with: kasan=on page_poison=1 slub_debug=P
+# Requires a kernel built with the appropriate CONFIG_KASAN settings.
+# Consult the target kernel's config and boot documentation. There is no
+# universal runtime debugfs toggle for enabling KASAN on any kernel.
+# Reproduce the issue and inspect dmesg for its report and stack.
 
 # 5. Locking: lockdep
-echo 1 > /sys/kernel/debug/lockdep/enable
+# Requires a kernel built with CONFIG_LOCKDEP / CONFIG_PROVE_LOCKING as needed.
+# Reproduce the issue and inspect lockdep reports in dmesg. A debugfs echo
+# cannot enable a feature omitted at kernel build time.
 ```
 
 ## Module Development
 
+The example is a **minimal read-only character-device module**, not a hardware or PCI driver. It intentionally defines no write operation. For real hardware, use the relevant kernel subsystem and follow the official driver lifecycle, including resource ownership, DMA, interrupts and teardown.
+
 ```c
-// Minimal module structure
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/kernel.h>
 #include <linux/fs.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include <linux/uaccess.h>
-#include <linux/slab.h>
-#include <linux/mutex.h>
+#include <linux/init.h>
+#include <linux/miscdevice.h>
+#include <linux/module.h>
 
 #define DEVICE_NAME "mydev"
-#define CLASS_NAME "myclass"
 
-static dev_t dev_num;
-static struct cdev my_cdev;
-static struct class* my_class;
-static struct device* my_device;
-static DEFINE_MUTEX(dev_mutex);
-static char* buffer;
-static size_t buffer_size;
+static const char message[] = "mydev: ready\\n";
 
-static int my_open(struct inode* inode, struct file* file) {
-    mutex_lock(&dev_mutex);
-    mutex_unlock(&dev_mutex);
-    return 0;
+static ssize_t my_read(struct file *file, char __user *buffer,
+                       size_t count, loff_t *position)
+{
+    return simple_read_from_buffer(buffer, count, position,
+                                   message, sizeof(message) - 1);
 }
 
-static ssize_t my_read(struct file* file, char __user* ubuf, size_t count, loff_t* ppos) {
-    if (*ppos >= buffer_size) return 0;
-    size_t to_copy = min(count, buffer_size - *ppos);
-    if (copy_to_user(ubuf, buffer + *ppos, to_copy)) return -EFAULT;
-    *ppos += to_copy;
-    return to_copy;
-}
-
-static struct file_operations fops = {
-    .owner = THIS_MODULE,
-    .open = my_open,
-    .read = my_read,
-    .write = my_write,
-    .release = my_release,
+static const struct file_operations my_fops = {
+    .owner  = THIS_MODULE,
+    .read   = my_read,
     .llseek = default_llseek,
 };
 
-static int __init my_init(void) {
-    int ret;
-    ret = alloc_chrdev_region(&dev_num, 0, 1, DEVICE_NAME);
-    if (ret) return ret;
-    
-    cdev_init(&my_cdev, &fops);
-    my_cdev.owner = THIS_MODULE;
-    ret = cdev_add(&my_cdev, dev_num, 1);
-    if (ret) goto err_cdev;
-    
-    my_class = class_create(THIS_MODULE, CLASS_NAME);
-    if (IS_ERR(my_class)) { ret = PTR_ERR(my_class); goto err_class; }
-    
-    my_device = device_create(my_class, NULL, dev_num, NULL, DEVICE_NAME);
-    if (IS_ERR(my_device)) { ret = PTR_ERR(my_device); goto err_device; }
-    
-    buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-    if (!buffer) { ret = -ENOMEM; goto err_buffer; }
-    buffer_size = PAGE_SIZE;
-    
-    pr_info("mydev: loaded, major=%d\n", MAJOR(dev_num));
-    return 0;
+static struct miscdevice my_device = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name  = DEVICE_NAME,
+    .fops  = &my_fops,
+    .mode  = 0444, /* Read-only device node. */
+};
 
-err_buffer: device_destroy(my_class, dev_num);
-err_device: class_destroy(my_class);
-err_class:  cdev_del(&my_cdev);
-err_cdev:   unregister_chrdev_region(dev_num, 1);
-    return ret;
+static int __init my_init(void)
+{
+    return misc_register(&my_device);
 }
 
-static void __exit my_exit(void) {
-    kfree(buffer);
-    device_destroy(my_class, dev_num);
-    class_destroy(my_class);
-    cdev_del(&my_cdev);
-    unregister_chrdev_region(dev_num, 1);
-    pr_info("mydev: unloaded\n");
+static void __exit my_exit(void)
+{
+    misc_deregister(&my_device);
 }
 
 module_init(my_init);
 module_exit(my_exit);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Name");
-MODULE_DESCRIPTION("Minimal char device");
+MODULE_DESCRIPTION("Minimal read-only misc device");
 ```
+
+Do not extend a scaffold by adding function pointers to undefined callbacks. For mutable device state, add explicit locking, bounds checks, user-copy error handling, lifetime rules and concurrency tests before exposing write operations.
 
 ## Validation Gates
 
+Set `KDIR` to the build tree for the exact target kernel version/configuration. Some checks require kernel configuration options unavailable in a distribution kernel. Mark them BLOCKED or NOT RUN when unavailable, not PASS.
+
 | Gate | Command | Pass Criteria |
 |------|---------|---------------|
-| **Build** | `make -j$(nproc) W=1` | 0 warnings (or documented) |
-| **Static** | `sparse -Wbitwise -Wcontext -Wcast /` | 0 new warnings |
-| **KASAN** | Boot with `kasan=on` | No splats on reproducer |
-| **Lockdep** | Boot with `lockdep=on` | No splats on reproducer |
-| **Reproducer** | `insmod mymod.ko; test.sh` | Expected behavior |
+| **Build** | `make -C "$KDIR" M="$PWD" W=1 modules` (set KDIR to the matching target kernel build tree) | 0 warnings (or documented) |
+| **Static** | `make -C "$KDIR" M="$PWD" C=2 CF="-Wbitwise -Wcontext" modules` | 0 new warnings |
+| **KASAN** | Build/boot a kernel with the required KASAN configuration; use supported boot options for that kernel | No splats on reproducer |
+| **Lockdep** | Use a kernel built with `CONFIG_LOCKDEP` and supported debug options | No splats on reproducer |
+| **Reproducer** | `sudo insmod mydev.ko && cat /dev/mydev && sudo rmmod mydev` | Expected behavior |
 | **Regression** | `kselftest / kunit` | All pass |
 
 ## Boundaries

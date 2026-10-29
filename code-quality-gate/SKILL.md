@@ -1,6 +1,6 @@
 ---
 name: code-quality-gate
-description: "Unified quality gate: Doxygen contracts, 10-iteration validation, no-fake-code, traceability, Rust safety, component boundaries. Auto-triggers on all code changes."
+description: "Lightweight automatic gate for implementation contracts, fake-code detection, focused verification, traceability and safe handoff."
 compatibility: opencode
 metadata:
   auto_unload: true
@@ -12,252 +12,41 @@ metadata:
 
 # Code Quality Gate
 
-**Auto-triggered for ALL code changes.** Enforces contracts, validation, traceability, and no-fake-code in one pass.
+Run this lightweight gate on code changes. Scale checks to risk and scope; do not require ten iterations, blanket comments on every local function, or expensive full-suite testing for every trivial edit.
 
-## Pipeline (Run in Order)
+## 1. State the contract
 
-```
-WRITE → DOXYGEN → CONTRACTS → NO-FAKE-CODE → 10-ITER-VALIDATE → TRACEABILITY → COMPONENT-BOUNDARIES → REPORT
-```
+Identify the in-scope behaviour, public interfaces, invariants, error semantics and compatibility promises. For a small change, one sentence is sufficient. For cross-module or safety-critical work, use architecture-boundaries or Goli-mat-de.
 
-Each stage must PASS before next runs. Failure at any stage → STOP, fix, re-run from stage 1.
+## 2. Inspect the real path
 
----
+Trace the modified entry point through configuration, callers, implementation, failure/cleanup paths and observable output. Check for placeholders, hidden stubs, unwired flags, success-shaped fallback, swallowed errors and tests that never exercise the real path. Search markers are leads, not proof of defects.
 
-## Stage 1: Doxygen Contracts (Every Function/Struct/Enum/Module)
+## 3. Make the smallest complete change
 
-**Required tags:** `@brief`, `@param[in|out|in,out]`, `@return`, `@pre`, `@post`, `@note`, `@warning`
+Preserve unrelated behaviour. Document public API contracts, ownership/lifetime and non-obvious invariants where they help maintenance. Do not require Doxygen on every trivial local function or duplicate comments that merely restate the code. Keep implementation, tests, registration, build wiring and user-facing documentation in sync.
 
-```c
-/**
- * @brief Dequantize Q4_0 block to FP32.
- * @param[in]  src          Quantized block pointer (non-NULL)
- * @param[out] dst          Output FP32 buffer (caller-allocated, >= block_count*32 floats)
- * @param[in]  block_count  Number of 32-element blocks
- * @return 0 on success, -EINVAL if src==NULL or dst==NULL or block_count==0
- * @pre src points to valid block_size bytes; dst has >= block_count*32 floats
- * @post dst contains dequantized values
- * @note Verify the exact Q4_0 block layout and signed-nibble decoding against the pinned GGML revision; layouts differ by quantisation type
- * @warning Do NOT call with overlapping src/dst buffers
- */
-int ggml_dequantize_q4_0(const void* src, float* dst, int block_count);
-```
+## 4. Verify proportionally
 
-**Opaque handle pattern:**
-```c
-/**
- * @brief Opaque handle for tensor context.
- * @note Created by tensor_init(), destroyed by tensor_free().
- * @warning Do NOT dereference; treat as opaque cookie.
- */
-typedef struct tensor tensor_t;
-```
+1. Run the narrowest decisive build/test first.
+2. Run relevant regression and integration tests.
+3. Add boundary/negative tests for new error paths. Use sanitizers, fuzzing or concurrency tests when the risk warrants them and the environment supports them.
+4. Inspect the final diff and rerun checks affected by any follow-up edits.
+5. Repeat trials only where flakiness, concurrency or statistical variance is material. A fixed ten-pass rule is not evidence.
 
-**Validation:** `doxygen -u` + custom checker for required tags. Missing `@pre`/`@post` on public API = FAIL.
+If a check cannot run, label it BLOCKED or NOT RUN with the reason. Never invent output, claim unexecuted tests passed, or hide failed exit codes.
 
----
+## 5. Route deeper review
 
-## Stage 2: Code Contracts (Behavior Documentation)
+- Repository or feature completeness, TODO/stub audit: goli-mat-de.
+- Source/runtime markers and execution-path tracing: traceability.
+- Test strategy, fuzz/property/differential testing: test-engineering.
+- Cross-module ownership or dependency direction: architecture-boundaries.
+- Rust unsafe/FFI invariants: rust-safety.
+- A confirmed runtime defect: debug-core, followed by debug-verify.
 
-Document what a maintainer **cannot infer** from names and types:
+Load references/implementation-checklist.md only for higher-risk, multi-module or release-gate reviews.
 
-| Contract Element | Required When |
-|------------------|---------------|
-| **Purpose** | Every public function |
-| **Ownership/Lifetime** | Any pointer param or return |
-| **Preconditions** | Non-trivial input requirements |
-| **Postconditions** | Non-trivial output guarantees |
-| **Errors** | Any fallible operation (list all return codes) |
-| **Side Effects** | Mutates global state, I/O, allocates, locks |
-| **Thread/Async Safety** | Shared state, reentrancy, signal safety |
-| **Synchronization** | Locks held/required, memory ordering |
-| **Performance Constraints** | O(n), allocation count, syscall count |
+## Output
 
-**Example:**
-```c
-/**
- * @brief Parse GGUF header from memory buffer.
- * 
- * Ownership: Caller retains buffer ownership. Returns allocated ctx on success.
- * Lifetime: ctx valid until gguf_free(ctx). Buffer must outlive ctx.
- * 
- * Preconditions:
- *   - buf != NULL
- *   - len >= GGUF_MIN_HEADER_SIZE (24 bytes)
- *   - buf aligned to 8 bytes
- * 
- * Postconditions (on success):
- *   - *ctx != NULL
- *   - ctx->magic == GGUF_MAGIC
- *   - ctx->tensor_count <= MAX_TENSORS
- * 
- * Errors:
- *   - -EINVAL: buf NULL, len too small, misaligned
- *   - -EBADMSG: bad magic, version, or tensor count
- *   - -ENOMEM: allocation failure
- * 
- * Side Effects: Allocates ctx via malloc. No global state.
- * Thread Safety: Not thread-safe. Caller must synchronize.
- * Performance: O(1) header parse, 1 malloc.
- */
-int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len);
-```
-
----
-
-## Stage 3: No Fake Code Rule (Zero Tolerance)
-
-**FORBIDDEN — automatic FAIL:**
-- `TODO`, `FIXME`, `HACK`, `XXX` markers that identify in-scope behaviour as missing or incomplete; harmless future-work notes should be triaged rather than treated as proof of a broken feature
-- `pass`, `unimplemented!()`, `todo!()`, `assert!(false)`, `panic!()`
-- `// write your code here` or similar placeholders
-- Empty or constant-return bodies when the declared contract promises meaningful work and no intentional no-op or constant-return contract justifies the body
-- Example/demo modules unless explicitly requested
-- `print("Hello World")` or placeholder outputs
-- Hardcoded expected outputs to make tests pass
-- Mock implementations in production paths
-
-**IF a function cannot be fully implemented:**
-1. State this BEFORE coding
-2. Ask for clarification or scope reduction
-3. Do NOT emit incomplete code
-
----
-
-## Stage 4: 10-Iteration Validation (Every Change)
-
-| Iter | Check | Tool | Pass Criteria |
-|------|-------|------|---------------|
-| **1** | Compile | `cmake --build build -Werror` | 0 warnings, 0 errors |
-| **2** | Format | `clang-format --dry-run --Werror` | 0 diffs |
-| **3** | Unit Tests | `ctest -R <component> --output-on-failure` | 100% pass |
-| **4** | Reproduce | Capture repro case before fixing | Repro deterministic |
-| **5** | Golden Test | Known input → known output | Bit-exact match |
-| **6** | Fuzz Test | Malformed/random → graceful reject | 0 crashes, 0 hangs, 0 sanitizer hits |
-| **7** | Sanitizers | `ASan + UBSan` (MSVC: `/fsanitize=address,undefined`) | 0 leaks, 0 UB |
-| **8** | Flow Analysis | `debug-core`: truth table + data trace | All branches resolved |
-| **9** | Resource Audit | Every alloc→free, handle→close, lock→unlock | 0 leaks, 0 double-free |
-| **10** | Performance | Benchmark vs baseline | No >5% regression |
-
-**Log format:**
-```
-✅ I1: compile clean (0W, 0E)
-✅ I2: format clean
-✅ I3: test_gguf ✅ (12/12)
-✅ I4: repro captured (test/inputs/corrupt.bin)
-✅ I5: golden test_gguf_golden ✅
-✅ I6: fuzz 10000 iterations ✅
-✅ I7: ASan+UBSan clean
-✅ I8: truth table: 3 branches, all resolved
-✅ I9: resource audit: 3 alloc/3 free, 0 leaks
-✅ I10: perf 12.3ms → 12.1ms (-1.6%)
-```
-
-**Bypass ONLY if user explicitly says:** "skip validation", "trust me", "I'll validate later", "no tests needed for this".
-
----
-
-## Stage 5: Traceability Markers (Lean)
-
-Every non-trivial function gets `[T-XXX]` markers in source (stripped from binary only):
-
-```c
-int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len) {
-    DBG_TRACE("[T-001] enter: len=%zu", len);           // Entry
-    if (read_u32(buf) != GGUF_MAGIC) { 
-        DBG_TRACE("[T-002] FAIL: bad magic"); return -1; 
-    }
-    uint64_t n = read_u64(buf + 16);
-    if (n > MAX_TENSORS) { 
-        DBG_TRACE("[T-003] FAIL: n=%llu", (unsigned long long)n); return -2; 
-    }
-    // ...
-    DBG_TRACE("[T-001] exit: ok");                       // Success exit
-    return 0;
-}
-```
-
-**Requirements:**
-- [ ] Every non-trivial function has `[T-XXX]` in DBG_TRACE + Doxygen `@brief`
-- [ ] DBG_TRACE at entry + **every exit path** (success + each error)
-- [ ] DBG_ASSERT on all pre-conditions
-- [ ] `-g3` (GCC/Clang) / `/Zi` (MSVC) in build flags
-- [ ] `addr2line -e app <addr>` works on sample crash address
-
-**Stripped binary debugging:**
-```bash
-objcopy --only-keep-debug app app.debug
-objcopy --strip-debug app
-objcopy --add-gnu-debuglink=app.debug app
-```
-
----
-
-## Stage 6: Rust Safety (When Rust Code Touched)
-
-| Rule | Enforcement |
-|------|-------------|
-| **Ownership** | Every value has one owner; pass `&T`/`&mut T` unless transfer needed |
-| **Lifetimes** | Explicit for structs holding refs; elide where compiler allows |
-| **Cloning** | `Clone` only for semantic deep copy; prefer `Copy` for trivial types |
-| **Errors** | `Result<T, E>` for all fallible ops; **no `.unwrap()`/.expect()` in prod** |
-| **Error Types** | Custom with `thiserror`; map at boundaries |
-| **Propagation** | `?` operator; avoid nested `match` for simple forwarding |
-| **Public Types** | `#[derive(Debug, Clone, PartialEq)]` |
-| **Unsafe** | Only for FFI; document safety invariant in `// SAFETY:` comment |
-| **Null** | Prefer `Option<T>`; use `let-else` for early returns |
-| **Indexing** | Prefer `.get(i)` over `[i]`; bounds-checked |
-| **Testing** | `#[cfg(test)]` module per file; `proptest`/`quickcheck` for parsers/core logic |
-| **Build** | `cargo build --release` for perf; `cargo flamegraph` for profiling |
-| **Workspace** | `Cargo.toml` at root, crates in `src/`, no dev-deps leak |
-
----
-
-## Stage 7: Component Boundaries (Backend Demarcation)
-
-Keep layers **visibly separate**:
-
-```
-TRANSPORT (HTTP/gRPC) 
-  → APPLICATION (orchestration, validation, auth, transactions)
-  → DOMAIN (pure business rules, no I/O)
-  → PERSISTENCE (DB, cache, repos)
-  → INFRASTRUCTURE (cloud SDK, filesystem, clock)
-  → WORKERS/JOBS (background, external integrations)
-  → CONFIG (process-global, feature flags)
-```
-
-**Rules:**
-1. Trace request from transport to response; mark every boundary
-2. Domain logic independent of HTTP, DB, cloud SDK, process-global config
-3. DTO/schema translation at edges; ownership, retries, idempotency, timeouts, errors explicit
-4. Background jobs & external integrations behind interfaces; fake/test adapters **only in test code**
-5. Test each layer + one E2E path; verify startup, migration, shutdown, failure recovery
-
-**Anti-patterns (FAIL):**
-- HTTP handler calls SQL directly
-- Domain struct has `http.ResponseWriter` field
-- Global `config` variable used in domain logic
-- Worker imports web framework
-
----
-
-## Output Report
-
-```
-QUALITY GATE: PASSED/FAILED
-STAGE: <failed stage> / 7
-DOXYGEN: <missing tags>
-CONTRACTS: <missing elements>
-FAKE_CODE: <violations found>
-VALIDATION: I<failed_iter> <reason>
-TRACEABILITY: <missing markers>
-RUST: <violations>
-BOUNDARIES: <cross-layer violations>
-```
-
-## Boundaries
-
-- Does not design architecture (receives code to validate)
-- Does not write tests for untested code (flags missing tests in I3/I5/I6)
-- `stop code-quality-gate`: revert to manual review (not recommended).
+Report changed scope, contract, tests/commands actually run, results, known limitations and remaining risks. Do not create issues or tasks from findings until the user acknowledges the proposed list and authorises the destination.

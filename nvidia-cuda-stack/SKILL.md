@@ -1,316 +1,127 @@
 ---
 name: nvidia-cuda-stack
-description: "Unified NVIDIA CUDA stack: runtime, driver, streams, graphs, memory, kernels, profiling. Develop, debug, optimize across Hopper, Blackwell, Ampere."
+description: "NVIDIA GPU compute stack: CUDA runtime/driver, streams, graphs, memory, kernel execution, libraries, profiling and architecture-aware validation."
 compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
-  trigger_keywords: ["CUDA", "NVIDIA", "H100", "H200", "B200", "GB200", "A100", "RTX 4090", "PTX", "SASS", "Nsight", "cuBLAS", "cuDNN", "NCCL", "TensorRT"]
+  auto_trigger: false
+  trigger_keywords: ["CUDA", "NVIDIA", "H100", "H200", "B200", "GB200", "A100", "RTX", "PTX", "SASS", "Nsight", "cuBLAS", "cuDNN", "NCCL", "TensorRT"]
 ---
 
 # NVIDIA CUDA Stack
 
-**Unified across runtime, architecture, and tooling layers.**
+## Version and target gate
 
-## Layer Map
+Record OS, GPU SKU and compute capability, driver, CUDA Toolkit, compiler version, framework/library versions and target binary architecture. Use the installed CUDA documentation and supported GPU matrices for exact version combinations.
 
-| Layer | Focus | When to Use |
-|-------|-------|-------------|
-| **Runtime/Driver** | Streams, events, graphs, memory, error handling | API correctness, sync, memory lifetime |
-| **Architecture (Hopper/Blackwell)** | Tensor cores, TMA, cluster, NVLink, MIG | Kernel optimization, MFMA, FP8/FP4 |
-| **Architecture (Ampere)** | Tensor cores, sparse, async copy | A100/RTX 30/40 optimization |
-| **Tooling** | Nsight Compute, Nsight Systems, CUPTI | Profiling, tracing, bottleneck analysis |
-| **Libraries** | cuBLAS, cuDNN, NCCL, CUTLASS, TensorRT | Primitive selection, quantization, serving |
+The CUDA version printed by nvidia-smi describes driver compatibility, not necessarily the Toolkit installed on the machine. Do not declare a toolkit/driver mismatch from those two version strings alone. Verify nvcc --version, driver API/runtime errors and the version compatibility documentation.
 
----
+Official reference: https://docs.nvidia.com/cuda/cuda-c-programming-guide/
 
-## 1. Runtime/Driver Layer
+## Choose the layer
 
-### Mandatory Recording
-```
-CUDA Toolkit: 12.6 / 12.8
-Driver: 560.x (Linux) / 565.x (Windows)
-GPU: H100 (CC 9.0) / H200 / B200 (CC 10.0) / RTX 4090 (CC 8.9)
-Arch: sm_90 / sm_100 / sm_89
-Compiler: nvcc 12.6 / nvrtc / clang++ --cuda-path
-Exact command: nvcc -O3 -arch=sm_90 -std=c++17 kernel.cu -o kernel
-```
+| Layer | Inspect |
+|---|---|
+| Runtime/driver | Device selection, streams/events, graphs, memory allocation, errors and object lifetime |
+| Kernel/ISA | Launch geometry, bounds, race conditions, registers, shared memory, PTX/SASS and numerical contract |
+| Libraries | cuBLASLt/cuBLAS, cuDNN, CUTLASS, NCCL and TensorRT capability for the actual shape/dtype/layout |
+| Profiling | Nsight Systems for end-to-end scheduling; Nsight Compute for kernel metrics; matching profiler version |
 
-### Hypothesis Separation
+## Mandatory capture
 
-| Category | Checks |
-|----------|--------|
-| **API Correctness** | `cudaGetLastError`, stream/event ordering, device visibility, peer access |
-| **Kernel Correctness** | Numerical diff vs reference, `cuda-memcheck`, `compute-sanitizer`, racecheck |
-| **Synchronization** | Stream/event/barrier ordering, graph capture constraints, host-device sync |
-| **Memory** | Lifetime, aliasing, alignment, unified memory migration, P2P |
-| **Performance** | Occupancy, register pressure, shared memory, L2/cache, launch overhead |
+1. Preserve the first error and exact reproducer, source revision and launch command.
+2. Record cudaGetDeviceProperties or equivalent output, compute capability, memory, enabled features and binary targets.
+3. Capture API return codes. Check launch errors and asynchronous errors separately; an error can surface at a later synchronisation point.
+4. Record stream dependencies, event ordering, buffer lifetimes, host/device transfer direction and graph-capture constraints.
+5. Reproduce with the simplest library or kernel path before changing architecture-specific code.
 
-### Inspection Checklist (Before Code Changes)
-- [ ] `nvidia-smi` — driver, GPU, compute mode, MIG, ECC, power, clocks
-- [ ] `nvcc --version` / `nvidia-smi` CUDA version match
-- [ ] Device query — CC, SMs, registers, shared mem, L2, tensor cores
-- [ ] `cudaOccupancyMaxActiveBlocksPerMultiprocessor` for baseline
-- [ ] Profiler — `nsys profile` (system) / `ncu` (kernel) for baseline
+## Runtime and memory correctness
 
-### Primitive Preference
-```
-Prefer: cuBLASLt GEMM → cublasLtMatmul (FP8/BF16/TF32)
-Over:   hand-written GEMM kernel
-Unless: custom tile/quantization/epilogue not supported
+- Treat every CUDA call's status as part of the control flow. Do not continue with uninitialised pointers or assume a failed allocation returned usable memory.
+- Check all launch dimensions, index arithmetic, offsets, pitch/stride, alignment and tail masks. Guard partial blocks and zero-sized workloads.
+- Distinguish a launch configuration, kernel completion, memory visibility and host observation. Use streams, events and synchronisation for the actual producer-consumer dependency; avoid global synchronisation as an unexplained fix.
+- Keep host buffers, device allocations, streams, events and graph/executable objects alive until all asynchronous users have completed.
+- Unified memory does not imply free migration, deterministic placement or negligible page-fault cost. Measure migration and prefetch behaviour on the target.
+- Treat graph capture as a separate execution mode. Allocation, host callbacks, synchronisation and API calls supported during capture depend on the API and toolkit version.
+- Prefer the official Compute Sanitizer tools for supported memory, race, init and synchronization checks. A clean tool run is evidence for the tested workload, not proof against every schedule.
 
-Prefer: NCCL AllReduce → ncclAllReduce (LL128, tree, ring)
-Over:   custom collective
-Unless: topology-aware or non-standard reduction
-```
+## Library-first policy
 
-### Validation Gates
-1. **Correctness fixture** — deterministic input → bit-exact reference (FP64/FP32) or tolerance (FP16/BF16/FP8)
-2. **Sanitizer evidence** — `compute-sanitizer --tool=memcheck --tool=racecheck` clean
-3. **Workload benchmark** — end-to-end latency/throughput vs baseline
+Use supported libraries for standard operations before implementing a custom kernel. Confirm datatype, accumulation precision, layout, epilogue, workspace, determinism, shape and compute-capability support for the installed library version.
 
----
+Use custom PTX/SASS, inline assembly, CUTLASS or handwritten kernels only when a measured requirement is unsupported or the library path is demonstrably the bottleneck. Inline assembly must declare constraints and clobbers correctly, and it must match the exact target ISA and compiler contract.
 
-## 2. Hopper Architecture (H100/H200, CC 9.0)
+## Architecture-specific work
 
-### Key Features
-| Feature | Spec |
-|---------|------|
-| **SMs** | 132 (H100) / 142 (H200) |
-| **Tensor Cores** | 4th gen: FP8, BF16, FP16, TF32, FP64 |
-| **FP8** | E4M3 + E5M2, 2x FP16 throughput |
-| **TMA** | Tensor Memory Accelerator — async copy global↔shared |
-| **Cluster** | Thread block clusters (up to 8 blocks), multicast |
-| **NVLink 4.0** | 900 GB/s GPU-GPU, 7 NVLinks |
-| **MIG** | Up to 7 instances, dedicated resources |
-| **HBM3** | 3 TB/s (H100) / 4.8 TB/s (H200) |
+- **Ampere and later:** verify the specific GPU's tensor-core datatypes, asynchronous copy options, shared-memory limits and required instruction/toolkit support. Do not generalise one Ampere device to every SKU.
+- **Hopper and later:** TMA, thread-block clusters, distributed shared memory and related operations require capability checks, correct launch attributes, valid tensor-map descriptors and matching compiler/runtime support.
+- **Blackwell and later:** do not assume FP4/FP6, microscaling, cluster sizes or library support are interchangeable across chips and software releases. Confirm the exact supported data formats and kernel path.
+- Compute capability alone does not prove that a feature is enabled or that a specific library uses it. Inspect actual compiled code or profiling evidence where the claim matters.
 
-### MFMA / Tensor Core Instructions (PTX)
+### Cluster launch attribute pattern
 
-```ptx
-// mma.sync.aligned.m16n8k16.row.col.f16.f16.f16.f16
-// D = A * B + C (FP16 accumulation)
-mma.sync.aligned.m16n8k16.row.col.f16.f16.f16.f16
-    {d0, d1, d2, d3}, {a0, a1, a2, a3}, {b0, b1}, {c0, c1, c2, c3};
+For toolkits that support extended launches and clusters, the attribute is passed through the attributes array. The cluster dimension is not a direct member of cudaLaunchConfig_t.
 
-// FP8 (Hopper+)
-mma.sync.aligned.m16n8k16.row.col.f8.f8.f16.f16
-    {d0, d1, d2, d3}, {a0, a1}, {b0}, {c0, c1, c2, c3};
+    cudaLaunchConfig_t config = {};
+    config.gridDim = dim3(grid_x, grid_y, grid_z);
+    config.blockDim = dim3(threads_x, threads_y, threads_z);
+    config.dynamicSmemBytes = dynamic_shared_bytes;
 
-// CUTLASS usage (recommended)
-#include <cutlass/gemm/device/gemm_universal.h>
-using Gemm = cutlass::gemm::device::GemmUniversal<
-    cutlass::gemm::kernel::GemmUniversal<
-        cutlass::half_t, cutlass::layout::RowMajor,
-        cutlass::half_t, cutlass::layout::ColumnMajor,
-        cutlass::half_t, cutlass::layout::RowMajor,
-        cutlass::half_t, cutlass::arch::OpClassTensorOp,
-        cutlass::arch::Sm90>;
-```
+    cudaLaunchAttribute attrs[1] = {};
+    attrs[0].id = cudaLaunchAttributeClusterDimension;
+    attrs[0].val.clusterDim = dim3(cluster_x, cluster_y, cluster_z);
+    config.attrs = attrs;
+    config.numAttrs = 1;
 
-### TMA (Tensor Memory Accelerator)
+    // Confirm grid dimensions satisfy cluster divisibility and that the
+    // kernel, GPU, CUDA Toolkit and driver support this launch mode.
+    cudaError_t status = cudaLaunchKernelEx(&config, kernel, arg0, arg1);
+    if (status != cudaSuccess) {
+        /* Return or report status using the caller's error contract. */
+    }
 
-```cpp
-// Async copy from global to shared memory
-// Requires cluster launch: <<<grid, block, 0, stream, cluster>>>
-__builtin_nvvm_tma_load_async_shared_2d(
-    shared_ptr, global_ptr,
-    /*dim_x=*/128, /*dim_y=*/64, /*stride=*/global_stride
-);
-// Wait for completion
-__builtin_nvvm_tma_wait();
-```
+This is a launch-API pattern, not a complete kernel or application. Check the exact header signatures, cluster support and argument types for the pinned toolkit. For TMA, use the documented tensor-map and copy/wait primitives or supported abstractions for that release; do not paste an unverified compiler builtin from another toolchain.
 
-### Cluster Launch
+## Multi-GPU and communication
 
-```cpp
-// Launch with cluster size (e.g., 2x2x1 = 4 blocks)
-cudaLaunchConfig_t config = {0};
-config.gridDim = dim3(grid_x, grid_y, grid_z);
-config.blockDim = dim3(256, 1, 1);
-config.dynamicSmemBytes = shared_mem_size;
-config.attrs = cudaLaunchAttributeClusterDimension;
-config.clusterDim = dim3(2, 2, 1);  // 4-block cluster
-cudaLaunchKernelEx(&config, kernel, args...);
-```
+- Verify device enumeration, peer-access capability, topology, rank/world-size agreement and collective ordering.
+- Use a supported NCCL collective for standard all-reduce/broadcast operations; check every return status and confirm datatype/operator support in the installed NCCL version.
+- Ensure all ranks enter compatible collectives and propagate failures without leaving peers blocked indefinitely.
+- Do not assume a fixed NVLink bandwidth, topology, MIG partition count or collective algorithm from a product-family label. Inspect the actual device and topology.
 
-### Multi-GPU (NCCL)
+## Profiling and benchmarks
 
-```cpp
-// Initialize
-ncclCommInitRank(&comm, nGPUs, comm_id, rank);
+1. Establish correctness and a reproducible baseline before tuning.
+2. Use Nsight Systems to identify CPU stalls, launch overhead, copies, synchronisation and pipeline gaps; use Nsight Compute for kernel-level metrics.
+3. Separate compilation/loading, warm-up, allocation, host-to-device transfer, device execution and readback. Avoid timing an asynchronous launch without measuring completion.
+4. Fix input shapes, layout, dtype, accumulation, batch/concurrency, clocks/power state, driver/toolkit, library algorithm and warm-up.
+5. Report median and spread over repeated trials, plus correctness deltas, bandwidth/throughput and peak memory. Do not report the best sample alone.
+6. Compare against the strongest applicable library baseline under identical semantics. Do not claim improvement if the output changes beyond the accepted tolerance.
 
-// AllReduce (FP8/BF16 supported)
-ncclAllReduce(sendbuff, recvbuff, count, ncclBfloat16, ncclSum, comm, stream);
+## Validation checklist
 
-// NVLS (NVLink Sharps) for tree reduction
-// Set NCCL_NVLS_ENABLE=1 for Hopper
-```
+- [ ] Exact GPU, compute capability, driver, Toolkit and library versions recorded.
+- [ ] All API and asynchronous errors handled.
+- [ ] Bounds, masks, alignment, lifetime and stream dependencies checked.
+- [ ] Supported sanitizers and regression tests actually executed.
+- [ ] Reference output matches with explicit tolerances.
+- [ ] Benchmark excludes setup unless setup is the measured target.
+- [ ] Any architecture-specific feature has a documented capability fallback.
 
----
+## Report
 
-## 3. Blackwell Architecture (B200/GB200, CC 10.0)
-
-### Key Features
-| Feature | Spec |
-|---------|------|
-| **SMs** | 192 (B200) |
-| **Tensor Cores** | 5th gen: FP4, FP6, FP8, BF16, FP16, TF32 |
-| **FP4/FP6** | Micro-scaling (MXFP4/MXFP6) — 2-4x FP8 throughput |
-| **TMA** | Enhanced — multicast, tensor map |
-| **Cluster** | Up to 16 blocks, flexible shape |
-| **NVLink 5.0** | 1.8 TB/s GPU-GPU (GB200: 18 NVLinks) |
-| **NVLink Switch** | NVLink Switch System (72 GPUs, 130 TB/s) |
-| **HBM3E** | 8 TB/s (B200) |
-| **Decompression** | Hardware LZ4/Deflate engine |
-
-### FP4/FP6 (Microscaling)
-
-```cpp
-// MXFP4: 4-bit mantissa + shared 8-bit scale per block
-// CUTLASS 3.5+ supports MXFP4
-using Gemm = cutlass::gemm::device::GemmUniversal<
-    cutlass::gemm::kernel::GemmUniversal<
-        cutlass::mxf4_t, cutlass::layout::RowMajor,  // MXFP4
-        cutlass::mxf4_t, cutlass::layout::ColumnMajor,
-        cutlass::half_t, cutlass::layout::RowMajor,  // FP16 accumulation
-        cutlass::half_t, cutlass::arch::OpClassTensorOp,
-        cutlass::arch::Sm100>;
-```
-
-### GB200 NVL72 System
-
-```
-72 GPUs (36 Grace CPUs + 36 B200 GPUs)
-NVLink Switch: 130 TB/s all-to-all
-NVLink-C2C: 900 GB/s CPU-GPU coherent
-Unified memory: 30 TB/s fabric
-```
-
----
-
-## 4. Ampere Architecture (A100/RTX 30/40, CC 8.0/8.6/8.9)
-
-### Key Features
-| Feature | A100 (8.0) | RTX 3080/3090 (8.6) | RTX 4090 (8.9) |
-|---------|------------|---------------------|----------------|
-| **SMs** | 108 | 68-82 | 128 |
-| **Tensor Cores** | 3rd gen | 3rd gen | 4th gen |
-| **FP8** | No | No | Yes (Ada) |
-| **Sparse** | 2:4 structured | 2:4 structured | 2:4 structured |
-| **Async Copy** | TMA (limited) | TMA (limited) | TMA |
-| **NVLink** | 600 GB/s (NVLink 3) | No | No |
-
-### Structured Sparsity (2:4)
-
-```cpp
-// 2:4 sparse pattern: 2 non-zero per 4 elements
-// cuBLASLt: CUBLASLT_MATRIX_TRANSFORM_SPARSE_2_4
-// cublasLtMatmul with sparse A matrix
-cublasLtMatmul(..., CUBLASLT_POINTER_MODE_DEVICE, ...);
-```
-
----
-
-## 5. Profiling & Tooling
-
-### Nsight Systems (System-level)
-```bash
-# System trace: CPU/GPU timeline, kernels, memcpys, NVTX
-nsys profile -o trace ./app
-nsys stats trace.nsys-rep --report gpukernsum,gpumemtimesum
-
-# Key metrics: kernel duration, launch gap, memcpy overlap, SM utilization
-```
-
-### Nsight Compute (Kernel-level)
-```bash
-# Kernel deep-dive: occupancy, registers, shared mem, memory throughput, compute throughput
-ncu --set full -o kernel_log ./app
-ncu --import kernel_log.ncu-rep --log-file kernel_log.txt
-
-# Key sections:
-# 1. GPU Speed of Light — achieved vs theoretical
-# 2. Occupancy — achieved vs theoretical, limiting factor
-# 3. Memory Throughput — L1/TEX, L2, DRAM
-# 4. Compute Throughput — SM, Tensor Core utilization
-# 5. Launch Statistics — grid/block, registers, shared mem
-```
-
-### CUPTI (Custom Tooling)
-```c
-// Callback API for custom profiling
-cuptiSubscribe(&subscriber, (CUpti_CallbackFunc)callback, userdata);
-cuptiEnableCallback(1, subscriber, CUPTI_CB_DOMAIN_DRIVER_API, CUPTI_DRIVER_API_CUDA_LAUNCH_KERNEL);
-// Capture: kernel name, grid/block, stream, correlation ID
-```
-
----
-
-## 6. Libraries & Serving
-
-| Library | Purpose | Key API |
-|---------|---------|---------|
-| **cuBLASLt** | GEMM with FP8/BF16/TF32, epilogue | `cublasLtMatmul` |
-| **cuDNN** | Convolution, pooling, RNN | `cudnnConvolutionForward` |
-| **NCCL** | Multi-GPU collectives | `ncclAllReduce`, `ncclAllGather` |
-| **CUTLASS** | Template GEMM, FP8/FP4, TMA, cluster | `cutlass::gemm::device::GemmUniversal` |
-| **TensorRT** | Engine build, quantization, serving | `IBuilder`, `ICudaEngine` |
-| **Triton** | Model serving, Python backend | `model.py`, `config.pbtxt` |
-
----
-
-## Cross-Layer Workflow
-
-### For Performance Issues
-1. **Runtime** → Verify stream/event/graph ordering, memory lifetime
-2. **Nsight Systems** → System timeline: launch gaps, memcpy overlap, SM utilization
-3. **Nsight Compute** → Kernel deep-dive: occupancy, tensor core %, memory BW
-4. **Architecture** → Apply Hopper/Blackwell/Ampere specific optimizations
-
-### For Correctness Issues
-1. **Runtime** → `cudaGetLastError` after every call, stream sync points
-2. **Sanitizers** → `compute-sanitizer --tool=memcheck --tool=racecheck`
-3. **Architecture** → Check alignment, shared memory bank conflicts, warp divergence
-
-### For Porting (CUDA → HIP/ROCm)
-1. **hipify** → Automated translation
-2. **Architecture** → Replace PTX/SASS with `__builtin_amdgcn_*` or vendor intrinsics
-3. **Libraries** → cuBLAS → rocBLAS, cuDNN → MIOpen, NCCL → RCCL
-4. **Runtime** → CUDA stream/event → HIP stream/event (mostly 1:1)
-
----
-
-## Validation Matrix
-
-| Layer | Correctness | Performance | Porting |
-|-------|-------------|-------------|---------|
-| **Runtime** | Sanitizers + deterministic fixture | nsys/ncu baseline | hipify + API map |
-| **Hopper** | FP8/FP16 diff vs ref | Tensor core %, TMA overlap, NVLink BW | MFMA → MFMA |
-| **Blackwell** | FP4/FP6 diff vs ref | MXFP4 throughput, NVLink 5.0 | New ISA |
-| **Ampere** | Sparsity pattern verify | Structured sparse speedup | Sparsity → AMD equivalent |
-| **Libraries** | Numerical tolerance | Primitive latency vs hand-written | cuBLAS→rocBLAS, etc. |
-
----
-
-## Output Report
-
-```
-NVIDIA CUDA STACK: <layer> ANALYSIS
-RECORDED: CUDA <ver>, Driver <ver>, GPU <model> (CC <n>), OS <ver>
-LAYER: <runtime|hopper|blackwell|ampere|tooling|libraries>
-FINDINGS: <ranked issues with evidence>
-PRIMITIVE SWAPS: <cuBLASLt/NCCL/CUTLASS used vs hand-written>
-ARCH OPTIMIZATIONS: <tensor core tiles, TMA, cluster, sparsity>
-VALIDATION: correctness✅/❌ sanitizer✅/❌ benchmark✅/❌
-BLOCKERS: <unsupported CC, missing primitives, driver bugs>
-```
-
----
+    NVIDIA CUDA STACK: ANALYSIS
+    TARGET: GPU / compute capability / OS / driver / Toolkit
+    LAYER: runtime / kernel / library / profiler
+    REPRODUCER: command, input, first error and revision
+    CORRECTNESS: reference, tolerance, sanitizer/test result
+    PERFORMANCE: workload, baseline, repeated timing spread
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: unsupported feature or missing evidence
 
 ## Boundaries
 
-- Does not write kernel code (receives kernels to validate/optimize)
-- Does not manage CUDA installation (system admin task)
-- `stop nvidia-cuda-stack`: revert.
+- Use llm-serving or the engine-specific vLLM, SGLang and TensorRT-LLM skills for model-serving workflow.
+- Use graphics-shader-kernels for shader semantics and vulkan-compute-stack for Vulkan APIs.
+- Use kernel-tuning or optimization-toolkit for deeper performance search.

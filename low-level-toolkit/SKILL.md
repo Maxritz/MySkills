@@ -1,374 +1,162 @@
 ---
 name: low-level-toolkit
-description: "Assembly, emulation, toolchains: ISA/ABI analysis, instruction selection, binary interfaces, emulator design, compiler/linker/sysroot reproducibility. For bare-metal, kernel, compiler, and binary-level work."
+description: "Assembly, emulation, toolchains and binary interfaces: ISA/ABI analysis, disassembly, JIT correctness and reproducible target builds."
 compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["assembly", "emulation", "toolchain", "ISA", "ABI", "calling convention", "binary", "disassembly", "compiler", "linker", "sysroot", "emulator", "simulator", "JIT"]
 ---
 
 # Low-Level Toolkit
 
-**Unified across assembly, emulation, and toolchains.** For bare-metal, kernel, compiler, and binary-level work.
+Use for ISA/ABI questions, hand-written assembly, emulator fidelity and binary/toolchain diagnosis. Use porting-toolkit for broader semantic porting and cross-compilation for focused target/sysroot setup. Code examples below state their exact target; do not copy them to another ABI unchanged.
 
----
+## 1. Hand-written assembly
 
-## 1. Assembly & Binary Interfaces
+### Pre-coding contract
 
-### Pre-Requisites (Before Hand-Coding)
-- [ ] ISA, mode, ABI, object format, assembler syntax, toolchain recorded
-- [ ] Correct scalar/reference implementation exists
-- [ ] Generated assembly inspected (`-S -O2 -march=native`)
-- [ ] Flags, masking, alignment, memory ordering, exceptions, ABI-visible state preserved
-- [ ] Guarded fallback when target feature unavailable
+Record ISA and feature level, execution mode, ABI, object format, assembler and syntax, input/output contract, pointer-validity assumptions, preserved registers, flags, stack alignment, unwind metadata, memory ordering and fallback policy.
 
-### Architecture Record Template
-```markdown
-## Assembly Context
+Before writing assembly:
+1. Create a correct scalar/reference implementation.
+2. Inspect compiler-generated code at the intended optimisation level and target.
+3. Verify that the proposed instruction exists on the exact target and that OS state support is enabled where required.
+4. Decide how the caller handles unavailable CPU features; an assembly function must not be called before dispatch validates its requirements.
+5. Define numerical equivalence, including FMA/reduction-order differences.
 
-### Target
-- Architecture: x86-64 / ARM64 / RISC-V / RDNA2 (gfx1031) / CDNA (gfx942)
-- Mode: 64-bit / 32-bit / compat
-- ABI: System V AMD64 / Microsoft x64 / AAPCS64 / HSA
-- Object format: ELF / Mach-O / COFF / HSA code object
-- Assembler: NASM / GAS / LLVM-MC / AMDGCN
-- Syntax: Intel / AT&T / AMDGCN
+### Worked kernel: x86-64 System V AVX2/FMA dot product
 
-### Register Convention
-| Register | Role | Caller-saved | Callee-saved |
-|----------|------|--------------|--------------|
-| RAX/RDI/RSI/RDX/RCX/R8-R11 | Args/Return | ✅ | |
-| RBX/RBP/R12-R15 | Preserved | | ✅ |
-| XMM0-XMM15 / YMM0-YMM15 / ZMM0-ZMM31 | FP/Vector args | ✅ | |
-| SGPR/VGPR (AMD) | Scalar/Vector | | See ISA |
+This example uses GNU assembler with Intel syntax, the System V x86-64 ABI, valid contiguous FP32 arrays and a length measured in elements. It accepts unaligned pointers and arbitrary length, using a scalar tail. It requires both AVX2 and FMA; runtime dispatch is the caller's responsibility. The caller must validate that each array spans at least n elements.
 
-### Stack
-- Alignment: 16-byte (x86-64 System V) / 16-byte (Win64) / 16-byte (AAPCS64)
-- Red zone: 128 bytes (System V) / none (Win64)
-- Shadow space: 32 bytes (Win64)
+    .text
+    .intel_syntax noprefix
+    .p2align 4
+    .globl dot_f32_avx2
+    .type dot_f32_avx2, @function
+    dot_f32_avx2:
+    .cfi_startproc
+        vxorps ymm0, ymm0, ymm0
+        xor rax, rax
 
-### Unwind
-- DWARF CFI / Windows x64 unwind codes / HSA unwind
-- Frame pointer: optional (omit with `-fomit-frame-pointer`)
+    .Lvector:
+        mov r8, rdx
+        sub r8, rax
+        cmp r8, 8
+        jb .Ltail
+        vmovups ymm1, YMMWORD PTR [rdi + rax*4]
+        vmovups ymm2, YMMWORD PTR [rsi + rax*4]
+        vfmadd231ps ymm0, ymm1, ymm2
+        add rax, 8
+        jmp .Lvector
 
-### Relocation Model
-- PIC/PIE: required for shared libraries
-- GOT/PLT: lazy vs eager binding
-- TLS: local/exec, initial/exec, local/dynamic
-```
+    .Ltail:
+        vxorps xmm3, xmm3, xmm3
+    .Lscalar:
+        cmp rax, rdx
+        jae .Lreduce
+        vmovss xmm1, DWORD PTR [rdi + rax*4]
+        vmulss xmm1, xmm1, DWORD PTR [rsi + rax*4]
+        addss xmm3, xmm1
+        inc rax
+        jmp .Lscalar
 
-### Hand-Coded Assembly Template
-```asm
-; platform/linux/x86_64/simd.S
-; Capability: AVX2-accelerated FP32 dot product
-; Fallback: portable/dot.c (scalar)
-; Guard: #if defined(__x86_64__) && defined(__AVX2__)
+    .Lreduce:
+        vextractf128 xmm1, ymm0, 1
+        vaddps xmm0, xmm0, xmm1
+        vhaddps xmm0, xmm0, xmm0
+        vhaddps xmm0, xmm0, xmm0
+        addss xmm0, xmm3
+        vzeroupper
+        ret
+    .cfi_endproc
+    .size dot_f32_avx2, .-dot_f32_avx2
+    .section .note.GNU-stack,"",@progbits
 
-.text
-.align 32
-.global dot_f32_avx2
-.type dot_f32_avx2, @function
+The return value is an FP32 scalar in xmm0. The scalar tail keeps the result correct for n not divisible by eight. The code does not validate null or undersized arrays; those are caller-level preconditions. A production API should validate byte-range arithmetic before entering the function. FMA changes rounding relative to a scalar multiply/add loop, so compare against a reference using declared absolute and relative tolerances. Build only for the intended target and ensure non-AVX2 machines never dispatch to this function.
 
-; SAFETY: Requires a, b aligned to 32B, n multiple of 8
-; Input: rdi=a, rsi=b, rdx=n
-; Output: xmm0 = dot product
-dot_f32_avx2:
-    ; Alignment check
-    test dil, 31
-    jnz alignment_fault
-    test sil, 31
-    jnz alignment_fault
-    test dl, 7
-    jnz alignment_fault
+### Validation sequence
 
-    vxorps ymm0, ymm0, ymm0          ; sum = 0
-    xor rax, rax                     ; i = 0
+- Compile the assembly with the intended assembler and ABI; inspect diagnostics.
+- Inspect disassembly and relocations in the produced binary, not only the source.
+- Verify symbol export, calling convention, register preservation, unwind behaviour and stack alignment.
+- Test n values 0 through at least two vector widths, non-multiple lengths, unaligned pointers and large safe lengths.
+- Compare output against an independent scalar oracle; include cancellation-heavy, very small and large values.
+- Verify runtime feature dispatch on a machine or emulator with the feature disabled.
+- Benchmark with identical inputs and boundaries; include a library baseline and repeated-trial spread.
 
-.loop:
-    vmovups ymm1, [rdi + rax*4]      ; load 8 floats from a
-    vmovups ymm2, [rsi + rax*4]      ; load 8 floats from b
-    vfmadd231ps ymm0, ymm1, ymm2     ; sum += a * b (FMA)
-    add rax, 8
-    cmp rax, rdx
-    jl .loop
+Commands must match the installed toolchain. For example, use the selected target's objdump/readelf or dumpbin tooling; do not assume GNU binutils commands exist in a Visual Studio environment.
 
-    ; Horizontal sum of ymm0
-    vextractf128 xmm1, ymm0, 1
-    vaddps xmm0, xmm0, xmm1
-    vhaddps xmm0, xmm0, xmm0
-    vhaddps xmm0, xmm0, xmm0
-    vperm2f128 ymm1, ymm0, ymm0, 1
-    vaddps xmm0, xmm0, xmm1
-    ret
+## 2. ABI and binary interfaces
 
-alignment_fault:
-    vxorps xmm0, xmm0, xmm0
-    ret
+Record the target ABI explicitly rather than saying only “x64” or “ARM64”.
 
-.size dot_f32_avx2, .-dot_f32_avx2
-```
+| Target contract | Verify |
+|---|---|
+| System V AMD64 | Argument registers, caller/callee-saved registers, red zone, stack alignment, return-value class and DWARF CFI |
+| Microsoft x64 | Argument registers/shadow space, nonvolatile registers, stack alignment and Windows unwind metadata |
+| AArch64 AAPCS64 | x0-x7 arguments, x0/x1 integer results, preserved x19-x28 and required stack alignment |
+| RISC-V ABI | XLEN, argument/result registers, preserved registers, floating-point ABI and extension set |
+| GPU code object | Compiler-defined kernel ABI, argument layout, register model, target ISA and runtime loader requirements |
 
-### Validation
-```bash
-# Disassembly check
-objdump -d build/libportable.so | grep -A30 dot_f32_avx2
+Check symbol names and mangling, visibility, relocation model, PIC/PIE requirements, TLS model, exception/unwind metadata, structure layout and compiler-runtime compatibility. A successful link does not prove that the loader can satisfy dependencies on the deployment system.
 
-# Symbol/unwind check
-readelf -u build/libportable.so
+## 3. Emulator and simulator engineering
 
-# Instruction-feature probe
-./test_cpu_features --require=avx2 && ./test_dot_avx2
+Do not use an architecture-agnostic emulator loop as if it were a valid CPU implementation. Instruction length, branch target, privilege, exceptions, memory ordering and architectural side effects depend on the exact ISA.
 
-# Functional + bench
-./test_dot --impl=avx2 --verify=reference
-./bench_dot --impl=avx2 --compare=scalar
-```
+A real emulator must:
+- Decode the selected ISA/version and extensions, including compressed/variable-length instructions where applicable.
+- Update PC according to execution semantics, not by a universal fixed increment.
+- Enforce architectural register rules, privilege checks, traps, misalignment behaviour and reserved/illegal instruction handling.
+- Model memory mapping, MMIO and device side effects that are inside the declared fidelity contract.
+- Define deterministic input/time/interrupt replay if reproducibility is claimed.
+- Invalidate translated blocks when self-modifying code or relevant mapping/permissions change.
 
----
+JIT translation needs explicit cache keys, lifetime, invalidation, executable-memory policy, instruction-cache coherency, signal/exception mapping and a fallback path. Cache operations must not execute untrusted code without a deliberate sandbox and policy.
 
-## 2. Emulation & Simulation
+### Differential tests
 
-### Emulation Boundary Definition
-| Fidelity | Use Case | Approach |
-|----------|----------|----------|
-| **Functional** | Logic correctness | User-mode emulator (qemu-user) |
-| **Timing-approximate** | Performance modeling | User-mode + cycle estimates |
-| **Cycle-accurate** | Timing-dependent logic | Full-system (qemu-system) |
-| **Hardware-accurate** | Device drivers, firmware | FPGA / real hardware |
+Compare against a trusted reference simulator or real hardware using the same program, initial architectural state, inputs and supported ISA subset. Compare at the level the reference can meaningfully guarantee: final state, instruction trace, memory writes, exceptions or device events. Exact PC traces are not expected to match between different optimisation levels or JIT block sizes unless execution is stepped at comparable architectural boundaries.
 
-### Emulator Architecture
-```c
-// Core emulator loop (interpretation)
-typedef struct {
-    // Architectural state
-    uint64_t regs[32];      // GPRs
-    uint64_t pc;            // Program counter
-    uint64_t fprs[32];      // FPRs
-    uint32_t csr[4096];     // Control/status regs
-    
-    // Memory
-    uint8_t* mem;           // Guest physical memory
-    size_t mem_size;
-    
-    // Devices
-    struct device* devices;
-    int num_devices;
-} emulator_state_t;
+Emulation may establish functional behaviour for the emulated subset. It does not establish driver compatibility, timing, cache/NUMA behaviour, DMA correctness, interrupt latency or real-hardware performance. Mark unsupported devices/instructions explicitly.
 
-// Instruction decode/execute
-typedef enum {
-    INST_R_TYPE, INST_I_TYPE, INST_S_TYPE, INST_B_TYPE,
-    INST_U_TYPE, INST_J_TYPE, INST_SYSTEM
-} inst_type_t;
+## 4. Reproducible toolchains
 
-void emulate_instruction(emulator_state_t* state, uint32_t inst) {
-    inst_type_t type = decode_type(inst);
-    switch (type) {
-        case INST_R_TYPE: execute_r_type(state, inst); break;
-        case INST_I_TYPE: execute_i_type(state, inst); break;
-        // ...
-    }
-    state->pc += 4;
-}
+Treat toolchain lock values as project-specific choices, not universal defaults. Record compiler, assembler, linker, target triple, SDK, sysroot hash, C/C++ language standard, flags, dependencies and environment. Replace illustrative placeholders with real versions and hashes before using a lockfile to claim reproducibility.
 
-// JIT compilation (for performance)
-typedef void (*jit_func_t)(emulator_state_t*);
-jit_func_t jit_compile_basic_block(emulator_state_t* state, uint64_t start_pc);
-```
+For CMake cross builds, configure target identity explicitly and prevent host dependency leakage. With Clang, use target-aware compiler settings and a matching sysroot. CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY can avoid trying to run target tests at configure time, but it also means those checks do not validate target execution and may not prove every final link requirement. Run an explicit target-aware link and runtime test.
 
-### Fidelity Targets
-| Feature | Functional | Timing | Cycle-Accurate |
-|---------|------------|--------|----------------|
-| **Arch state** | ✅ | ✅ | ✅ |
-| **Memory map** | ✅ | ✅ | ✅ |
-| **Devices** | Basic | Register-level | Cycle-level |
-| **Interrupts** | Polling | Immediate | Precise |
-| **Timing** | Instruction count | Approximate cycles | Exact cycles |
-| **Nondeterminism** | Seeded | Modeled | Exact |
+Inspect build commands and generated artifacts:
+- Verify architecture, object format, interpreter/imported libraries, minimum runtime, symbols and relocations.
+- Check that native tools are used for build-time code generators and target tools are used for target artifacts.
+- Use pinned dependencies and clean builds when the change affects generated output.
+- For reproducibility, compare independently produced artifacts and investigate differences. Do not blindly strip metadata until hashes match; define a documented normalisation policy and retain original builds.
+- Do not assume static linking eliminates libc, loader, TLS, CPU-feature or licensing constraints.
 
-### Differential Testing (Mandatory)
-```bash
-# Reference implementation (e.g., spike for RISC-V, qemu for x86)
-./reference_emulator --trace=ref.trace --max-inst=1000000 program.bin
+## 5. Feature selection and microarchitecture
 
-# Our emulator
-./our_emulator --trace=our.trace --max-inst=1000000 program.bin
+A build flag is not a runtime feature probe. Check CPU feature bits and OS-managed register state for the target before dispatching to advanced vector instructions. Verify the exact target through the compiler's target list and the final disassembly. Do not infer instruction availability from a marketing family name.
 
-# Compare
-python diff_traces.py ref.trace our.trace
-# Must match: PC sequence, register values, memory writes, device outputs
-```
+On GPUs, compiler target, code object, register allocation and kernel ABI are runtime-specific. Use amd-gpu-stack or nvidia-cuda-stack for their target ISA/compiler and shader-opt or vulkan-compute-stack for Vulkan shader execution. Do not reuse PTX, AMDGCN, HLSL or SPIR-V snippets across these paths without a defined translation and semantic validation.
 
-### Conformance & Determinism
-- **Snapshot/restore**: Save/restore full architectural state
-- **Deterministic replay**: Record inputs → replay exactly
-- **Fuzzing**: Generate random instruction sequences, compare with reference
-- **Invalid input handling**: Undefined instructions, privilege violations, misaligned access
+## Output report
 
-### JIT Considerations
-```c
-// Block translation cache
-typedef struct {
-    uint64_t guest_pc;
-    void* host_code;
-    size_t code_size;
-    uint32_t inst_count;
-} tb_entry_t;
-
-tb_entry_t* tb_cache_lookup(uint64_t pc) { ... }
-void tb_cache_insert(uint64_t pc, void* code, size_t size, uint32_t count) { ... }
-
-// Invalidation (self-modifying code, page table changes)
-void tb_cache_invalidate_range(uint64_t start, uint64_t end) { ... }
-```
-
----
-
-## 3. Toolchains (Reproducible Builds)
-
-### Toolchain Lockfile
-```yaml
-# toolchain.lock.yaml
-compiler:
-  name: clang
-  version: "18.1.8"
-  target: aarch64-linux-gnu
-  sha256: "abc123..."
-linker:
-  name: lld
-  version: "18.1.8"
-libc:
-  name: glibc
-  version: "2.39"
-  sysroot_sha256: "def456..."
-flags:
-  c: "--target=aarch64-linux-gnu -fPIC -g3 -O2 -ffunction-sections -fdata-sections"
-  cxx: "--target=aarch64-linux-gnu -fPIC -g3 -O2 -ffunction-sections -fdata-sections"
-  ld: "-static-pie -Wl,--build-id=sha256 -Wl,--gc-sections"
-environment:
-  CC: clang
-  CXX: clang++
-  AR: llvm-ar
-  RANLIB: llvm-ranlib
-  STRIP: llvm-strip
-```
-
-### CMake Toolchain File (Explicit, Hermetic)
-```cmake
-# toolchain-aarch64.cmake
-set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR aarch64)
-set(CMAKE_SYSROOT /opt/sysroots/aarch64)
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_ASM_COMPILER clang)
-set(CMAKE_AR llvm-ar)
-set(CMAKE_RANLIB llvm-ranlib)
-set(CMAKE_LINKER lld)
-set(CMAKE_C_FLAGS "--target=aarch64-linux-gnu -fPIC -g3" CACHE STRING "")
-set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}" CACHE STRING "")
-set(CMAKE_EXE_LINKER_FLAGS "-static-pie -Wl,--build-id=sha256" CACHE STRING "")
-set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
-# Feature tests MUST be target-aware
-set(CMAKE_CXX_COMPILE_FEATURES cxx_std_20)
-```
-
-### Reproducibility Validation
-```bash
-# Build twice, compare bit-for-bit (excluding build-id)
-cmake -B build1 -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build1
-cmake -B build2 -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build2
-
-# Strip build IDs, compare
-strip --strip-all build1/app
-strip --strip-all build2/app
-diff <(sha256sum build1/app) <(sha256sum build2/app) && echo "REPRODUCIBLE"
-
-# Dependency inspection
-aarch64-linux-gnu-objdump -p build/app | grep NEEDED
-aarch64-linux-gnu-readelf -d build/app | grep -E "(NEEDED|RUNPATH)"
-```
-
-### Cross-Compilation Validation
-```bash
-# 1. Clean rebuild
-cmake -B build -DCMAKE_TOOLCHAIN_FILE=toolchain-aarch64.cmake
-cmake --build build -Werror
-
-# 2. Dependency inspection
-aarch64-linux-gnu-objdump -p build/app | grep NEEDED
-
-# 3. Representative execution
-qemu-aarch64-static ./build/app --selftest
-
-# 4. Remote test (if hardware available)
-scp build/app target:/tmp/
-ssh target /tmp/app --test-suite
-```
-
-### Accelerator Toolchains
-```cmake
-# CUDA
-find_package(CUDAToolkit REQUIRED)
-set(CMAKE_CUDA_COMPILER ${CUDAToolkit_BIN_DIR}/nvcc)
-set(CMAKE_CUDA_FLAGS "-arch=sm_90 -O3 --use_fast_math")
-
-# ROCm/HIP
-find_package(ROCM REQUIRED)
-set(CMAKE_HIP_COMPILER ${ROCM_PATH}/bin/hipcc)
-set(CMAKE_HIP_FLAGS "--offload-arch=gfx942 -O3")
-
-# DirectX/Agility
-# Use vcpkg or manual SDK paths
-set(DIRECTX_SDK_PATH "C:/Program Files (x86)/Windows Kits/10")
-set(DXC_PATH "${DIRECTX_SDK_PATH}/bin/x64/dxc.exe")
-```
-
----
-
-## Cross-Layer Workflows
-
-### Assembly + Toolchain
-1. **Toolchain** → Define target ISA, ABI, compiler flags
-2. **Assembly** → Write ISA-specific kernels with capability guards
-3. **Validate** → Disassembly check, feature probe, functional test
-
-### Emulation + Toolchain
-1. **Toolchain** → Build emulator for target architecture
-2. **Emulation** → Test kernels/binaries in emulator
-3. **Differential** → Compare emulator vs hardware
-
-### Assembly + Emulation
-1. **Assembly** → Write kernels
-2. **Emulation** → Run in cycle-accurate emulator
-3. **Profile** → Identify stalls, optimize scheduling
-
----
-
-## Output Report
-
-```
-LOW-LEVEL TOOLKIT: <layer> ANALYSIS
-LAYER: <assembly|emulation|toolchain>
-TARGET: <ISA> <ABI> <object format>
-TOOLCHAIN: <compiler> <linker> <sysroot> <flags>
-ASSEMBLY: <functions> hand-coded, <fallbacks> guarded
-EMULATION: <fidelity> <differential test> ✅/❌
-TOOLCHAIN: <reproducible> ✅/❌, <clean rebuild> ✅/❌
-VALIDATION: functional ✅/❌, performance ✅/❌, reproducibility ✅/❌
-BLOCKERS: <missing ISA|unstable ABI|non-determinism>
-```
-
----
+    LOW-LEVEL TOOLKIT: ANALYSIS
+    LAYER: assembly / ABI / emulator / JIT / toolchain
+    TARGET: ISA, ABI, object format and CPU/GPU features
+    TOOLCHAIN: compiler, assembler, linker, SDK/sysroot and flags
+    CORRECTNESS: reference, edge cases, tolerance and result
+    ABI: registers, stack, symbols, relocations, unwind
+    EMULATION: supported fidelity and differential results
+    REPRODUCIBILITY: clean builds and artifact comparison
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: explicit list
 
 ## Boundaries
 
-- Does not write high-level code (receives kernels/binaries to validate)
-- Does not manage CI/CD pipelines (provides reproducibility)
-- Does not optimize algorithms (see `optimization-toolkit`)
-- `stop low-level-toolkit`: revert.
+- Use porting-toolkit for preserving semantics across platforms.
+- Use cross-compilation for concrete target triples and sysroot setup.
+- Use optimization-toolkit or kernel-tuning for measured performance search.
+- Use goli-mat-de if a claimed assembly/emulator implementation may be incomplete or misrepresented.

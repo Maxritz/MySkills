@@ -1,183 +1,99 @@
 ---
 name: llm-advanced
-description: "LLM advanced components: MoE (router, expert capacity, shared experts), speculative decoding (standard, Medusa, EAGLE, Lookahead), numerical tolerances per component per precision. Advanced/specialised LLM subsystems."
+description: "MoE execution, speculative decoding, expert routing, distributed inference and numerical validation contracts."
 compatibility: opencode
 metadata:
-  loading: on-demand
   auto_unload: true
-  trigger_keywords: ["MoE", "Mixture of Experts", "speculative decoding", "Medusa", "EAGLE", "router", "expert", "shared experts", "numerical tolerances", "INT4", "AWQ", "GPTQ"]
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["MoE", "Mixture of Experts", "speculative decoding", "EAGLE", "Medusa", "expert parallel", "draft model", "acceptance rate"]
 ---
 
 # LLM Advanced Components
 
-**Advanced/specialised LLM subsystems: Mixture of Experts, speculative decoding, extended numerical tolerances.**
-
----
+Treat MoE and speculative decoding as correctness-sensitive algorithms. Verify implementation details against the exact model/runtime revision; architecture names do not guarantee identical routing or verification semantics.
 
 ## 1. Mixture of Experts (MoE)
 
-### Contract (Mixtral, DeepSeekMoE)
+### Contract
 
-```python
-MOE_CONTRACT = {
-    "input": "[B, S, H]",
-    "output": "[B, S, H]",
-    "router": {"weight": "[H, E]", "top_k": 2},  # E=experts
-    "experts": E * {"gate_proj": "[H, I]", "up_proj": "[H, I]", "down_proj": "[I, H]"},
-    "shared_experts": "optional, always active",
-    "invariants": [
-        "router logits: softmax → top-k → normalize",
-        "expert capacity: floor(tokens * capacity_factor / E)",
-        "dropped tokens: reroute or zero",
-    ],
-}
-```
+For each layer, record expert count, expert dimensions, top-k policy, router-score transform, normalisation/scaling, shared experts, capacity/drop policy, expert-parallel topology and tensor layout.
+
+Correct execution must preserve:
+- Router logits, top-k tie behaviour and selected expert IDs.
+- Token-to-expert assignments and the documented router-weight policy.
+- Expert GEMM shapes/layout/dtype, accumulation precision and activation/gating order.
+- Gather/scatter positions and the inverse mapping to original token order.
+- Padding, capacity overflow, shared-expert contribution and dropped-token policy where defined.
+- Distributed rank/group ownership and collective ordering.
+
+Do not assume Mixtral/DeepSeek routing rules are universal. Inspect the exact model configuration and reference implementation. Training auxiliary losses and load-balancing objectives must not be silently inserted into inference.
 
 ### Validation
 
-```python
-def validate_moe(router_weight, experts, input, expected_out):
-    logits = input @ router_weight.T  # [B, S, E]
-    probs = F.softmax(logits, dim=-1)
-    topk_probs, topk_idx = probs.topk(2, dim=-1)
-    topk_probs = topk_probs / topk_probs.sum(-1, keepdim=True)
-    
-    out = torch.zeros_like(input)
-    for e in range(num_experts):
-        mask = (topk_idx == e).any(-1)
-        if mask.any():
-            expert_in = input[mask]
-            expert_out = experts[e](expert_in)
-            out[mask] += expert_out * topk_probs[mask, topk_idx[mask] == e].sum(-1, keepdim=True)
-    
-    assert_close(out, expected_out, rtol=1e-3)
-```
-
-### Key Considerations
-
-- **Router**: Must be deterministic with fixed seed
-- **Expert capacity**: Prevents OOM by limiting tokens per expert
-- **Dropped tokens**: Must be handled (reroute or zero)
-- **Shared experts**: Always active, bypass router
-
----
+1. Compare router IDs and weights against a trusted reference on small deterministic inputs.
+2. Test top-k ties, skewed routing, empty expert assignments, maximum expert load and padded batches.
+3. Compare per-expert outputs and scatter results before comparing the full layer.
+4. Verify weights cannot be confused across layer/expert indices or quantisation blocks.
+5. For distributed execution, test rank agreement, collective order, failed-rank propagation and shutdown. Single-rank success does not validate expert parallelism.
+6. Track expert cache misses/transfers separately from compute; do not infer streaming from one-time model-load I/O.
 
 ## 2. Speculative Decoding
 
-### Contract
+### Exactness contract
 
-```python
-SPECULATIVE_CONTRACT = {
-    "draft_model": "smaller model (e.g., 300M → 7B target)",
-    "num_draft_tokens": "gamma (typically 4-8)",
-    "verification": "target model scores draft tokens",
-    "acceptance": "accept prefix until first reject, then resample",
-    "invariants": [
-        "Output distribution matches target model exactly",
-        "Speedup = accepted_drafts / total_drafts",
-        "No quality degradation vs pure target",
-    ],
-}
-```
+The verifier and algorithm variant define the guarantee. Standard target-verification speculative sampling can preserve the target model's output distribution when the acceptance and residual-sampling rules are implemented correctly. Greedy speculative decoding should match target-only greedy output under the same logits and tie policy. Independently sampled sequences need not match token-for-token even when their distributions match.
 
-### Algorithms
-
-| Algorithm | Draft | Verification | Speedup |
-|-----------|-------|--------------|---------|
-| **Standard** | Small model | Target scores all | 1.5-2x |
-| **Medusa** | Heads on target | Target scores all | 2-2.5x |
-| **EAGLE** | Feature-based | Target scores all | 2.5-3x |
-| **Lookahead** | No draft (self) | N/A | 1.2-1.5x |
+Record target/draft revisions, tokenisers, sampling settings, draft length, logits precision, stop handling, EOS rules and algorithm variant. Verify compatible vocabularies/token IDs or the mapping required by the method.
 
 ### Validation
 
-```python
-def validate_speculative(draft, target, prompts, num_draft=4):
-    for prompt in prompts:
-        spec_tokens = speculative_generate(draft, target, prompt, num_draft)
-        target_tokens = target.generate(prompt)
-        assert spec_tokens == target_tokens, "Speculative ≠ target output"
-    
-    import time
-    t0 = time.time()
-    speculative_generate(draft, target, prompt, num_draft)
-    t1 = time.time()
-    target.generate(prompt)
-    t2 = time.time()
-    speedup = (t2 - t1) / (t1 - t0)
-    assert speedup > 1.3, f"Speedup {speedup:.2f}x insufficient"
-```
+- **Greedy mode:** compare output tokens to target-only greedy decoding across fixed and adversarial prompts, including EOS, ties, short output and early rejection.
+- **Sampling mode:** verify acceptance/residual probabilities against the selected algorithm; test distribution agreement over repeated draws with a suitable statistical method. Do not assert equality to a separately sampled target run.
+- Exercise zero accepted drafts, all accepted drafts, rejection at each draft position, maximum draft length, stop-token handling and cancellation.
+- Verify the target scores the correct prefix and rejection samples from the correct residual distribution.
+- Check KV-cache rollback and positions after rejection. Compare final logits/cache state against the non-speculative reference where the contract permits.
+- Measure useful accepted tokens, verifier work, draft work, memory overhead and end-to-end latency. Acceptance rate alone is not speedup.
 
-### Key Considerations
+## 3. Quantisation and numerical validity
 
-- **Distribution equivalence**: Must match target exactly
-- **Verification cost**: Target model must score all draft tokens
-- **Acceptance rate**: Determines actual speedup
-- **Memory**: Draft model adds VRAM overhead
+Do not use a global tolerance table for FP16, BF16, INT8 or INT4. Tolerance depends on tensor role, quantiser, scale/block scheme, calibration, backend, accumulation precision and task.
 
----
+For each comparison:
+1. Confirm identical inputs, token IDs, shapes, layout and output semantics.
+2. Set absolute/relative tolerances from an explicit criterion and trusted baseline.
+3. Report max absolute error, RMS error and top-k agreement or other metrics relevant to the contract.
+4. Include edge shapes, tails, extreme/zero values, non-finite behaviour and rounding/accumulation differences.
+5. Evaluate task quality separately from elementwise numerical error, especially for quantised language models.
 
-## 3. Extended Numerical Tolerances (Per Component, Per Precision)
+## 4. Performance evaluation
 
-| Component | FP16 | BF16 | INT8 (weight-only) | INT4 (AWQ/GPTQ) |
-|-----------|------|------|-------------------|-----------------|
-| **Embeddings** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
-| **Attention** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
-| **MLP** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
-| **MoE Router** | 1e-4 | 1e-3 | 1e-2 | — |
-| **LayerNorm/RMSNorm** | 1e-4 | 1e-3 | 1e-2 | 1e-1 |
-| **Sampling** | exact | exact | exact | exact |
-| **Logits (final)** | 1e-3 | 1e-2 | 1e-1 | 5e-1 |
+There is no universal 1.3x, 2x or 3x speedup attached to a named algorithm. Results depend on the model pair, accepted draft length, batch/concurrency, context, hardware, memory pressure, scheduler and implementation.
 
-### Quantisation-Specific Notes
+Freeze the workload and report time-to-first-token, inter-token latency, throughput, verifier work, accepted-token rate, peak memory, queueing and failures. Separate model loading/JIT/warm-up from timed work and run repeated trials. Compare against target-only decoding with the same output and correctness requirements. Publish speedup only with a stated timing boundary, baseline and spread.
 
-- **INT8 weight-only**: Activations remain FP16/BF16
-- **AWQ**: Activation-aware, preserves outlier weights
-- **GPTQ**: Post-training, layer-wise calibration
-- **SmoothQuant**: Moves outliers from activations to weights
+## Release checklist
 
----
+- [ ] Exact model/runtime revisions and algorithm variant recorded.
+- [ ] Router/expert or acceptance/residual contract checked against source/specification.
+- [ ] Edge, failure, rollback and cache-ownership paths exercised.
+- [ ] Reference or distribution checks pass within predeclared criteria.
+- [ ] Benchmark uses an identical baseline and repeated trials.
+- [ ] Unsupported parallel, quantisation or device paths are explicitly marked.
 
-## 4. Validation Framework for Advanced Components
+## Report
 
-### MoE Validation Checklist
-
-- [ ] Router determinism (fixed seed → same routing)
-- [ ] Expert capacity respected (no OOM)
-- [ ] Dropped tokens handled (not silently lost)
-- [ ] Shared experts always active
-- [ ] Load balancing (router entropy > threshold)
-- [ ] Differential test vs reference (rtol/atol per table)
-
-### Speculative Decoding Checklist
-
-- [ ] Distribution equivalence (exact match vs pure target)
-- [ ] Acceptance rate measured and logged
-- [ ] Speedup > 1.3x on target hardware
-- [ ] No quality regression (perplexity, benchmarks)
-- [ ] Memory overhead documented (draft model VRAM)
-
----
-
-## Output Report
-
-```
-LLM ADVANCED: <component> VALIDATION
-COMPONENT: <moe|speculative|tolerances>
-CONTRACT: <inputs/outputs/invariants defined>
-REFERENCE: <HF model / custom impl>
-TOLERANCE: <fp16/bf16/int8/int4 per component>
-INTERMEDIATES: <validated>/<total> (<max diff>)
-DETERMINISM: <seed=42 reproduced ✅/❌>
-BLOCKERS: <list>
-```
-
----
+    LLM ADVANCED: MOE / SPECULATIVE / QUANTISATION
+    CONTRACT: model revision, algorithm and numeric policy
+    CORRECTNESS: oracle, cases and exactness/statistical method
+    CACHE/DISTRIBUTED: ownership, rollback and rank behaviour
+    PERFORMANCE: baseline, workload, latency/throughput, memory, spread
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: explicit list
 
 ## Boundaries
 
-- Does not serve models (see `llm-serving`)
-- Does not convert formats (see `model-formats`)
-- Does not optimise kernels (see `amd-gpu-stack`/`nvidia-cuda-stack`/`llm-hardcode`)
-- Does not cover core components (see `llm-core`)
-- `stop llm-advanced`: revert.
+- Use llm-core for tokenisation, attention, MLP, sampling and base KV-cache contracts.
+- Use llm-evaluation for task-quality and release regression gates.
+- Use llm-serving or engine-specific skills for deployed scheduler/API behaviour.
+- Use goli-mat-de when an implementation or benchmark claim may be incomplete or misrepresented.

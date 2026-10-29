@@ -78,12 +78,63 @@ jobs:
               failures.append(f"opencode.jsonc is not strict JSON: {exc}")
               config = {}
 
+          instructions = config.get("instructions", [])
+          if not isinstance(instructions, list) or not instructions:
+              failures.append("Missing top-level instructions list in opencode.jsonc")
+          else:
+              for instruction in instructions:
+                  if not isinstance(instruction, str) or not instruction.strip():
+                      failures.append("Instruction paths must be non-empty strings")
+                  elif not Path(instruction).is_file():
+                      failures.append(f"Configured instruction file does not exist: {instruction}")
+          if "SKILL_QUALITY_STANDARD.md" not in instructions:
+              failures.append("SKILL_QUALITY_STANDARD.md must be loaded as a shared instruction")
+
+          category_text = Path("SKILL_CATEGORIES.md").read_text(encoding="utf-8")
+          category_entries = re.findall(r"(?m)^- ([a-z0-9-]+)\s*$", category_text)
+          if len(category_entries) != len(set(category_entries)):
+              failures.append("SKILL_CATEGORIES.md contains duplicate skill entries")
+          if set(category_entries) != set(skills):
+              failures.append(
+                  "Category map mismatch; missing="
+                  + str(sorted(set(skills) - set(category_entries)))
+                  + "; stale="
+                  + str(sorted(set(category_entries) - set(skills)))
+              )
+
+          for dirname, path in sorted(skills.items()):
+              if dirname == "goli-mat-de":
+                  word_count = len(path.read_text(encoding="utf-8").split())
+                  if word_count > 750:
+                      failures.append(
+                          f"{path}: {word_count} words exceeds the 750-word core budget; move deep detail into references"
+                      )
+
           skill_config = config.get("skill", {})
           auto = set(skill_config.get("auto_trigger", []))
           conditional = set(skill_config.get("conditional_load", []))
           duplicates = auto & conditional
           if duplicates:
               failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
+
+          expected_auto = {"debug-core", "code-quality-gate", "knowledge-process"}
+          if auto != expected_auto:
+              failures.append(
+                  "Auto-trigger set changed unexpectedly; expected="
+                  + str(sorted(expected_auto))
+                  + "; actual="
+                  + str(sorted(auto))
+              )
+          for dirname, path in sorted(skills.items()):
+              skill_text = path.read_text(encoding="utf-8")
+              declared_auto = re.search(r"(?m)^  auto_trigger:\s*(true|false)\s*$", skill_text)
+              if declared_auto:
+                  declared = declared_auto.group(1) == "true"
+                  if declared != (dirname in auto):
+                      failures.append(
+                          f"{path}: metadata auto_trigger={str(declared).lower()} "
+                          "does not match opencode.jsonc registration"
+                      )
 
           registered = auto | conditional
           for missing in sorted(registered - set(skills)):

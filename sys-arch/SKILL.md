@@ -44,7 +44,7 @@ Process payment transactions, manage refunds, reconcile with providers.
 - **Precondition**: `amount > 0`, `currency` in supported list
 - **Postcondition**: `Payment` persisted, `ProviderClient.charge` called, `AuditLog` emitted
 - **Errors**: `InsufficientFunds`, `ProviderUnavailable`, `InvalidCurrency`
-- **Idempotency**: `Idempotency-Key` header → exactly-once
+- **Idempotency**: bind a key to a canonical request hash, persist it durably, and use provider-side deduplication where supported. Guarantees are scoped to documented retention windows; there is no universal exactly-once guarantee across independent systems.
 
 ### Dependencies
 - **Upstream**: API Gateway (auth, rate limit)
@@ -52,9 +52,9 @@ Process payment transactions, manage refunds, reconcile with providers.
 - **Platform**: PostgreSQL (persistence), Redis (cache), Vault (secrets)
 
 ### Failure Domains
-- Provider API down → queue for retry, degrade to alternative provider
-- Ledger down → reject new payments, return 503
-- DB down → read-only mode, serve from cache
+- Provider API down or ambiguous timeout → durable pending/unknown state and reconciliation. Retry only with the same provider idempotency identity; do not fail over after an ambiguous result unless the first provider is confirmed not to have charged.
+- Ledger down → transactional outbox and idempotent retry, or reconcilable pending state. Do not report settlement before the ledger guarantee is satisfied.
+- DB down → fail state-changing payment operations closed. Serve cache only for reads whose contract explicitly permits stale data.
 
 ### Observability
 - Metrics: `payments.total`, `payments.latency.p99`, `payments.errors`
@@ -67,9 +67,11 @@ Process payment transactions, manage refunds, reconcile with providers.
 - Rollback: flip flag, drain in-flight
 ```
 
-## Non-Functional Budgets
+## Example Non-Functional Budgets
 
-| Budget | Target | Measurement |
+The figures below are illustrative placeholders for an example architecture, not recommended defaults. Derive release SLOs from user impact and workload, then validate them through representative load and failure testing.
+
+| Budget | Example target (replace) | Measurement |
 |--------|--------|-------------|
 | **Latency (p99)** | < 200ms | HTTP server metrics |
 | **Throughput** | 10K req/s | Load test |
@@ -159,6 +161,6 @@ BLOCKERS: <circular dep|missing interface|budget breach>
 ## Boundaries
 
 - Does not write platform-specific code (see `linux-user` / `windows-user`)
-- Does not write kernel code (see `os-kernel-systems`)
+- Does not write kernel code (see `linux-kernel-dev`)
 - Does not manage C/C++ ownership (see `c-systems`)
 - `stop sys-arch`: revert.

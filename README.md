@@ -2,7 +2,7 @@
 
 # MySkills
 
-**54 on-demand skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
+**65 focused skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
 
 ## Catalogue
 
@@ -28,15 +28,19 @@
 | Skill | Purpose |
 |---|---|
 | **c-systems** | C99/C++ ownership, ABI, concurrency, allocation and portability. |
+| **c99-systems** | C99-specific semantics, headers, integer safety and portable C APIs. |
 | **architecture-boundaries** | Component boundaries, dependency direction and backend replacement seams. |
 | **sys-arch** | Platform-neutral architecture decomposition and contracts. |
+| **systems-ml-stack-router** | Selects the smallest systems, GPU or LLM skill set for a task. |
 | **bare-metal-kernel** | x86-64 boot, page tables, interrupts and PCI enumeration. |
 | **linux-kernel-dev** | Linux kernel/driver debugging, KASAN, ftrace and lockdep. |
 | **linux-user** | Linux processes, threads, I/O, IPC and hardening. |
-| **windows-user** | Windows processes, synchronisation, IOCP, ETW and deployment. |
+| **windows-user** | Windows process/thread lifecycle, IOCP, ETW and userspace deployment. |
+| **windows-driver-dev** | KMDF/UMDF/WDM, device lifecycle, IOCTL, DMA, Driver Verifier and signing. |
 | **memory-mgmt** | Virtual memory, allocators, DMA/coherence and NUMA. |
 | **x86-arch** | x86-64 ISA, memory ordering, SIMD and microarchitectural analysis. |
 | **low-level-toolkit** | Assembly, emulation, toolchains, ABI and reproducible builds. |
+| **cross-compilation** | Target-aware toolchains, sysroots and cross-platform build validation. |
 
 ### GPU compute and optimisation
 | Skill | Purpose |
@@ -45,6 +49,7 @@
 | **nvidia-cuda-stack** | CUDA runtime, GPU architecture, profiling and libraries. |
 | **vulkan-compute-stack** | Vulkan compute setup, memory, dispatch, synchronisation and shader compilation. |
 | **shader-opt** | Profile-guided shader optimisation with target-aware semantics. |
+| **graphics-shader-kernels** | Shader implementation contracts, dispatch geometry, memory semantics and portability. |
 | **kernel-tuning** | CPU/GPU kernel profiling, bottleneck classification and controlled tuning. |
 | **optimization-toolkit** | Broader performance optimisation and hardware-aware tuning. |
 | **demoscene-opt** | Size- and cycle-conscious optimisation under measured constraints. |
@@ -58,6 +63,7 @@
 | **gguf-ggml** | GGUF parsing, GGML tensor encodings, quantisation and safe model-file handling. |
 | **model-formats** | GGUF, SafeTensors, ONNX and OpenVINO IR validation/conversion. |
 | **llm-serving** | Architecture and operations across vLLM, SGLang and TensorRT-LLM. |
+| **llm-evaluation** | Quality, logits, tokenisation, safety and performance regression gates for LLMs. |
 | **vllm-dev** | vLLM runtime, scheduling, KV cache and kernel development. |
 | **sglang-dev** | SGLang runtime, RadixAttention, serving and profiling. |
 | **tensorrt-llm-dev** | TensorRT-LLM engine, quantisation, parallelism and plugins. |
@@ -75,10 +81,15 @@
 | Skill | Purpose |
 |---|---|
 | **goli-mat-de** | Thorough implementation-integrity audit for skipped work, fake code and false completion claims. |
+| **implementation-integrity** | Routes completeness audits, code gates and traceability checks to their source of truth. |
 | **code-quality-gate** | Code contracts, implementation integrity, traceability and validation gate. |
 | **traceability-gate** | On-demand gate for trace markers, code contracts and verification requirements. |
 | **traceability** | Focused source tracing and marker design for investigation. |
 | **knowledge-process** | Session continuity, sanitised knowledge, analysis logs and development workflow. |
+| **app-engine-deploy** | App Engine runtime configuration, IAM, secrets, rollout, monitoring and rollback. |
+| **build-ci** | Reproducible build graphs, CI failure diagnosis and trustworthy validation pipelines. |
+| **security-hardening** | Trust boundaries, unsafe parsing, resource limits, secrets and least privilege. |
+| **test-engineering** | Contract, integration, differential, fuzz, stress and regression test strategy. |
 | **sherlock-it** | Measurement-driven performance investigation, instrumentation and regression comparison. |
 
 ### Output-style utilities
@@ -95,6 +106,7 @@
 - code-quality-gate is the sole automatic code-change quality gate. traceability-gate is on-demand to avoid two overlapping gates firing automatically.
 - goli-mat-de is an explicit audit workflow. It requires source evidence and a coverage ledger, and gates task creation on the user's acknowledgement of the proposed task list.
 - Keep shared concepts in clearly linked skills; do not preload all specialist bodies when header metadata is enough to route the task.
+- SKILL_QUALITY_STANDARD.md is loaded as a shared OpenCode instruction; it applies Goli-mat-de evidence and integrity rules without forcing the full audit checklist into every context.
 - Report what was actually inspected and executed. Never convert NOT RUN or UNVALIDATED into PASS.
 
 ## Design principles
@@ -107,7 +119,7 @@
 
 ## Validation
 
-Run the repository workflow and inspect its results before claiming a skill update is validated. The CI validator checks skill front matter and folder-name agreement, configured skill references, trigger-map references, auto-trigger/conditional-load separation and skill line limits.
+Run the repository workflow and inspect its results before claiming a skill update is validated. The CI validator checks skill front matter and folder-name agreement, configured skill references, shared instruction files, category-map coverage, auto-trigger/conditional-load separation, skill line limits and the Goli-mat-de core word budget.
 
 ## Installation
 

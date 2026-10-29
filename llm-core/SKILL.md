@@ -211,24 +211,20 @@ KV_CACHE_CONTRACT = {
 }
 ```
 
-### PagedAttention (vLLM/SGLang)
+### Paged KV Cache: Required Contracts
 
-```python
-class PagedKVCache:
-    def __init__(self, num_blocks, block_size, num_layers, num_heads, head_dim, dtype):
-        self.blocks = torch.zeros(num_blocks, block_size, 2, num_layers, num_heads, head_dim, dtype=dtype)
-        self.block_tables = {}  # seq_id -> List[block_id]
-        self.free_blocks = list(range(num_blocks))
-    
-    def append(self, seq_id, k, v):
-        pass
-    
-    def swap_in(self, seq_id, cpu_blocks):
-        pass
-    
-    def swap_out(self, seq_id, num_blocks):
-        pass
-```
+Paged cache management is a state machine, not an array assignment. This is a contract checklist, not a drop-in implementation.
+
+- Each sequence maps logical token positions to physical block IDs. Validate block-table length, block IDs, token offsets and ranges before gather/scatter.
+- Track free, allocated, shared/reference-counted and in-flight blocks distinctly. A block cannot be reused until all sequences and asynchronous device operations release it.
+- Append must validate K/V shapes, dtype, device, layer, token count and capacity. Allocate through a checked path and define behaviour when the pool is exhausted.
+- Swap-out/swap-in must define storage ownership, transfer completion, synchronisation, error rollback and representation of a partially moved sequence.
+- Prefix sharing and copy-on-write must not allow one request to overwrite another request's shared cache. Reference counts must remain correct through cancellation, pre-emption and exceptions.
+- Release/eviction must be idempotent and prevent double free, stale table entries and reuse before the final GPU consumer completes.
+- Validate mixed sequence lengths, block-boundary crossings, zero/one-token sequences, pool exhaustion, eviction, cache reuse, cancellation and repeated request IDs.
+- Differentially compare per-request output with an uncached reference. Test cache state and output; one matching prompt does not prove cache ownership or isolation.
+
+Use the pinned engine's actual cache manager and source for implementation-specific work. Do not ship a class with empty append/swap methods as though it implemented PagedAttention.
 
 ### Validation
 
