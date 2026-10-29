@@ -4,6 +4,7 @@ description: "Smallest patch for confirmed root cause. One causal hypothesis →
 compatibility: opencode
 metadata:
   auto_unload: true
+  auto_trigger: false
   role: debugging
   loading: on-demand
 ---
@@ -116,6 +117,13 @@ After all gates pass → emit:
 ```
 HANDOFF: debug-verify ready — fix applied, all gates passed.
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- A fix must target a confirmed causal mechanism, preserve unrelated behaviour and retain the original failure as a regression test. Do not alter checks merely to make a failure disappear.
+
 
 ## Boundaries
 

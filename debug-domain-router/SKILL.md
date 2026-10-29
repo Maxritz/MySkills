@@ -4,6 +4,7 @@ description: "Load domain debug knowledge only when needed. Maps unresolved fact
 compatibility: opencode
 metadata:
   auto_unload: true
+  auto_trigger: false
   role: debugging
   loading: on-demand
 ---
@@ -85,6 +86,13 @@ REASON: <unresolved fact requiring domain knowledge>
 EVIDENCE NEEDED: <specific evidence each skill will produce>
 ESTIMATED COST: <low/medium/high>
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Load only the specialist that matches the unresolved fact; verify every routed skill path exists. After the fact is resolved, hand back the result and unload irrelevant specialists instead of stacking overlapping orchestrators.
+
 
 ## Boundaries
 
