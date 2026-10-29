@@ -50,18 +50,9 @@ Each finding: ID, priority/confidence, file:line or symbol, expected versus obse
 
 Report verdict, scope/revision, coverage, prioritised evidence-backed findings, executed versus unrun checks, missing wiring, useful specialist skills, proposed tasks and residual risks. Inspect skill headers first; read full instructions only for relevant skills. Check skill references, triggers, loading, conflicts, stale/orphaned entries and loader config. State whether each skill was only inspected or actually applied.
 
-## Skill-catalogue maintenance mode
+## Skill-catalogue maintenance
 
-When asked to improve, optimise, deepen or complete a skill repository, audit the whole catalogue rather than only the named file:
-
-1. Inventory all skill directories and their headers; record each path as inspected, edited, validated or excluded.
-2. Compare front matter, loader registration, trigger keywords, auto-trigger state, README/category lists, CI rules and cross-skill references.
-3. Audit each skill for accurate scope, actionable steps, evidence, safety/failure paths, acceptance criteria and redundant token cost.
-4. Add genuinely missing capabilities only after checking for overlap. Prefer a focused skill and shared references over cloning broad guidance.
-5. Preserve useful detail when moving long recipes into optional references; the core must say exactly when to load them.
-6. Re-run structural checks and inspect the final diff. Report source-only review separately from executed validation.
-
-The audit method is constant during catalogue maintenance. It does not mean loading every skill into every ordinary task; keep runtime loading selective.
+For catalogue work, inspect every skill path, header, trigger, loader entry and cross-reference; find missing coverage and duplicated scope; optimise core token cost; then validate the final inventory and diff. Use the detailed checklist in `references/audit-matrix.md`. Apply this method throughout catalogue maintenance without loading every skill for routine tasks.
 
 ## Acknowledgement gate
 

@@ -2,7 +2,7 @@
 
 # MySkills
 
-**54 on-demand skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
+**63 on-demand skills** for systems programming, GPU compute, LLM infrastructure, debugging, performance engineering and implementation integrity. Load the smallest relevant set, then bring in another skill only when the work crosses a real technical boundary.
 
 ## Catalogue
 
@@ -80,6 +80,23 @@
 | **traceability** | Focused source tracing and marker design for investigation. |
 | **knowledge-process** | Session continuity, sanitised knowledge, analysis logs and development workflow. |
 | **sherlock-it** | Measurement-driven performance investigation, instrumentation and regression comparison. |
+
+### Testing, security, delivery and operations
+| Skill | Purpose |
+|---|---|
+| **testing-engineering** | Designs meaningful unit, contract, integration, property, fuzz and regression tests. |
+| **security-review** | Threat modelling, trust-boundary review and evidence-backed security findings. |
+| **ci-release-engineering** | Reproducible CI, artefact provenance, release gates, rollout and rollback. |
+| **observability-engineering** | Logs, metrics, traces, alerting, SLOs and instrumentation quality. |
+| **deployment-operations** | Runtime configuration, health checks, staged deployment and recovery. |
+| **git-workflow** | Safe branch, diff, commit, pull request and remote-state handling. |
+
+### Networking, data and API contracts
+| Skill | Purpose |
+|---|---|
+| **networking-systems** | Socket/protocol lifecycle, timeouts, cancellation, backpressure and network security. |
+| **data-storage** | Consistency, transactions, durability, migration, backup and recovery. |
+| **api-contracts** | Executable API contracts, versioning, error schemas, idempotency and compatibility. |
 
 ### Output-style utilities
 | Skill | Purpose |

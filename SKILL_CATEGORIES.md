@@ -2,7 +2,7 @@
 
 This file is derived from actual top-level skill directories, not a planned or historical inventory.
 
-**Catalogue size on this branch: 54 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
+**Catalogue size on this branch: 63 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
 
 ## 1. Debugging and Diagnostics (14)
 
@@ -73,7 +73,22 @@ This file is derived from actual top-level skill directories, not a planned or h
 - knowledge-process
 - sherlock-it
 
-## 7. Output-Style Utilities (3)
+## 7. Testing, Security, Delivery and Operations (6)
+
+- testing-engineering
+- security-review
+- ci-release-engineering
+- observability-engineering
+- deployment-operations
+- git-workflow
+
+## 8. Networking, Data and API Contracts (3)
+
+- networking-systems
+- data-storage
+- api-contracts
+
+## 9. Output-Style Utilities (3)
 
 - caveman
 - ponytail

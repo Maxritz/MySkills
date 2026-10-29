@@ -22,3 +22,9 @@ Check for claims of reading/running/building/benchmarking/fixing/pushing without
 
 ## Evidence rule
 A suspicious pattern is not proof by itself. For each candidate, tie the source to its requirement and live path; test or instrument when needed. Distinguish defect, risk, missing test, deliberate limitation and unverified behaviour.
+
+## Skill-catalogue audit
+
+For each skill, track path, purpose, status, overlapping skills, specialised acceptance gate, loader state, references and validation. Read front matter first; inspect full bodies when auditing detail. Compare skill names across folders, metadata, trigger keyword maps, auto-trigger/conditional-load lists, README and category catalogue. Every configured name must resolve; every shipped skill must be registered exactly once; trigger and metadata states must agree. Check relative Markdown links, stale skill names, contradictory routing rules and references to absent capabilities.
+
+Assess quality by observable behaviour: clear trigger/scope, actionable steps, decision criteria, failure and recovery paths, relevant safety constraints, measurable acceptance criteria and honest reporting. Separate source review from executed checks. Do not add generic boilerplate just to make files longer, and do not remove detailed rules without relocating them to a clearly signposted optional reference. For token efficiency, keep the core focused on routing and the main workflow; load platform-, engine- or version-specific recipes only when needed. Keep `goli-mat-de/SKILL.md` below 750 words and enforce the limit in CI.
