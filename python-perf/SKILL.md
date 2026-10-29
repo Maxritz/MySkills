@@ -66,6 +66,8 @@ The CPU example uses `fastmath=True`, which permits floating-point transformatio
 
 ### GPU JIT
 
+Numba's `numba.cuda` backend targets NVIDIA CUDA. Do not infer that it runs on AMD through Vulkan or ROCm; choose the actual supported backend and validate it on the target device.
+
 ```python
 from numba import cuda
 
@@ -245,7 +247,7 @@ def matmul_f32(A: np.ndarray, B: np.ndarray) -> np.ndarray:
 ```
 
  
-The native buffers must not overlap: `C` must not alias either input. The AVX2 kernel changes reduction order through FMA, so compare with an independent reference using explicit absolute and relative tolerances. Add tests for non-multiple-of-eight N, non-square shapes, zero dimensions, invalid shapes, oversized dimensions and CPUs without AVX2/FMA before using this example. The FP16/“half” ABI is intentionally omitted until its representation, alignment and conversion semantics are defined.
+The native buffers must not overlap: C must not alias either input. The AVX2 kernel changes reduction order through FMA, so compare with an independent reference using explicit absolute and relative tolerances. Add tests for non-multiple-of-eight N, non-square shapes, zero dimensions, invalid shapes, oversized dimensions and CPUs without AVX2/FMA before using this example. The FP16/“half” ABI is intentionally omitted until its representation, alignment and conversion semantics are defined.
 
 ## Profiling
 

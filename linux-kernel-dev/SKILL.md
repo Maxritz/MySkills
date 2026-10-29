@@ -124,7 +124,7 @@ Set `KDIR` to the build tree for the exact target kernel version/configuration. 
 | **Static** | `make -C "$KDIR" M="$PWD" C=2 CF="-Wbitwise -Wcontext" modules` | 0 new warnings |
 | **KASAN** | Build/boot a kernel with the required KASAN configuration; use supported boot options for that kernel | No splats on reproducer |
 | **Lockdep** | Use a kernel built with `CONFIG_LOCKDEP` and supported debug options | No splats on reproducer |
-| **Reproducer** | `sudo insmod mydev.ko; cat /dev/mydev; sudo rmmod mydev` | Expected behavior |
+| **Reproducer** | `sudo insmod mydev.ko && cat /dev/mydev && sudo rmmod mydev` | Expected behavior |
 | **Regression** | `kselftest / kunit` | All pass |
 
 ## Boundaries

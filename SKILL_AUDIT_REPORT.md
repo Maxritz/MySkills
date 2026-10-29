@@ -62,3 +62,10 @@ These are source reviews and edits. They have not yet been claimed as compiled o
 
 - Normalised per-skill `auto_trigger` metadata to match the actual loader policy. Only `debug-core`, `code-quality-gate` and `knowledge-process` are automatic; the specialist skills remain conditional/on-demand. CI now rejects drift between a declared metadata flag and the loader set, and requires an explicit workflow update if the automatic set changes.
 - Split `vulkan-compute-stack` into a 160-line decision guide and optional API-pattern reference, preserving the code detail without requiring the full boilerplate in every Vulkan context. This is a token/context-load reduction, not a claim that the snippets were compiled on a GPU.
+
+
+## Model-format integrity fixes
+
+The model-format guide now distinguishes GGUF tensor-data-relative offsets and block quantisation sizes from simple element-width estimates; removes the invalid assumption that SafeTensors tensor offsets must be 64-byte aligned; permits empty tensor ranges; treats shard indexes as a separate file; and requires duplicate-key, overlap, bounds and resource-limit checks. It also replaces a nested-tolerance dictionary/type bug with an explicit comparison contract, separates syntactic validity from runtime support and task quality, and directs OpenVINO conversion to the current OVC workflow while requiring version verification.
+
+The guide references upstream specifications rather than claiming that a handcrafted parser or static example is already validated.

@@ -74,8 +74,8 @@ long_mode:
     ; The symbols must resolve to valid, writable addresses in this mapping.
     extern _bss_start, _bss_end
     cld
-    mov rdi, _bss_start
-    mov rcx, _bss_end
+    lea rdi, [rel _bss_start]
+    lea rcx, [rel _bss_end]
     sub rcx, rdi
     xor eax, eax
     rep stosb
