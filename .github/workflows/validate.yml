@@ -91,6 +91,8 @@ jobs:
           if duplicates:
               failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
 
+          triggers = skill_config.get("trigger_keywords", {})
+
           registered = auto | conditional
           if len(skill_config.get("auto_trigger", [])) != len(auto):
               failures.append("Duplicate skill in auto_trigger")
@@ -102,7 +104,7 @@ jobs:
           for missing_trigger in sorted(set(skills) - set(triggers)):
               failures.append(f"Skill has no trigger-keyword entry: {missing_trigger}")
           for path in skills.values():
-              for target in re.findall(r"\\]\\(([^)]+\\.md)(?:#[^)]+)?\\)", path.read_text(encoding="utf-8")):
+              for target in re.findall(r"\]\(([^)]+\.md)(?:#[^)]+)?\)", path.read_text(encoding="utf-8")):
                   if target.startswith(("http://", "https://", "mailto:")):
                       continue
                   if not (path.parent / target).is_file():
@@ -115,7 +117,6 @@ jobs:
           for unregistered in sorted(set(skills) - registered):
               failures.append(f"Skill directory is not registered in loader configuration: {unregistered}")
 
-          triggers = skill_config.get("trigger_keywords", {})
           for name, keywords in triggers.items():
               if name not in skills:
                   failures.append(f"Trigger map references missing skill directory: {name}")
