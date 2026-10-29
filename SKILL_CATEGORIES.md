@@ -1,10 +1,14 @@
-# Skill Categories Analysis
+# Skill Catalogue and Coverage Map
 
-## 1. Debugging & Diagnostics (12 skills)
+This file is derived from actual top-level skill directories, not a planned or historical inventory.
+
+**Catalogue size on this branch: 54 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
+
+## 1. Debugging and Diagnostics (14)
+
 - debug-core
-- debug-deep
 - debug-domain-router
-- debug-fix
+- debug-deep
 - debug-hypothesis
 - debug-invariants
 - debug-localize
@@ -13,94 +17,78 @@
 - debug-reference
 - debug-reproduce
 - debug-root-cause
+- debug-fix
 - debug-verify
-
-## 2. Systems Programming & Architecture (10 skills)
-- c99-systems
-- cpp-systems
-- linux-kernel
-- linux-systems
-- os-kernel
-- system-architecture
-- windows-system-architecture
-- x86-architecture
-- memory-management
-- modular-component-boundaries
-
-## 3. GPU / Compute Stacks (10 skills)
-- cdna
-- cuda-stack
-- directx-ai-ml
-- graphics-shader-kernels
-- rdna
-- rocm-stack
-- rocr-runtime
-- tensorrt-llm-dev
-- vllm-dev
-- vulkan-compute
-
-## 4. ML / LLM Engineering (9 skills)
-- gguf-format
-- llm-components
-- llm-hardcode
-- model-pool
-- safetensors-format
-- sglang-dev
-- systems-ml-stack-router
-- _systems-ml-shared
-- vino
-
-## 5. Porting & Cross-Platform (6 skills)
-- cross-compilation
-- cross-porting
-- porting-change-isolation
-- assembler
-- emulation
-- toolchains
-
-## 6. Code Quality & Integrity (6 skills)
-- code-contract-comments
-- dox-validate
-- implementation-integrity
-- rust-safety
-- traceability
-- backend-component-demarcation
-
-## 7. Python Ecosystem (3 skills)
-- python-conversion
-- python-engineering
-- python-performance
-
-## 8. Performance & Optimization (3 skills)
-- kernel-tuning
-- sherlock-it
 - ponytail-diag
 
-## 9. Knowledge & Process (5 skills)
-- analysis-log
-- context-tracker
-- dev-process
-- knowledge-base
-- app-engine-deploy
+## 2. Systems, Operating Systems and Architecture (10)
 
-## 10. Specialized / Utility (10 skills)
-- caveman
-- plugin-adapter
-- ponytail
-- demoscene
+- c-systems
+- architecture-boundaries
+- sys-arch
+- bare-metal-kernel
+- linux-kernel-dev
+- linux-user
+- windows-user
+- memory-mgmt
+- x86-arch
+- low-level-toolkit
+
+## 3. GPU Compute and Optimisation (7)
+
+- amd-gpu-stack
+- nvidia-cuda-stack
+- vulkan-compute-stack
+- shader-opt
 - kernel-tuning
-- ...
+- optimization-toolkit
+- demoscene-opt
 
-## Observations
-- **Debug-* family**: 12 skills forming a pipeline (core → localize → hypothesize → fix → verify)
-- **GPU stacks**: Multiple vendor-specific (CUDA, ROCm, DirectX, Vulkan) + format skills
-- **ML stack**: End-to-end from formats → components → serving (vllm, sglang, tensorrt)
-- **Porting**: Cross-compilation → platform-specific → change isolation
-- **Overlaps**: Some skills could be merged (e.g., debug-* into fewer composite skills)
+## 4. LLM, Model Formats and Serving (9)
 
-## Recommended Grouping Strategy
-1. **Consolidate debug-*** into 3-4 composite skills
-2. **Group GPU stacks** by vendor + common abstractions
-3. **Create ML pipeline** from formats → training → serving
-4. **Porting toolkit** as unified cross-platform skill
-5. **Code integrity** as quality gate skill
+- llm-core
+- llm-advanced
+- llm-hardcode
+- gguf-ggml
+- model-formats
+- llm-serving
+- vllm-dev
+- sglang-dev
+- tensorrt-llm-dev
+
+## 5. Porting and Language Engineering (5)
+
+- porting-toolkit
+- python-engineering
+- python-perf
+- python-conversion
+- rust-safety
+
+## 6. Quality, Knowledge and Workflow (6)
+
+- goli-mat-de
+- code-quality-gate
+- traceability-gate
+- traceability
+- knowledge-process
+- sherlock-it
+
+## 7. Output-Style Utilities (3)
+
+- caveman
+- ponytail
+- utility-pair
+
+## Observations from the audit
+
+1. The previous README claimed 32 skills although the repository had 40 skill directories before this branch's additions.
+2. The previous category document used many names that had no matching directories, including c99-systems, systems-ml-stack-router, implementation-integrity, cross-compilation and graphics-shader-kernels.
+3. The previous loader configuration referred to absent directories and did not include all installed skill directories.
+4. code-quality-gate and traceability-gate overlapped substantially and both claimed automatic triggering. The loader now designates only code-quality-gate as the automatic code-change gate.
+5. The focused debugging skills restore links in the intended pipeline: localise → reproduce/reduce → form hypotheses → distinguish them → check invariants/reference → establish root cause → fix → verify.
+6. GGUF/GGML notes needed factual correction and explicit version pinning. Binary constants and quantisation layouts must be checked against the exact upstream revision used.
+7. CI needed to check real folder names and references without regex-stripping // inside JSON strings. The updated validator permits intentional overlap in trigger phrases.
+
+## Recommended operating pattern
+
+Use debug-core for the default debugging loop; load the focused debugging skill that resolves the current uncertainty; use goli-mat-de for systematic completeness audits; use sherlock-it when measured performance is the primary objective. Avoid loading multiple broad orchestrators for the same job.
