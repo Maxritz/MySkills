@@ -281,3 +281,7 @@ BLOCKERS: <circular dep|missing interface|untested adapter>
 - Does not implement adapters (provides pattern)
 - Does not manage deployment (see `app-engine-deploy`)
 - `stop architecture-boundaries`: revert.
+
+## Optional references
+
+- [boundary-examples.md](references/boundary-examples.md)
