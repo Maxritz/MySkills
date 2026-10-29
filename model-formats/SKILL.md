@@ -173,6 +173,8 @@ tensor = torch.from_numpy(mmap.copy())  # Copy if mutation needed
 ```
 
 ### Conversion (SafeTensors ↔ GGUF)
+
+Conversion is not automatically lossless. Converting a quantised GGUF tensor to FP32 and then writing SafeTensors dequantises the stored approximation; it does not recover the original FP16/BF16/FP32 weights. Record source hashes, quantisation types, tool revision, metadata mapping, tokenizer/config files, and numerical comparison results. Use the original higher-precision source weights when exact recovery is required.
 ```python
 # SafeTensors → GGUF (llama.cpp convert)
 python convert-hf-to-gguf.py --model model.safetensors --outfile model.gguf --quantize Q4_K_M
