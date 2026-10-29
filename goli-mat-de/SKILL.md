@@ -1,6 +1,6 @@
 ---
 name: goli-mat-de
-description: Evidence-led audit for fake, skipped, incomplete or misleading implementation and verification. Audits repositories, functions, diffs, wiring, tests and performance claims. Prioritises fixes; creates tasks only after user acknowledgement.
+description: Evidence-led audit for fake, skipped, incomplete or misleading implementation and verification. Audits code, wiring, tests and claims; prioritises fixes and gates task creation on acknowledgement.
 compatibility: opencode
 metadata:
   loading: on-demand
@@ -11,67 +11,49 @@ metadata:
 
 # Goli-mat-de
 
-Find missing, superficial, disconnected or falsely reported work. Judge behaviour against requirements and evidence, not keywords or style.
+Find work that is missing, superficial, disconnected or falsely reported complete. Judge behaviour against requirements and evidence, not keywords or style.
 
-## Rules
+## Operating rules
 
-- Search results are leads, not findings. Inspect context, callers and the real contract; intentional no-ops and tested fallbacks may be valid.
-- Never invent code locations, call paths, tool output, test results or capabilities. Separate FACT, HYPOTHESIS, RESULT and CONCLUSION.
-- Track actual coverage; never call a sample exhaustive or an unrun check PASS.
-- Audit only. Do not modify code or external state unless separately authorised. Task creation follows the gate below.
+- Search hits are leads, not findings. Inspect context, callers and contracts; intentional no-ops/fallbacks may be valid.
+- Never invent locations, execution paths, tool output or test results. Separate FACT, HYPOTHESIS, RESULT and CONCLUSION.
+- Track actual coverage. Never call sampled work exhaustive or an unrun check PASS.
+- Audit only. Do not change code or external state unless separately authorised. Task creation follows the gate below.
 
 ## Scope and coverage
 
-Infer scope: repository, directory, file, symbol/function, feature, diff, test or claim. Read applicable AGENTS.md, CLAUDE.md, README/CONTRIBUTING, architecture notes, acceptance criteria, build/test config and CI first.
+Infer target: repository, directory, file, function/symbol, feature, diff, test or claim. Read relevant project instructions and acceptance criteria first, including AGENTS.md, CLAUDE.md, README/CONTRIBUTING, architecture notes, build/test config and CI.
 
-For repositories, inventory source, headers/APIs, tests, scripts, build/config, packaging, docs and generated boundaries. For functions, inspect declaration, callers/callees, state/resources, errors and tests. For diffs, inspect every changed line and the affected call path. Record revision when available.
+For a repository, inventory source, headers/APIs, tests, scripts, build/config, packaging, docs and generated boundaries. For functions, inspect declaration, callers/callees, state/resources, errors and tests. For diffs, inspect every changed line and affected call paths. Record branch/revision when available.
 
-Maintain ledger: path | role | status | finding IDs. Status = NOT STARTED, INSPECTED, VALIDATED, EXCLUDED (reason). Batch large audits; report coverage, untouched paths, exclusions and next batch.
+Keep a ledger: path | role | status | finding IDs. Status: NOT STARTED, INSPECTED, VALIDATED, EXCLUDED with reason. For large scopes, batch and report untouched paths, exclusions and next batch.
 
-## What to detect
+## Audit
 
-Search language-appropriate patterns, then inspect the implementation and execution path.
+For deep or repository-wide audits, read references/audit-matrix.md. For a narrow audit, check for:
+- Placeholders, stubs, empty bodies, fake/default outputs, hard-coded answers and toy algorithms presented as complete.
+- Uncalled/unlinked modules, unregistered backends, ignored flags/config/results, dead paths, incomplete API/platform branches and dropped async work.
+- Tests that bypass behaviour, empty assertions, disabled/filtered tests, weakened checks, stale binaries, false PASS claims and invalid benchmarks.
+- Swallowed errors, missing validation, resource leaks, races, unsafe inputs, portability/ABI gaps and broken cleanup/recovery.
+- Performance or numerical claims without matching workload, timing boundary, baseline, target configuration and correctness evidence.
+- Agent shortcuts: claims without tool evidence, plans/docs instead of implementation, invented APIs/results, one-site fixes, tests weakened to pass, silent scope changes, stopping at compile or using stale results.
 
-- **Unfinished code:** TODO/FIXME/TBD/XXX/HACK/WIP, placeholder, NotImplemented, todo!/unimplemented!, empty bodies, executable ellipses, missing definitions/cases, skeleton or demo code in production.
-- **Fake/shallow work:** canned/hard-coded outputs, constant success/defaults, fake metrics/progress, placeholder maths, toy algorithm presented as real, functions that only log/copy/forward, ignored config/flags/results, unconditional fallback, test answers or mocks leaking into production.
-- **Missing wiring:** uncalled/unlinked modules, unregistered backend/plugin, dead branches, incomplete API/protocol/platform paths, dropped async work, unawaited futures, inactive callbacks, wrong queue/stream/buffer, ignored output, inconsistent CLI/library/service/package/deployment paths.
-- **Weak proof:** empty/tautological tests, tests bypassing the feature, mock-only integration, disabled/skipped/filtered tests, weakened assertions, swallowed failures, stale/wrong binary or config, meaningless fuzzing, setup-only or invalid benchmarks, unrun checks reported as passed.
-- **Reliability:** swallowed errors, ignored return values, bounds/overflow gaps, races, leaks, stale handles, cleanup/resource imbalance, partial writes, unbounded queues, missing cancellation/timeouts/retry/idempotency, invalid state and bad error propagation.
-- **Security/portability/operations:** auth/permissions, trust-boundary checks, secrets, injection/deserialisation/path risks, dependency provenance, ABI, alignment/endianness, feature probes, unsupported ISA, OS/SDK/runtime differences, install/startup/shutdown and rollback.
-- **Performance/numerics:** wrong workload or timing boundary, stale baseline, scalar fallback, bad instruction/layout/stride, extra copies/launches/sync, hidden transfers, misleading units, precision/tolerance faults. Record hardware, OS, compiler/flags, driver, config, workload, revision and repeated timings.
-- **Agent shortcuts:** claims of reading/running/building/fixing/pushing without evidence; plans/docs/scaffolds instead of functioning code; invented APIs/paths/results; one-site-only fixes; weakened tests, suppressed warnings or loosened tolerances; silent scope changes; stopping at compile; stale evidence.
+Trace each material behaviour: requirement → entry/API → validation → dispatch → implementation → state/resource effect → output/error → caller → test/evidence. Include flags/fallbacks, ownership/lifetime, async completion and transfer/timing boundaries when relevant. Verify the tested revision matches the claim. A build proves buildability, not runtime correctness.
 
-A marker or shortcut is not automatically a defect. Prove the contract is unmet, or classify the concern as unverified.
+Classify each claim: CONFIRMED, SUPPORTED, SUSPECTED, NEEDS VERIFICATION, NOT A DEFECT or BLOCKED. Use only useful diagnostics: call/data flow, invariants/state model, truth table, differential test, reproduce/reduce, minimum distinguishing experiment, diff bisection, fishbone/FTA/5 Whys, Pareto, fuzz/sanitizer/race/fault injection. Never invent dynamic values or run every method without purpose.
 
-## Trace and prove
+## Findings and report
 
-Follow each material behaviour: requirement → entry/API → validation → dispatch → implementation → state/resource effect → output/error → caller → test/evidence. Include ownership/lifetime, flags/fallbacks, async completion and transfer/timing boundaries when relevant. Verify the tested binary/revision matches the claim. A successful build proves buildability, not runtime correctness.
+Priority: P0 critical security/data/correctness blocker; P1 core feature missing or broken; P2 material integration, edge-case, portability or verification gap; P3 low-risk cleanup/documentation. Rank by impact, likelihood, blast radius, confidence and dependencies. Deduplicate symptoms sharing a cause; keep priority separate from confidence.
 
-Status: CONFIRMED, SUPPORTED, SUSPECTED, NEEDS VERIFICATION, NOT A DEFECT, BLOCKED.
+Each finding: ID, priority/confidence, file:line or symbol, expected versus observed behaviour, evidence, impact/cause, concrete fix, test/acceptance criteria, dependencies/effort and validation status. Mark NOT RUN/BLOCKED honestly.
 
-Choose only the diagnostic that settles the question: call/data-flow, state model/invariants, truth table, differential/golden test, reproduce/reduce, minimum distinguishing experiment, diff bisection, fishbone/FTA/5 Whys, Pareto, fuzz/sanitizer/race/fault injection. Do not emit every method or invent dynamic values.
+Report verdict, scope/revision, coverage, prioritised evidence-backed findings, executed versus unrun checks, missing wiring, useful specialist skills, proposed tasks and residual risks. Inspect skill headers first; read full instructions only for relevant skills. Check skill references, triggers, loading, conflicts, stale/orphaned entries and loader config. State whether each skill was only inspected or actually applied.
 
-## Prioritise and report
+## Acknowledgement gate
 
-- **P0 Critical:** severe security exposure, data loss/corruption or catastrophic blocker.
-- **P1 High:** core function missing/broken/misrepresented, major correctness/reliability failure.
-- **P2 Medium:** material integration, edge-case, portability or verification gap.
-- **P3 Low:** limited cleanup, documentation mismatch or low-risk improvement.
+Present prioritised tasks with IDs, dependencies, effort, implementation steps and acceptance criteria, then ask the user to acknowledge.
 
-Rank by impact, likelihood, blast radius, confidence and dependencies. Deduplicate symptoms with a shared cause; keep priority separate from certainty.
+**Before explicit acknowledgement, create no issues, tickets, reminders or task records.** An audit request alone is not consent. After acknowledgement, use the requested authorised task system. For GitHub Issues, require explicit approval of that destination. Avoid duplicates; report actual IDs/URLs. If unavailable, provide ready-to-copy tasks and say none were created.
 
-Each finding: ID | priority/confidence | file:line or symbol | expected vs observed | evidence | impact/cause | concrete fix | test and acceptance criteria | dependency/effort | validation status. Mark NOT RUN/BLOCKED honestly; specify “done” conditions.
-
-## Installed skills
-
-Inspect catalogue headers first (name, description, triggers, loading, dependencies); read full instructions only for relevant skills. Check referenced skills, triggers, loader config, conflicts, redundancy and stale/orphaned entries. State if a skill was only inspected or actually applied. Report unavailable access.
-
-Report verdict, scope/revision, coverage, ranked findings, executed versus unrun checks, missing wiring, relevant skills, task proposals and residual risks. Separate source inspection from runtime validation.
-
-## Task acknowledgement gate
-
-Present a prioritised task list with IDs, dependencies, effort, implementation steps and acceptance criteria. Ask the user to acknowledge it.
-
-**Before explicit acknowledgement, create no issues, tickets, reminders or task records.** An audit request alone is not consent. After acknowledgement, use the requested authorised task system; for GitHub Issues, require explicit approval of that destination. Avoid duplicates and report actual IDs/URLs. If unavailable, provide ready-to-copy tasks and say none were created.
-
-This gate covers tasks derived from findings, not edits separately authorised by the user. A report is not a fix; completion requires honest coverage, evidenced findings and the proposed task list.
+This gate applies to tasks derived from findings, not separately authorised edits. A report is not a fix; completion requires honest coverage, evidence, explicit limitations and the proposed task list.
