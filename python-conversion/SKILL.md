@@ -216,7 +216,7 @@ BLOCKERS: <missing deps|conversion gap|tolerance breach>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Freeze source outputs, config and dependency versions before conversion. Differential-test intermediate and end-to-end behaviour, include boundary and malformed cases, and account for packaging, deployment and numerical drift as separate acceptance criteria.
 

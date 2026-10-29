@@ -147,7 +147,7 @@ Do not apply fixes in diag mode.
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Keep the default verdict short but evidence-backed. Distinguish expected from observed behaviour and show a deeper flow, hypothesis table or task ledger only when requested or needed to resolve ambiguity; never fabricate diagnostic output.
 

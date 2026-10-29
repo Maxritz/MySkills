@@ -196,7 +196,7 @@ BLOCKERS: <missing deps|ISA support|profiling gap>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Profile the representative end-to-end workload before choosing vectorisation, JIT or native code. Separate import/JIT warm-up from steady-state timing, validate numerical equivalence, and report repetitions and variance.
 

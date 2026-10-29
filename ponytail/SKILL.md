@@ -65,7 +65,7 @@ Lazy code without its check is unfinished. Non-trivial logic → ONE runnable ch
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Stop at the simplest solution that satisfies the stated contract, tests, error handling and supported targets. Do not remove necessary validation, observability or rollback merely to reduce lines or dependencies; simplicity must be demonstrated, not asserted.
 

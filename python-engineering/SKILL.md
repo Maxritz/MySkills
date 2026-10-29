@@ -313,7 +313,7 @@ BLOCKERS: <missing deps|native build|conversion gap>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Validate from a clean, reproducible environment and include packaging/install/import tests, public API contracts and async cancellation/cleanup. Do not call an environment reproducible merely because a lock file exists.
 

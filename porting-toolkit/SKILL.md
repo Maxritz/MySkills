@@ -377,7 +377,7 @@ BLOCKERS: <list>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Freeze a source-behaviour contract and capability matrix before translation. Build and test each target adapter independently, prove the fallback path and ABI, and distinguish compile-only targets from targets exercised at runtime.
 
