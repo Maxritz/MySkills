@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # vLLM Development
@@ -74,3 +75,10 @@ metadata:
 3. `pytest tests/` — includes prefill/decode, TP, quantization tests.
 4. Run: `python -m vllm.entrypoints.openai.api_server --model /path/model --dtype auto`
 5. API: `POST /v1/chat/completions`, `POST /v1/completions`.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin vLLM and runtime versions, model architecture, parallelism and attention backend. Validate scheduler decisions, KV block allocation and real request completion; compare correctness and report TTFT, inter-token latency, throughput and memory on a fixed workload.
+

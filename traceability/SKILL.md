@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: code-quality
   trigger_keywords: ["traceability", "trace markers", "source mapping", "DBG_TRACE", "execution trace"]
 ---
@@ -42,6 +43,13 @@ A marker scheme such as \`[T-001]\` can link a function's contract, runtime trac
 - [ ] Instrumentation is safe and can be disabled.
 - [ ] Source mapping works for a sample address where relevant.
 - [ ] The trace actually distinguishes a live hypothesis or explains execution.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Trace entry through dispatch, state/resource effects and every meaningful exit, including errors and cancellation. Markers must be low-overhead, configurable and free of secrets; source claims require matching execution evidence.
+
 
 ## Boundaries
 

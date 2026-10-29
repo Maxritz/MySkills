@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["Windows", "Win32", "NT", "process", "thread", "handle", "IOCP", "ETW", "WDDM", "KMDF", "UMDF", "driver", "deployment", "MSI", "MSIX", "Event Tracing", "critical section", "SRW lock", "condition variable", "thread pool"]
 ---
 
@@ -172,6 +173,13 @@ msiexec /i MyApp.msi /qn /norestart
 | **Integration** | `pytest` / custom |
 | **Chaos** | `chaos-mesh` |
 | **Load** | `wrk` / `locust` |
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Track HANDLE ownership, overlapped-I/O completion, cancellation races, partial transfers and shutdown order. Verify access rights and OS/runtime assumptions; for GPU work separate WDDM/TDR symptoms from application-level queue and fence failures.
+
 
 ## Boundaries
 

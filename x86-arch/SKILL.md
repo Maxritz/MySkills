@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["x86-64", "ISA", "memory ordering", "TSO", "atomicity", "privilege", "paging", "interrupts", "CPUID", "SIMD", "AVX-512", "AVX2", "SSE", "perf", "top-down", "branch prediction", "cache hierarchy"]
 ---
 
@@ -87,6 +88,13 @@ perf report --stdio
 | **Fallback** | Scalar path for unsupported ISA |
 | **Alignment** | 64-byte for AVX-512, 32-byte for AVX2 |
 | **Unwind** | DWARF CFI for asm functions |
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Record CPU family/model and supported ISA. Dispatch only after checking CPUID plus OS-enabled state where required (for example AVX via OSXSAVE/XGETBV), retain a safe fallback, verify ABI/alignment, and benchmark identical workloads.
+
 
 ## Boundaries
 
