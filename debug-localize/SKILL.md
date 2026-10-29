@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["localise bug", "localize bug", "first bad state", "call path", "data flow", "failing boundary"]
 ---
@@ -31,6 +32,13 @@ Model the path as \`INPUT → STATE → TRANSFORMATION → OUTPUT\`. Find the ea
 \`ENTRY → call_A[branch/value] → call_B[branch/value] → FIRST DIVERGENCE\`
 
 Include file/line or symbol at each meaningful boundary, the expected value, observed value, and the smallest next probe.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Compare expected and observed state at progressively narrower boundaries until the earliest divergence is evidenced. Record instrumentation effects and do not infer cause from proximity alone.
+
 
 ## Boundaries
 

@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["invariant", "precondition", "postcondition", "contract violation", "bounds", "ownership"]
 ---
@@ -36,6 +37,13 @@ Identify properties that must hold for valid execution, then use the cheapest re
 | Boundary | Invariant | Evidence | Status | Next discriminating check |
 |---|---|---|---|---|
 | Input | <required property> | <observed value> | <status> | <test> |
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- State invariants as observable predicates with an evaluation point and scope. Check them at state transitions, error paths and cleanup boundaries; do not present assumptions as verified properties.
+
 
 ## Boundaries
 
