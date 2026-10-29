@@ -147,7 +147,7 @@ hyperfine --warmup 3 './app'
 taskset -c 0 ./app
 cpupower frequency-set -g performance
 
-# 3. Run 10+, report min/median (min = ceiling)
+# 3. Run 10+ comparable iterations and report median, spread and best observed sample. The minimum is not a hardware ceiling and can reflect noise, cache state or measurement bias.
 # 4. Profile
 perf record -g ./app
 perf report --stdio
