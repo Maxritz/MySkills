@@ -8,7 +8,7 @@ metadata:
 ---
 # Code Quality Gate
 
-Auto-trigger on implementation changes. Run the smallest complete quality pass that covers the changed contracts; deepen it for risk, not by ritual.
+Invoke for implementation changes. Run the smallest complete quality pass that covers the changed contracts; deepen it for risk, not by ritual.
 
 ## Pipeline
 
