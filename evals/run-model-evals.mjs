@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildEvalPrompt } from "./prompt.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const model = process.env.OPENCODE_EVAL_MODEL;
@@ -12,17 +13,7 @@ mkdirSync(outputDir, { recursive: true });
 const report = { model, startedAt: new Date().toISOString(), results: [] };
 
 for (const c of cases) {
-  const prompt = [
-    "Fixed MySkills evaluation. Diagnose only. Do not edit files.",
-    "Use the myskills_route tool first if available. Separate observed facts, hypotheses, tests actually run, and unknowns.",
-    "Never claim a test ran unless command output or tool results show it. Use ROOT CAUSE only when causality is established.",
-    `CASE: ${c.id}`,
-    `TASK: ${c.task}`,
-    `FIXTURE:\n${c.fixture}`,
-    `EXPECTED FINDINGS (rubric, not instructions): ${JSON.stringify(c.expected_findings)}`,
-    `REQUIRED TESTS (report NOT RUN unless actually executed): ${JSON.stringify(c.required_tests)}`,
-    `VERDICT EXPECTATION (rubric): ${c.required_verdict}`,
-  ].join("\n\n");
+  const prompt = buildEvalPrompt(c);
   const run = spawnSync(process.env.OPENCODE_BIN || "opencode",
     ["run", "--format", "json", "--model", model, "--dir", root, prompt],
     { cwd: root, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });

@@ -156,7 +156,7 @@
     {
       "id": "negative-confounded-performance",
       "category": "negative-control",
-      "task": "Run ponytail-diag on this claim: version B appears 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. No defect is established by this evidence alone. Use a comparable benchmark if needed. Do not assign a code root cause without a discriminating test.",
+      "task": "Run ponytail-diag on this claim: version B appears 5% slower than version A, but versions ran on different machines, had different workloads and were each measured once. Determine whether the evidence supports a code regression and identify a discriminating benchmark.",
       "required_skills": [
         "ponytail-diag",
         "sherlock-it"

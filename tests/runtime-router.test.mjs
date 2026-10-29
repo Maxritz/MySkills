@@ -119,3 +119,21 @@ test("each optional reference is reachable from its owning skill core", () => {
   }
   assert.deepEqual(failures, []);
 });
+
+test("model-evaluation prompts do not leak labels or rubric expectations", async () => {
+  const { buildEvalPrompt } = await import("../evals/prompt.mjs");
+  const prompt = buildEvalPrompt({
+    id: "SECRET_CASE_ID",
+    task: "Diagnose this supplied behaviour.",
+    fixture: "fixture source",
+    required_skills: ["SECRET_SKILL"],
+    expected_findings: ["SECRET_FINDING"],
+    required_tests: ["SECRET_TEST"],
+    required_verdict: "SECRET_VERDICT",
+  });
+  assert.match(prompt, /Diagnose this supplied behaviour/);
+  assert.match(prompt, /fixture source/);
+  for (const secret of ["SECRET_CASE_ID", "SECRET_SKILL", "SECRET_FINDING", "SECRET_TEST", "SECRET_VERDICT"]) {
+    assert.equal(prompt.includes(secret), false, `prompt leaked ${secret}`);
+  }
+});

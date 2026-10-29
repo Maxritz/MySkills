@@ -14,7 +14,7 @@ The suite has two layers.
 OPENCODE_EVAL_MODEL=provider/model node evals/run-model-evals.mjs
 ```
 
-The script runs every case with `opencode run --format json`, stores raw events in `evals/results/latest.json` (or the directory in `MYSKILLS_EVAL_OUT`) and records token-usage objects when the CLI exposes them. It does not auto-grade findings: the saved record carries the rubric for manual or separate-judge grading. Model and provider credentials must already be configured in OpenCode.
+The script runs every case with `opencode run --format json`, stores raw events in `evals/results/latest.json` (or the directory in `MYSKILLS_EVAL_OUT`) and records token-usage objects when the CLI exposes them. `evals/prompt.mjs` excludes the case ID, expected findings, target skill list, required tests and expected verdict from model input to prevent rubric leakage. It does not auto-grade findings: the saved record carries the rubric for manual or separate-judge grading. Model and provider credentials must already be configured in OpenCode.
 
 For each case, grade:
 - **Skill selection:** compare IDs returned by the `myskills_route` tool with `required_skills`.
