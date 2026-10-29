@@ -311,7 +311,7 @@ BLOCKERS: <list>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Treat model files as untrusted input. Pin source and destination format/runtime versions, validate bounds and metadata before mapping, and compare representative tensors, tokenisation and outputs after conversion; file creation alone is not successful conversion.
 

@@ -106,7 +106,7 @@ numastat -p $(pidof app)
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Trace every allocation through success, failure and teardown; account for alignment, overflow, pressure and ownership. For DMA or GPU memory, prove the producer/consumer ordering and visibility on the target platform rather than assuming cache coherence.
 

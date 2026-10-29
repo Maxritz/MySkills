@@ -225,7 +225,7 @@ BLOCKERS: <ISA support|compiler|debuggability>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Optimise only a bottleneck shown by measurement. Preserve a baseline, isolate one change, report median and spread on the same workload, and retain correctness and fallback behaviour; do not mistake best observed latency for a hardware ceiling.
 
