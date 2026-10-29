@@ -1,4 +1,4 @@
-name: Validate Skills
+name: Validate MySkills
 
 on:
   push:
@@ -12,12 +12,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      - name: Validate skill structure and loader configuration
+      - name: Install pinned OpenCode plugin API
+        run: npm install --prefix .opencode --ignore-scripts --no-audit --no-fund
+
+      - name: Validate native discovery and router inventory
         shell: bash
         run: |
           python3 - <<'PY'
@@ -28,7 +36,6 @@ jobs:
 
           root = Path(".")
           failures = []
-          declared_auto = {}
           skills = {
               path.parent.name: path
               for path in root.glob("*/SKILL.md")
@@ -39,9 +46,7 @@ jobs:
               failures.append("No skill directories containing SKILL.md were found.")
 
           for dirname, path in sorted(skills.items()):
-              content = path.read_text(encoding="utf-8")
-              lines = content.splitlines()
-
+              lines = path.read_text(encoding="utf-8").splitlines()
               if not lines or lines[0].strip() != "---":
                   failures.append(f"{path}: missing opening YAML front-matter delimiter")
                   continue
@@ -50,78 +55,46 @@ jobs:
               except StopIteration:
                   failures.append(f"{path}: missing closing YAML front-matter delimiter")
                   continue
-
               front = "\n".join(lines[1:closing])
-              name = re.search(r"(?m)^name:\s*([A-Za-z0-9._-]+)\s*$", front)
+              name = re.search(r"(?m)^name:\s*([a-z0-9-]+)\s*$", front)
               description = re.search(r"(?m)^description:\s*(\S.*)$", front)
-
-              if not name:
-                  failures.append(f"{path}: missing single-line name")
-              elif name.group(1) != dirname:
-                  failures.append(f"{path}: name '{name.group(1)}' does not match folder '{dirname}'")
+              if not name or name.group(1) != dirname:
+                  failures.append(f"{path}: name must match directory '{dirname}'")
               if not description:
                   failures.append(f"{path}: missing description")
-              if not re.search(r"(?m)^metadata:\s*$", front):
-                  failures.append(f"{path}: missing metadata block")
-              if not re.search(r"(?m)^  loading:\s*on-demand\s*$", front):
-                  failures.append(f"{path}: missing metadata loading: on-demand")
-              if not re.search(r"(?m)^  auto_unload:\s*true\s*$", front):
-                  failures.append(f"{path}: missing metadata auto_unload: true")
-              auto_flag = re.search(r"(?m)^  auto_trigger:\s*(true|false)\s*$", front)
-              if not auto_flag:
-                  failures.append(f"{path}: missing metadata auto_trigger true/false")
-              else:
-                  declared_auto[dirname] = auto_flag.group(1) == "true"
-
               if len(lines) > 800:
                   failures.append(f"{path}: {len(lines)} lines exceeds the 800-line hard limit")
-              elif len(lines) > 500:
-                  print(f"WARNING: {path} has {len(lines)} lines (>500 suggested limit)")
 
           try:
-              config = json.loads(Path("opencode.jsonc").read_text(encoding="utf-8"))
+              native_config = json.loads(Path("opencode.jsonc").read_text(encoding="utf-8"))
           except Exception as exc:
               failures.append(f"opencode.jsonc is not strict JSON: {exc}")
-              config = {}
+              native_config = {}
+          if "./" not in native_config.get("skills", []):
+              failures.append("opencode.jsonc must register the repository root through native skills configuration")
+          if native_config.get("permission", {}).get("skill", {}).get("*") != "allow":
+              failures.append("opencode.jsonc must explicitly allow the discovered skill set")
 
-          skill_config = config.get("skill", {})
-          auto = set(skill_config.get("auto_trigger", []))
-          conditional = set(skill_config.get("conditional_load", []))
-          duplicates = auto & conditional
-          if duplicates:
-              failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
+          try:
+              router_config = json.loads(Path("myskills.config.json").read_text(encoding="utf-8"))
+          except Exception as exc:
+              failures.append(f"myskills.config.json is invalid JSON: {exc}")
+              router_config = {}
+          routing = router_config.get("routing", {})
+          triggers = routing.get("triggers", {})
+          if set(triggers) != set(skills):
+              failures.append(f"Router trigger inventory differs from skill directories: missing={sorted(set(skills)-set(triggers))}, stale={sorted(set(triggers)-set(skills))}")
+          for name, keywords in triggers.items():
+              if not isinstance(keywords, list) or not keywords or not all(isinstance(k, str) and k.strip() for k in keywords):
+                  failures.append(f"Trigger keywords for {name} must be a non-empty list of strings")
 
-          triggers = skill_config.get("trigger_keywords", {})
+          for required in [".opencode/plugins/myskills-runtime.js", "runtime/router-core.mjs", "AGENTS.md"]:
+              if not Path(required).is_file():
+                  failures.append(f"Missing runtime component: {required}")
 
-          registered = auto | conditional
-          if len(skill_config.get("auto_trigger", [])) != len(auto):
-              failures.append("Duplicate skill in auto_trigger")
-          if len(skill_config.get("conditional_load", [])) != len(conditional):
-              failures.append("Duplicate skill in conditional_load")
-          for name in sorted(set(skills) | set(declared_auto)):
-              if name in declared_auto and declared_auto[name] != (name in auto):
-                  failures.append(f"{name}: metadata auto_trigger does not match loader membership")
-          for missing_trigger in sorted(set(skills) - set(triggers)):
-              failures.append(f"Skill has no trigger-keyword entry: {missing_trigger}")
-          for path in skills.values():
-              for target in re.findall(r"\]\(([^)]+\.md)(?:#[^)]+)?\)", path.read_text(encoding="utf-8")):
-                  if target.startswith(("http://", "https://", "mailto:")):
-                      continue
-                  if not (path.parent / target).is_file():
-                      failures.append(f"{path}: broken relative Markdown link: {target}")
           goli_path = root / "goli-mat-de" / "SKILL.md"
           if goli_path.is_file() and len(goli_path.read_text(encoding="utf-8").split()) > 750:
               failures.append("goli-mat-de/SKILL.md exceeds the 750-word core budget")
-          for missing in sorted(registered - set(skills)):
-              failures.append(f"Loader configuration references missing skill directory: {missing}")
-          for unregistered in sorted(set(skills) - registered):
-              failures.append(f"Skill directory is not registered in loader configuration: {unregistered}")
-
-          for name, keywords in triggers.items():
-              if name not in skills:
-                  failures.append(f"Trigger map references missing skill directory: {name}")
-              if not isinstance(keywords, list) or not all(isinstance(k, str) and k.strip() for k in keywords):
-                  failures.append(f"Trigger keywords for {name} must be a list of non-empty strings")
 
           if failures:
               print("VALIDATION FAILED:")
@@ -129,6 +102,21 @@ jobs:
                   print(f" - {failure}")
               sys.exit(1)
 
-          print(f"Validated {len(skills)} skills and loader references.")
-          print(f"Auto-trigger: {len(auto)}; conditional-load: {len(conditional)}.")
+          print(f"Validated native discovery configuration and {len(skills)} skill/router entries.")
+          print("Legacy auto_trigger/auto_unload fields are not interpreted as runtime controls.")
           PY
+
+      - name: Run deterministic routing, evidence and reference tests
+        run: node --test tests/runtime-router.test.mjs
+
+      - name: Smoke-test the OpenCode plugin registration
+        run: |
+          node --input-type=module - <<'JS'
+          import assert from "node:assert/strict";
+          import { MySkillsRuntime } from "./.opencode/plugins/myskills-runtime.js";
+          const plugin = await MySkillsRuntime({ directory: process.cwd(), worktree: process.cwd() });
+          assert.equal(typeof plugin.tool.myskills_route.execute, "function");
+          assert.equal(typeof plugin["tool.execute.before"], "function");
+          assert.equal(typeof plugin.event, "function");
+          console.log("MySkills route tool and runtime guard registered.");
+          JS
