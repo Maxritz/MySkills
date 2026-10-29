@@ -176,7 +176,7 @@ msiexec /i MyApp.msi /qn /norestart
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Track HANDLE ownership, overlapped-I/O completion, cancellation races, partial transfers and shutdown order. Verify access rights and OS/runtime assumptions; for GPU work separate WDDM/TDR symptoms from application-level queue and fence failures.
 

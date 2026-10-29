@@ -77,7 +77,7 @@ BLOCKERS: <missing extensions, vendor gaps, MoltenVK limits>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Record device, architecture, driver, loader, SDK, enabled features and validation layers. Trace host submission through queue execution, memory visibility and completion; compilation alone does not prove execution, and host time must not be reported as device time.
 

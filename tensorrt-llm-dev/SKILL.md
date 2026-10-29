@@ -93,7 +93,7 @@ python examples/benchmark.py --engine_dir=./engines --batch_size=32
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Pin TensorRT-LLM, TensorRT, CUDA, GPU architecture, model config and build flags. Validate engine deserialisation on the intended deployment target, compare outputs with a reference, and benchmark separate prefill/decode paths rather than relying on a successful engine build.
 

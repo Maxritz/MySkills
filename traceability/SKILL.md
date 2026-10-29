@@ -46,7 +46,7 @@ A marker scheme such as \`[T-001]\` can link a function's contract, runtime trac
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Trace entry through dispatch, state/resource effects and every meaningful exit, including errors and cancellation. Markers must be low-overhead, configurable and free of secrets; source claims require matching execution evidence.
 
