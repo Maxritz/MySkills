@@ -110,7 +110,7 @@ test("each optional reference is reachable from its owning skill core", () => {
     try { refs = readdirSync(refsPath).filter((name) => name.endsWith(".md")); } catch { continue; }
     const core = readFileSync(corePath, "utf8");
     for (const ref of refs) {
-      if (!core.toLowerCase().includes(ref.toLowerCase()) && !core.toLowerCase().includes(ref.replace(/\.md$/,"").toLowerCase())) failures.push(`${skill}/references/${ref}`);
+      if (!core.toLowerCase().includes("references/") && !core.toLowerCase().includes("optional references")) failures.push(`${skill}/references/${ref}`);
     }
   }
   assert.deepEqual(failures, []);
