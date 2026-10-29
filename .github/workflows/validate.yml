@@ -12,91 +12,98 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check skill structure
-        run: |
-          for d in */; do
-            if [ -f "$d/SKILL.md" ]; then
-              echo "Checking $d..."
-              # Check metadata section exists
-              if ! head -20 "$d/SKILL.md" | grep -q "metadata:"; then
-                echo "ERROR: $d missing metadata section"
-                exit 1
-              fi
-              # Check loading and auto_unload
-              if ! head -20 "$d/SKILL.md" | grep -q "loading: on-demand"; then
-                echo "ERROR: $d missing 'loading: on-demand'"
-                exit 1
-              fi
-              if ! head -20 "$d/SKILL.md" | grep -q "auto_unload: true"; then
-                echo "ERROR: $d missing 'auto_unload: true'"
-                exit 1
-              fi
-              # Check line count (warn >500, fail >800)
-              lines=$(wc -l < "$d/SKILL.md")
-              if [ $lines -gt 500 ]; then
-                echo "WARN: $d has $lines lines (>500)"
-              fi
-              if [ $lines -gt 800 ]; then
-                echo "ERROR: $d has $lines lines (>800 max)"
-                exit 1
-              fi
-            fi
-          done
-          echo "All skill structure checks passed."
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
-      - name: Validate opencode.jsonc
+      - name: Validate skill structure and loader configuration
+        shell: bash
         run: |
-          # Check JSON syntax
-          python3 -m json.tool opencode.jsonc > /dev/null
-          # Check all conditional_load skills exist
-          python3 -c "
-import json
-with open('opencode.jsonc') as f:
-    content = f.read()
-# Strip comments
-import re
-content = re.sub(r'//.*', '', content)
-data = json.loads(content)
-for skill in data.get('skill', {}).get('conditional_load', []):
-    if not os.path.isdir(skill):
-        print(f'MISSING: {skill}')
-        exit(1)
-for skill in data.get('skill', {}).get('auto_trigger', []):
-    if not os.path.isdir(skill):
-        print(f'MISSING auto_trigger: {skill}')
-        exit(1)
-print('All skills in config exist.')
-          "
-      - name: Check for duplicate trigger keywords
-        run: |
-          python3 -c "
-import json, re
-with open('opencode.jsonc') as f:
-    content = f.read()
-content = re.sub(r'//.*', '', content)
-data = json.loads(content)
-keywords = {}
-for skill, kws in data.get('skill', {}).get('trigger_keywords', {}).items():
-    for kw in kws:
-        if kw in keywords:
-            print(f'DUPLICATE keyword: {kw} in {keywords[kw]} and {skill}')
-            exit(1)
-        keywords[kw] = skill
-print('No duplicate trigger keywords.')
-          "
-      - name: Validate JSON references
-        run: |
-          python3 -c "
-import json, os, re
-with open('opencode.jsonc') as f:
-    content = f.read()
-content = re.sub(r'//.*', '', content)
-data = json.loads(content)
-# Check auto_trigger and conditional_load are disjoint
-auto = set(data.get('skill', {}).get('auto_trigger', []))
-cond = set(data.get('skill', {}).get('conditional_load', []))
-if auto & cond:
-    print(f'OVERLAP: {auto & cond}')
-    exit(1)
-print('Auto-trigger and conditional load are disjoint.')
-          "
+          python3 - <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          root = Path(".")
+          failures = []
+          skills = {
+              path.parent.name: path
+              for path in root.glob("*/SKILL.md")
+              if path.is_file()
+          }
+
+          if not skills:
+              failures.append("No skill directories containing SKILL.md were found.")
+
+          for dirname, path in sorted(skills.items()):
+              content = path.read_text(encoding="utf-8")
+              lines = content.splitlines()
+
+              if not lines or lines[0].strip() != "---":
+                  failures.append(f"{path}: missing opening YAML front-matter delimiter")
+                  continue
+              try:
+                  closing = next(i for i in range(1, len(lines)) if lines[i].strip() == "---")
+              except StopIteration:
+                  failures.append(f"{path}: missing closing YAML front-matter delimiter")
+                  continue
+
+              front = "\n".join(lines[1:closing])
+              name = re.search(r"(?m)^name:\s*([A-Za-z0-9._-]+)\s*$", front)
+              description = re.search(r"(?m)^description:\s*(\S.*)$", front)
+
+              if not name:
+                  failures.append(f"{path}: missing single-line name")
+              elif name.group(1) != dirname:
+                  failures.append(f"{path}: name '{name.group(1)}' does not match folder '{dirname}'")
+              if not description:
+                  failures.append(f"{path}: missing description")
+              if not re.search(r"(?m)^metadata:\s*$", front):
+                  failures.append(f"{path}: missing metadata block")
+              if not re.search(r"(?m)^  loading:\s*on-demand\s*$", front):
+                  failures.append(f"{path}: missing metadata loading: on-demand")
+              if not re.search(r"(?m)^  auto_unload:\s*true\s*$", front):
+                  failures.append(f"{path}: missing metadata auto_unload: true")
+
+              if len(lines) > 800:
+                  failures.append(f"{path}: {len(lines)} lines exceeds the 800-line hard limit")
+              elif len(lines) > 500:
+                  print(f"WARNING: {path} has {len(lines)} lines (>500 suggested limit)")
+
+          try:
+              config = json.loads(Path("opencode.jsonc").read_text(encoding="utf-8"))
+          except Exception as exc:
+              failures.append(f"opencode.jsonc is not strict JSON: {exc}")
+              config = {}
+
+          skill_config = config.get("skill", {})
+          auto = set(skill_config.get("auto_trigger", []))
+          conditional = set(skill_config.get("conditional_load", []))
+          duplicates = auto & conditional
+          if duplicates:
+              failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
+
+          registered = auto | conditional
+          for missing in sorted(registered - set(skills)):
+              failures.append(f"Loader configuration references missing skill directory: {missing}")
+          for unregistered in sorted(set(skills) - registered):
+              failures.append(f"Skill directory is not registered in loader configuration: {unregistered}")
+
+          triggers = skill_config.get("trigger_keywords", {})
+          for name, keywords in triggers.items():
+              if name not in skills:
+                  failures.append(f"Trigger map references missing skill directory: {name}")
+              if not isinstance(keywords, list) or not all(isinstance(k, str) and k.strip() for k in keywords):
+                  failures.append(f"Trigger keywords for {name} must be a list of non-empty strings")
+
+          if failures:
+              print("VALIDATION FAILED:")
+              for failure in failures:
+                  print(f" - {failure}")
+              sys.exit(1)
+
+          print(f"Validated {len(skills)} skills and loader references.")
+          print(f"Auto-trigger: {len(auto)}; conditional-load: {len(conditional)}.")
+          PY
