@@ -27,7 +27,8 @@ jobs:
           python-version: "3.x"
 
       - name: Install pinned OpenCode plugin API
-        run: npm install --prefix .opencode --ignore-scripts --no-audit --no-fund
+        working-directory: .opencode
+        run: npm install --ignore-scripts --no-audit --no-fund
 
       - name: Validate native discovery and router inventory
         shell: bash
