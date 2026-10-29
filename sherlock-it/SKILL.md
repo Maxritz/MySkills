@@ -95,22 +95,9 @@ Record run ID, timestamp, target/revision, environment, workload, baseline, meas
 
 ---
 
-## Diagnostic Traps (8 Types)
+## Diagnostic routing
 
-| Trap | Captures | When to Create |
-|------|----------|----------------|
-| Dispatch | Launch count, grid size, workgroup dims, launch latency | Kernel launch overhead suspected |
-| Memory | Bytes R/W, alignment, bandwidth, cache misses | Memory-bound suspected |
-| Instruction | Generated ISA, vectorisation, instruction mix, fallback paths | Compute-bound suspected |
-| Synchronisation | Barriers, fences, queue waits, idle gaps | Sync overhead suspected |
-| Allocation | Alloc frequency, memory pressure, temp buffers | Alloc overhead suspected |
-| Transfer | Host-device copies, staging, transfer latency | PCIe/NVLink bottleneck suspected |
-| Dependency | Serial exec, critical path, hidden sync | False dependency suspected |
-| Accuracy | Output diff, numerical error, precision-related perf | Precision loss suspected |
-
-**Each trap:** clear hypothesis + measurable output + disable mechanism.
-
----
+Use the [diagnostic detail](references/diagnostic-methods.md) only when the first-pass investigation cannot explain the result: classify instrumentation, cache, scheduling, workload, environment, measurement-boundary, concurrency or observer effects. Prefer one experiment that distinguishes live hypotheses.
 
 ## Output Contract
 
@@ -142,37 +129,6 @@ Use tables for per-kernel/per-shader measurements. Include raw timings and workl
 
 ---
 
-## Log Management
-
-### Auto-Load on Session Start
-```
-On sherlock-it load: read .opencode/sherlock-analysis.md
-If exists: show last 3 RUN entries summary
-If missing: create new log, start with FULL
-```
-
-### Delta Comparison (Automatic)
-```python
-def compare_runs(current, previous):
-    # Compare bottlenecks, costs, statuses
-    # Mark: IMPROVED, REGRESSED, FIXED, NEW, UNCHANGED
-    # Update hypothesis statuses: PENDING → TESTING → CONFIRMED/FALSIFIED
-    # Carry forward UNRESOLVED hypotheses
-```
-
-### Sanitization
-- No paths, keys, emails, phones, machine names
-- Same rules as knowledge-base
-
-### Validation Gates (Per RUN Entry)
-- [ ] Baseline recorded with full config
-- [ ] At least 3 measurements per bottleneck
-- [ ] Hypothesis status updated
-- [ ] Actions have checkboxes
-- [ ] Next RUN knows where to continue
-
----
-
 ## Goli-mat-de integrity gate
 
 Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
@@ -180,21 +136,14 @@ Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly
 - Give each run an immutable ID, revision, target, workload and timing boundary; compare only compatible baselines. Keep hypotheses, observations and interventions separate, and re-run the measured bottleneck after each optimisation without inventing profiler data.
 
 
-## Boundaries
+## Detailed examples
 
-- Does not write kernel code (receives kernels to validate/optimise)
-- Does not manage CUDA/ROCm installation
-- `stop sherlock-it`: revert
-- Log persists across sessions; never auto-deleted
-
-## Detailed example
-
-Use the [run-log template](references/run-log-template.md) for the full record shape and trace example.
+Use the [run-log template](references/run-log-template.md) for the full record format. Session-log mechanics are in [diagnostic and log details](references/diagnostic-methods.md).
 
 ## Boundaries
 
 - Does not write kernel code (receives kernels to validate/optimise)
 - Does not manage CUDA/ROCm installation
-- `stop sherlock-it`: revert
+- Stop using the workflow; preserve existing project state.
 - Log persists across sessions; never auto-deleted
 
