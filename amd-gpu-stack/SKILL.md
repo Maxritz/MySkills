@@ -250,16 +250,16 @@ Global (256-bit/channel) → L2 (shared, 1-4MB) → L1 (16KB/CU unified) → Inf
 ### For Performance Issues
 1. **ROCr runtime layer** → Verify queue/packet/signal ordering, memory pool
 2. **ROCm platform/library layer** → Check HIP API usage, rocBLAS/RCCL primitives
-3. **cdna/rdna** → Analyze occupancy, register pressure, MFMA utilization, cache behavior
+3. **CDNA/RDNA architecture sections** → Analyze occupancy, register pressure, MFMA utilization, cache behavior
 
 ### For Correctness Issues
 1. **ROCr runtime layer** → Reduce to minimal AQL packet sequence
 2. **ROCm platform/library layer** → Validate HIP error codes, stream sync
-3. **cdna/rdna** → Check alignment, wave size, MFMA tile correctness
+3. **CDNA/RDNA architecture sections** → Check alignment, wave size, MFMA tile correctness
 
 ### For Porting (CUDA → HIP)
 1. **hipify** → Automated translation
-2. **rdna/cdna** → Replace PTX with `__builtin_amdgcn_*`
+2. **RDNA/CDNA architecture sections** → Replace PTX with `__builtin_amdgcn_*`
 3. **ROCr runtime layer** → Verify HSA queue/signal model
 4. **ROCm platform/library layer** → Swap cuBLAS/cuDNN → rocBLAS/MIOpen
 
@@ -281,7 +281,7 @@ Global (256-bit/channel) → L2 (shared, 1-4MB) → L1 (16KB/CU unified) → Inf
 ```
 AMD GPU STACK: <layer> ANALYSIS
 RECORDED: ROCm <ver>, GPU <ASIC>, OS <ver>, HIP target <arch>
-LAYER: <platform|runtime|cdna|rdna>
+LAYER: <platform|runtime|CDNA|RDNA>
 FINDINGS: <ranked issues with evidence>
 PRIMITIVE SWAPS: <rocBLAS/RCCL used vs hand-written>
 ARCH OPTIMIZATIONS: <MFMA tiles, wave size, LDS usage>

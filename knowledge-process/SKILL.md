@@ -1,6 +1,6 @@
 ---
 name: knowledge-process
-description: "Unified knowledge & process: analysis-log (append-only delta), context-tracker (local store), dev-process (10-iter validation), knowledge-base (two-tier sanitized), app-engine-deploy. Session continuity, validation gates, deployment."
+description: "Unified knowledge and development workflow: append-only analysis logs, context tracking, validation cadence and sanitised knowledge retention."
 compatibility: opencode
 metadata:
   auto_unload: true

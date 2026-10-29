@@ -151,8 +151,11 @@ kb.py add --category debugging \
 
 Append to `.opencode/analysis.md`:
 ```
-## 2026-10-08: parse_token magic validation
-- Bug: ERR_BAD_MAGIC on valid file
+## Illustrative example: parse_token magic validation
+
+> Example only, not a live test record. In a real report, record the command, revision, input, exit status and observed output.
+
+- Bug: ERR_BAD_MAGIC on a valid file
 - Cause: init() not called by caller
 - Fix: guards at parse.c:42
 - Pattern: validate preconditions at boundary

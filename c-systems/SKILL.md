@@ -382,5 +382,5 @@ BLOCKERS: <list>
 
 - Does not write kernel code (see `linux-kernel-dev or bare-metal-kernel`)
 - Does not manage memory allocators (see `memory-mgmt`)
-- Does not optimize assembly (see `assembler`)
+- Does not optimise assembly (see low-level-toolkit)
 - `stop c-systems`: revert.

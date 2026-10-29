@@ -159,7 +159,7 @@ metadata:
 Produce evidence-backed report:
 
 - **Findings:** Ranked bottlenecks with raw measurements, invocation counts
-- **Root causes:** Proven/suspected/unresolved — explicitly distinguished
+- **Root causes:** Proven/suspected/unresolved: explicitly distinguished
 - **Hardware analysis:** Architectural limits vs observed utilisation
 - **Optimisation plan:** Specific changes, expected impact, validation criteria
 - **Results:** Before/after measurements, % change, correctness, reproducibility
