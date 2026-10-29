@@ -97,3 +97,7 @@ Freeze the workload and report time-to-first-token, inter-token latency, through
 - Use llm-evaluation for task-quality and release regression gates.
 - Use llm-serving or engine-specific skills for deployed scheduler/API behaviour.
 - Use goli-mat-de when an implementation or benchmark claim may be incomplete or misrepresented.
+
+## Optional references
+
+- [advanced-recipes.md](references/advanced-recipes.md)
