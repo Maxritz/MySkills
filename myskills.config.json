@@ -171,7 +171,13 @@
         "placeholder audit",
         "skipped implementation",
         "kaam chalau code",
-        "thook patti code"
+        "thook patti code",
+        "stub",
+        "placeholder",
+        "fake completion",
+        "no-op",
+        "no op",
+        "constant success"
       ],
       "gguf-ggml": [
         "GGUF",
