@@ -71,10 +71,16 @@ test("router respects the skill cap and labels bytes-to-token conversion as an e
   assert.equal(estimateTokensFromBytes(0), 0);
 });
 
-test("common source mutations are detected but harmless shell commands are not", () => {
+test("common POSIX and Windows source mutations are detected without flagging read-only commands", () => {
   assert.equal(isLikelySourceMutation("edit", { filePath: "src/main.cpp" }, config.routing.mutationTools), true);
   assert.equal(isLikelySourceMutation("bash", { command: "git commit -am 'fix'" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("bash", { command: "git push origin main" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("bash", { command: "rm -f src/generated.cpp" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("powershell", { command: "Set-Content src/main.cpp 'changed'" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("pwsh", { command: "Remove-Item src/old.cpp" }, config.routing.mutationTools), true);
+  assert.equal(isLikelySourceMutation("cmd", { command: "copy src\\a.cpp src\\b.cpp" }, config.routing.mutationTools), true);
   assert.equal(isLikelySourceMutation("bash", { command: "ctest --output-on-failure" }, config.routing.mutationTools), false);
+  assert.equal(isLikelySourceMutation("powershell", { command: "Get-Content src/main.cpp" }, config.routing.mutationTools), false);
 });
 
 test("diagnostics preserve evidence-first investigation guidance", () => {
