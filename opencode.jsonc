@@ -2,7 +2,6 @@
   "$schema": "https://opencode.ai/config.json",
   "permission": {
     "skill": {
-      "debug-*": "allow",
       "*": "allow"
     }
   },
@@ -559,5 +558,8 @@
   },
   "instructions": [
     "SKILL_QUALITY_STANDARD.md"
+  ],
+  "skills": [
+    "./"
   ]
 }
