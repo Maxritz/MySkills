@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["assembly", "emulation", "toolchain", "ISA", "ABI", "calling convention", "binary", "disassembly", "compiler", "linker", "sysroot", "emulator", "simulator", "JIT"]
 ---
 
@@ -365,6 +365,13 @@ BLOCKERS: <missing ISA|unstable ABI|non-determinism>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin target ABI, object format, compiler/linker and CPU feature set. Check disassembly, relocations, stack/unwind metadata and runtime feature dispatch; emulator success is not proof of cycle accuracy or real-hardware behaviour.
+
 
 ## Boundaries
 

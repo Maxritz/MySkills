@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["tokenizer", "embeddings", "attention", "KV cache", "MLP", "sampling", "LLM component", "intermediate tensor", "logits"]
 ---
 
@@ -395,6 +396,13 @@ BLOCKERS: <list>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Validate each component at intermediate tensors before end-to-end generation: tokenizer IDs, masks, RoPE positions, KV-cache writes/reads, norm/MLP outputs and sampling. Pin model config and compare deterministic fixtures with explicit dtype-aware tolerances.
+
 
 ## Boundaries
 

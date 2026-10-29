@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["kernel tuning", "kernel performance", "roofline", "cache misses", "arithmetic intensity", "vectorisation", "vectorization", "occupancy"]
 ---
 
@@ -50,6 +51,13 @@ Use a roofline model as a screening tool, not a replacement for profiling. Arith
 ## Output contract
 
 Provide baseline and result, raw measurements, repetitions/spread, target and compiler configuration, correctness evidence, first limiting resource, changed variables, expected-versus-observed effect and residual bottlenecks.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Record workload shape, target/compiler, warm-up, synchronisation boundary, repetitions and spread. Establish correctness before tuning, identify the measured limiting resource, and report median plus variance rather than the fastest sample alone.
+
 
 ## Boundaries
 

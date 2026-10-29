@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # LLM Hardcode Development
@@ -73,6 +74,13 @@ For every supported type, test complete blocks and tails, minimum and maximum co
 ## Output
 
 Report target ISA, compiler flags, layout and quant type, correctness deltas, raw timings and spread, fallback behaviour, generated-code evidence, and remaining limitations.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin the exact quantisation layout and compiler/ISA. Dispatch only after checking CPU features and OS-managed vector state, keep a safe fallback, and compare dequantised values and outputs against a trusted oracle before performance claims.
+
 
 ## Boundaries
 

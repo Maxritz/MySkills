@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["GGUF", "GGML", "gguf parser", "ggml quantisation", "ggml quantization", "GGUF tensor", "Q4_0", "ggml dequant"]
 ---
 
@@ -60,6 +61,13 @@ The bytes on disk are authoritative. On a little-endian host the byte sequence \
 ## Output
 
 Record upstream revision, file version, tensor type, test fixture provenance, parser result, exact reference implementation, numerical tolerance, and any unsupported types. Never report a model as supported just because its header can be parsed.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin the GGML commit and quant type before relying on byte layouts. Validate untrusted offsets, counts, alignment and integer overflow before allocating or mapping; compare parsing and dequantisation with version-matched golden vectors.
+
 
 ## Boundaries
 

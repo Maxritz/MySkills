@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["MoE", "Mixture of Experts", "speculative decoding", "Medusa", "EAGLE", "router", "expert", "shared experts", "numerical tolerances", "INT4", "AWQ", "GPTQ"]
 ---
 
@@ -173,6 +174,13 @@ BLOCKERS: <list>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Measure expert selection, dispatch, cache hits and routing balance for MoE; measure draft acceptance and target verification for speculative decoding. Compare final tokens/logits with a trustworthy reference under stated precision-specific tolerances.
+
 
 ## Boundaries
 
