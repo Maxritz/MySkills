@@ -130,3 +130,7 @@ For matrix kernels, validate shape, strides, alignment, aliasing and accumulatio
 - Use memory-mgmt for allocator, virtual-memory and DMA detail.
 - Use low-level-toolkit for assembly and target ABI inspection.
 - Use c99-systems when strict C99 is a hard requirement.
+
+## Optional references
+
+- [c-systems-recipes.md](references/c-systems-recipes.md)
