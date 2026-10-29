@@ -60,4 +60,6 @@ Present prioritised tasks with IDs, dependencies, effort, implementation steps a
 
 **Before explicit acknowledgement, create no issues, tickets, reminders or task records.** An audit request alone is not consent. After acknowledgement, use the requested authorised task system. For GitHub Issues, require explicit approval of that destination. Avoid duplicates; report actual IDs/URLs. If unavailable, provide ready-to-copy tasks and say none were created.
 
-This gate applies to tasks derived from findings, not separately authorised edits. A report is not a fix; completion requires honest coverage, evidence, explicit limitations and the proposed task list.
+## Final self-check
+
+Verify coverage, evidence, limitations and the task gate before finishing. An audit report is not a fix.

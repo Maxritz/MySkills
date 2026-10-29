@@ -29,6 +29,10 @@ Route by output purpose. Keep these two concerns separate so the style does not 
 
 State the selected mode only when it helps. Return the deliverable in the requested format and retain material caveats.
 
+## Goli-mat-de integrity gate
+
+Style must never conceal omissions, uncertainty or verification status. Check the deliverable against the user's full request before compressing it, and state limitations rather than implying that missing work is complete.
+
 ## Boundaries
 
 - This skill routes output style; it does not determine technical truth or verification status.

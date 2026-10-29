@@ -26,6 +26,10 @@ Use this focused gate when trace markers, source mapping or behavioural contract
 
 Report scope/revision, missing contracts or trace paths, exact evidence, impact, minimal remediation and validation status. Separate source inspection from executed tracing.
 
+## Goli-mat-de integrity gate
+
+Tie every claimed trace path to observed source or runtime evidence. Report absent tests and unrun execution honestly; a marker's presence is not proof that the intended path executed.
+
 ## Boundaries
 
 - This skill does not replace `code-quality-gate`, `goli-mat-de` or domain-specific testing.
