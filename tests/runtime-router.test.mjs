@@ -1,62 +1,44 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { routeTask, estimateTokensFromBytes, isLikelySourceMutation } from "../runtime/router-core.mjs";
 
-const root = resolve(new URL("..", import.meta.url).pathname);
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const config = JSON.parse(readFileSync(join(root, "myskills.config.json"), "utf8"));
+const evaluation = JSON.parse(readFileSync(join(root, "evals/cases.json"), "utf8"));
+const cases = evaluation.cases;
 
-const cases = [
-  {
-    id: "stub-audit",
-    prompt: "Run a goli-mat-de stub audit for fake code and placeholder implementations.",
-    expected: ["goli-mat-de"],
-  },
-  {
-    id: "injected-parser-defect",
-    prompt: "Debug the Python parser crash and implement a guard plus regression test.",
-    expected: ["debug-core", "python-engineering", "code-quality-gate"],
-  },
-  {
-    id: "concurrency-bug",
-    prompt: "Debug a C++ concurrency race and find the violated memory invariant.",
-    expected: ["debug-core", "c-systems"],
-  },
-  {
-    id: "vulkan-synchronisation",
-    prompt: "Diagnose a Vulkan command-buffer semaphore synchronisation failure.",
-    expected: ["debug-core", "vulkan-compute-stack"],
-  },
-  {
-    id: "quantisation-mismatch",
-    prompt: "Debug GGUF Q4_0 quantisation output that differs from the reference.",
-    expected: ["debug-core", "gguf-ggml"],
-  },
-  {
-    id: "performance-regression",
-    prompt: "Profile a kernel performance regression and benchmark throughput.",
-    expected: ["debug-core", "sherlock-it", "kernel-tuning"],
-  },
-  {
-    id: "deployment-failure",
-    prompt: "Diagnose a deployment failure; check service health and rollback.",
-    expected: ["debug-core", "deployment-operations"],
-  },
-  {
-    id: "negative-no-defect-established",
-    prompt: "Run ponytail-diag on what should vs did happen. The test passes; no defect has been established. Identify the smallest observation needed before any root-cause claim.",
-    expected: ["ponytail-diag", "debug-core"],
-  },
-];
+function readCore(skill) {
+  const source = readFileSync(join(root, skill, "SKILL.md"), "utf8");
+  return source.replace(/^---\r?\n[\s\S]*?\r?\n---\s*\r?\n/, "");
+}
 
-test("representative task routing selects required specialists", () => {
+test("fixed evaluation prompts route to every required specialist within the context cap", () => {
+  const results = [];
   for (const entry of cases) {
-    const route = routeTask(entry.prompt, config);
-    for (const expected of entry.expected) {
+    const route = routeTask(entry.task, config);
+    for (const expected of entry.required_skills) {
       assert.ok(route.skills.includes(expected), `${entry.id}: missing ${expected}; selected ${route.skills.join(", ")}`);
     }
     assert.ok(route.skills.length <= config.routing.maxSkills, `${entry.id}: exceeded context budget`);
+    assert.ok(Array.isArray(entry.required_tests) && entry.required_tests.length > 0, `${entry.id}: missing test rubric`);
+    assert.ok(entry.expected_findings?.length > 0, `${entry.id}: missing expected findings`);
+    assert.ok(entry.required_verdict, `${entry.id}: missing verdict rubric`);
+
+    const bytes = route.skills.reduce((sum, skill) => sum + Buffer.byteLength(readCore(skill), "utf8"), 0);
+    results.push({ id: entry.id, selected: route.skills, coreBytes: bytes, estimatedTokens: estimateTokensFromBytes(bytes) });
+  }
+  console.log("ROUTING_MATRIX " + JSON.stringify(results));
+});
+
+test("negative controls explicitly allow unresolved or no-defect verdicts", () => {
+  for (const entry of cases.filter((c) => c.id.startsWith("negative-"))) {
+    assert.match(entry.required_verdict, /NO DEFECT ESTABLISHED|UNRESOLVED/i, entry.id);
+    const core = readCore("ponytail-diag").toLowerCase();
+    assert.match(core, /no defect established/);
+    assert.match(core, /unresolved/);
   }
 });
 
@@ -66,11 +48,12 @@ test("unknown out-of-domain prompt does not load an arbitrary specialist", () =>
   assert.deepEqual(route.skills, []);
 });
 
-test("router respects the skill cap and estimates token size conservatively", () => {
+test("router respects the skill cap and labels bytes-to-token conversion as an estimate", () => {
   const route = routeTask("Debug a Vulkan GGUF Python performance regression on Windows.", config, 2);
   assert.equal(route.skills.length, 2);
-  assert.ok(estimateTokensFromBytes(1000) === 250);
-  assert.ok(estimateTokensFromBytes(1) === 1);
+  assert.equal(estimateTokensFromBytes(1000), 250);
+  assert.equal(estimateTokensFromBytes(1), 1);
+  assert.equal(estimateTokensFromBytes(0), 0);
 });
 
 test("common source mutations are detected but harmless shell commands are not", () => {
@@ -79,18 +62,21 @@ test("common source mutations are detected but harmless shell commands are not",
   assert.equal(isLikelySourceMutation("bash", { command: "ctest --output-on-failure" }, config.routing.mutationTools), false);
 });
 
-test("diagnostic instructions permit an explicit unresolved/no-defect result", () => {
-  const core = readFileSync(join(root, "ponytail-diag", "SKILL.md"), "utf8").toLowerCase();
-  assert.match(core, /no defect established/);
+test("diagnostics do not require a fabricated root cause or line number", () => {
+  const core = readCore("ponytail-diag").toLowerCase();
+  assert.match(core, /confirmed/);
+  assert.match(core, /supported/);
   assert.match(core, /unresolved/);
-  assert.match(core, /leading hypothesis/);
+  assert.match(core, /no defect established/);
+  assert.match(core, /blocked/);
+  assert.match(core, /use root cause only for confirmed/);
   assert.doesNotMatch(core, /emit exactly one line:\s*\n\n`root cause:/);
 });
 
 function walkMarkdown(dir) {
   const found = [];
   for (const name of readdirSync(dir)) {
-    if (name === "node_modules" || name === ".git") continue;
+    if (name === "node_modules" || name === ".git" || name === ".opencode") continue;
     const path = join(dir, name);
     const stat = statSync(path);
     if (stat.isDirectory()) found.push(...walkMarkdown(path));
@@ -99,41 +85,36 @@ function walkMarkdown(dir) {
   return found;
 }
 
+function statSafe(path) {
+  try { return statSync(path).isFile(); } catch { return false; }
+}
+
 test("all relative Markdown links, including optional references, resolve", () => {
-  const docs = walkMarkdown(root).filter((path) => !path.includes("/.git/"));
+  const docs = walkMarkdown(root);
   const failures = [];
   for (const path of docs) {
     const content = readFileSync(path, "utf8");
     for (const match of content.matchAll(/\]\(([^)]+\.md)(?:#[^)]+)?\)/g)) {
       const target = match[1];
       if (/^(https?:|mailto:)/i.test(target)) continue;
-      if (!statSafe(join(path.slice(0, path.lastIndexOf("/")), target))) {
-        failures.push(`${path.slice(root.length + 1)} -> ${target}`);
-      }
+      if (!statSafe(join(dirname(path), target))) failures.push(`${path.slice(root.length + 1)} -> ${target}`);
     }
   }
   assert.deepEqual(failures, []);
 });
 
-function statSafe(path) {
-  try { return statSync(path).isFile(); } catch { return false; }
-}
-
-test("each optional reference file is reachable from its skill core", () => {
-  const skillDirs = readdirSync(root).filter((name) => {
-    try { return statSync(join(root, name, "SKILL.md")).isFile(); } catch { return false; }
-  });
+test("each optional reference is reachable from its owning skill core", () => {
   const failures = [];
-  for (const skill of skillDirs) {
-    const refsDir = join(root, skill, "references");
-    try {
-      const refs = readdirSync(refsDir).filter((name) => name.endsWith(".md"));
-      const core = readFileSync(join(root, skill, "SKILL.md"), "utf8");
-      for (const ref of refs) {
-        if (!core.includes(`references/${ref}`)) failures.push(`${skill}/references/${ref}`);
-      }
-    } catch {
-      // No references directory is a valid skill layout.
+  for (const skill of readdirSync(root)) {
+    const corePath = join(root, skill, "SKILL.md");
+    if (!statSafe(corePath)) continue;
+    const refsPath = join(root, skill, "references");
+    if (!statSafe(join(refsPath, "..", "SKILL.md"))) continue;
+    let refs = [];
+    try { refs = readdirSync(refsPath).filter((name) => name.endsWith(".md")); } catch { continue; }
+    const core = readFileSync(corePath, "utf8");
+    for (const ref of refs) {
+      if (!core.includes(`references/${ref}`)) failures.push(`${skill}/references/${ref}`);
     }
   }
   assert.deepEqual(failures, []);
