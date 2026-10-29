@@ -523,6 +523,89 @@
         "merge conflict",
         "git status",
         "repository changes"
+      ],
+      "app-engine-deploy": [
+        "App Engine",
+        "app.yaml",
+        "dispatch.yaml",
+        "Google Cloud deployment",
+        "Cloud SQL"
+      ],
+      "build-ci": [
+        "CMake",
+        "Ninja",
+        "MSBuild",
+        "build failure",
+        "CI pipeline",
+        "reproducible build",
+        "linker error"
+      ],
+      "c99-systems": [
+        "C99",
+        "portable C",
+        "strict C",
+        "C systems programming"
+      ],
+      "cross-compilation": [
+        "cross compilation",
+        "cross-compile",
+        "target toolchain",
+        "sysroot",
+        "CMake toolchain"
+      ],
+      "graphics-shader-kernels": [
+        "shader kernel",
+        "compute shader",
+        "GLSL",
+        "HLSL",
+        "SPIR-V",
+        "workgroup size"
+      ],
+      "implementation-integrity": [
+        "implementation integrity",
+        "fake implementation",
+        "completion audit",
+        "missing wiring"
+      ],
+      "llm-evaluation": [
+        "LLM evaluation",
+        "model eval",
+        "perplexity",
+        "quality regression",
+        "eval dataset",
+        "token accuracy",
+        "logits comparison",
+        "LLM benchmark"
+      ],
+      "security-hardening": [
+        "security hardening",
+        "least privilege",
+        "secure parsing",
+        "secrets management",
+        "resource exhaustion"
+      ],
+      "systems-ml-stack-router": [
+        "systems ML stack",
+        "systems router",
+        "GPU and LLM stack",
+        "choose specialist skill"
+      ],
+      "test-engineering": [
+        "test engineering",
+        "unit test",
+        "integration test",
+        "property test",
+        "fuzz test",
+        "regression test"
+      ],
+      "windows-driver-dev": [
+        "Windows driver",
+        "KMDF",
+        "UMDF",
+        "WDM",
+        "Driver Verifier",
+        "IOCTL",
+        "DMA"
       ]
     }
   }
