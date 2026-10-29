@@ -2,11 +2,6 @@
 name: build-ci
 description: Diagnoses and designs reproducible builds and CI pipelines for C/C++, Python, Rust, GPU code and multi-platform repositories.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["CMake", "Ninja", "MSBuild", "build failure", "CI pipeline", "reproducible build", "linker error"]
 ---
 
 # Build and CI
