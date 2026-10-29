@@ -249,3 +249,7 @@ static void pci_scan(void) {
 - Does not cover x86 architecture details (see `x86-arch`)
 - Does not cover memory management (see `memory-mgmt`)
 - `stop bare-metal-kernel`: revert.
+
+## Optional references
+
+- [kernel-recipes.md](references/kernel-recipes.md)
