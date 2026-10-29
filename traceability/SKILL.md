@@ -3,7 +3,10 @@ name: traceability
 description: Trace non-trivial execution paths from entry to exit with stable markers, contracts and source-level evidence.
 compatibility: opencode
 metadata:
-  role: code-quality
+  loading: on-demand
+  auto_unload: true
+  role: traceability
+  trigger_keywords: ["traceability", "trace markers", "source mapping", "DBG_TRACE", "execution trace"]
 ---
 
 # Traceability
@@ -39,13 +42,6 @@ A marker scheme such as \`[T-001]\` can link a function's contract, runtime trac
 - [ ] Instrumentation is safe and can be disabled.
 - [ ] Source mapping works for a sample address where relevant.
 - [ ] The trace actually distinguishes a live hypothesis or explains execution.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Trace entry through dispatch, state/resource effects and every meaningful exit, including errors and cancellation. Markers must be low-overhead, configurable and free of secrets; source claims require matching execution evidence.
-
 
 ## Boundaries
 

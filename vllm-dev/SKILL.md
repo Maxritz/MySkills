@@ -1,80 +1,47 @@
 ---
 name: vllm-dev
-description: "vLLM: PagedAttention, tensor parallel, Triton."
+description: vLLM runtime and model development, scheduling, KV cache, kernels, API serving and performance validation.
 license: Apache-2.0
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
+  auto_trigger: false
+  trigger_keywords: ["vLLM", "PagedAttention", "vLLM scheduler", "vllm serve"]
 ---
 
 # vLLM Development
 
-## Architecture
+## Version and platform gate
 
-- **Model executor**: `vllm/model_executor/` — HF model loading (`from_pretrained`), custom ops.
-- **Worker**: `vllm/worker/worker.py` — runs forward pass on GPU, manages KV cache locally.
-- **Scheduler**: `vllm/core/scheduler.py` — priority scheduling, preemption (block swap).
-- **Attn backend**: `vllm/attention/` — FlashAttention, xFormers, or custom (FlashInfer).
+vLLM changes internals, supported models, attention backends, quantisation methods and CLI flags across releases. Record the installed version or Git commit, Python, PyTorch, CUDA/ROCm/other backend, driver and GPU. Inspect the matching docs and `vllm serve --help` before depending on a symbol, path, default or flag. Avoid treating old `vllm/core` or worker paths as stable public interfaces.
 
-## PagedAttention
+## Architecture to trace
 
-- KV cache stored in GPU blocks (16 tokens/block). `BlockAllocator` manages free blocks.
-- `BlockTable` maps logical block IDs to physical GPU block IDs.
-- `swap_in` / `swap_out`: move blocks between GPU and CPU when OOM.
-- `gpu_cache` and `cpu_cache` are `list[pair[torch.Tensor, torch.Tensor]]` (key, value).
-- `max_model_len` parameter sets max context. `block_size=16` default.
+Follow the actual version's request path through API server, engine/core, scheduler, model runner, attention backend, KV-cache manager and device kernels. Inspect configuration defaults from the installed code, not from remembered snippets. For a bug, identify the first boundary whose state or output differs from contract.
 
-## Tensor Parallelism
+## Serve and verify
 
-- `--tensor-parallel-size N` — uses `torch.distributed` + `vllm/distributed/`.
-- `ParallelSampler` for data parallel. `ColumnParallelLinear`, `RowParallelLinear` for model parallel.
-- `initialize_model_parallel(tp_size, pp_size)` in `vllm/distributed/parallel_state.py`.
-- All ranks load full model; weights are sharded at init.
+The current stable documentation uses a `vllm serve MODEL` entry point for an OpenAI-compatible API. Exact flags remain release- and backend-dependent.
 
-## Quantization Support
+```bash
+vllm serve MODEL_ID_OR_PATH --host 127.0.0.1
+```
 
-- GPTQ: `--quantization gptq` (from `AutoGPTQ`). Load quantized weights via `quantization_config`.
-- AWQ: `--quantization awq` — activation-aware weight quantization.
-- SqueezeLLaMA / Marlin: `--quantization marlin` — custom CUDA kernels in `vllm/model_executor/layers/quantization/`.
-- SmoothQuant: `--quantization smooth_quant` — per-tensor scaling factors.
+Verify the installed command's help before adding flags. Test startup/readiness, a deterministic chat or completion request, streaming, malformed input, cancellation, overload and graceful shutdown. The current server documentation notes that `--api-key` does not protect every endpoint; use a properly configured reverse proxy or network boundary and verify all exposed routes, rather than relying on that option alone.
 
-## Triton Kernels
+## Runtime and kernel work
 
-- Custom kernels in `vllm/model_executor/parallel_layers/...` and `vllm/platforms/triton_utils.py`.
-- `triton.autotune` configs for kernel specialization.
-- Use `@triton.jit` for attention, activation, and elementwise kernels.
-- Compile once: `--enable-prefix-caching` uses cached Triton kernels per context length.
+- For KV-cache defects, inspect page/block allocation, sequence ownership, reuse, pre-emption, eviction and request cleanup.
+- For scheduler defects, record queue state, batch formation, fairness, cancellation and failure propagation.
+- For kernel changes, validate shapes, strides, dtype, alignment, masking, non-multiple dimensions, precision and backend feature requirements.
+- For quantisation, compare output quality and intermediate numeric error with a reference before benchmarking.
+- Keep engine-specific behaviour and file paths version-pinned; avoid relying on internal module paths unless the change intentionally targets that commit.
 
-## GPU Memory Management
+## Benchmark protocol
 
-- `gpu_memory_utilization` (0.0–1.0): fraction of GPU VRAM for KV cache.
-- `vllm/platforms/cuda.py`: `get_device` + `get_attn_backend`.
-- `torch.cuda.mem_get_info()` to query free/used GPU memory.
-- Block table swap: `cpu_cache` (pinned memory) ↔ `gpu_cache`.
+Freeze model and tokenizer revisions, dtype/quantisation, context length, prompt/output token counts, batch/concurrency, sampling settings, cache policy and hardware/software versions. Separate load and warm-up from timed work. Report time-to-first-token, inter-token latency, throughput, tail latency, peak memory and errors. Repeat trials and report median/spread, not only the fastest sample.
 
-## LoRA Support
+## Report
 
-- `--enable-lora --lora-modules lora1=path1,lora2=path2`.
-- `LoRAModel` in `vllm/model_executor/layers/lora/model.py`.
-- Adapter weights loaded as 4-bit / 8-bit / FP16.
-- `LoraCard`: metadata (rank, alpha, target modules).
-
-## Monitoring
-
-- Prometheus metrics at `/metrics` endpoint (when `--enable-metrics`).
-- Key metrics: `vllm:token_throughput`, `vllm:gpu_memory_utilization`, `vllm:num_requests_running`.
-- `--disable-log-requests` suppresses per-request logs.
-- `VLLM_LOG_LEVEL=DEBUG` for verbose logging.
-
-## Development Flow
-
-1. `pip install -e .` — builds with Triton/CUDA from source.
-2. `python setup.py build develop` — or `pip install -e .[dev,test]`.
-3. `pytest tests/` — includes prefill/decode, TP, quantization tests.
-4. Run: `python -m vllm.entrypoints.openai.api_server --model /path/model --dtype auto`
-5. API: `POST /v1/chat/completions`, `POST /v1/completions`.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Pin vLLM and runtime versions, model architecture, parallelism and attention backend. Validate scheduler decisions, KV block allocation and real request completion; compare correctness and report TTFT, inter-token latency, throughput and memory on a fixed workload.
-
+Include version/commit, platform/backend, exact launch and request commands, regression tests, reference checks, benchmark method and limitations. Use `llm-serving` for engine comparison and `llm-advanced` for MoE/speculative decoding.

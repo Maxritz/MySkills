@@ -1,7 +1,9 @@
 ---
 name: sherlock-it
 description: "Measurement-driven performance investigation and optimisation with instrumentation, baseline comparison and retesting. Trigger: /sherlock-it."
-compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
 ---
 
 # Sherlock-It
@@ -12,9 +14,53 @@ compatibility: opencode
 
 **File:** `.opencode/sherlock-analysis.md` (project root, append-only)
 
-### Compact run record
+### Log Format (Dox-Style)
+```markdown
+# Sherlock Analysis Log
 
-Record run ID, timestamp, target/revision, environment, workload, baseline, measurements, hypotheses, actions and validation status. Use the [run-log template](references/run-log-template.md); do not keep dated sample runs in the core.
+## [RUN-001] 2026-10-08T14:30:00Z — MODE: FULL — TARGET: llama.cpp
+### BASELINE
+- Hardware: H100 (CC 9.0), Driver 560.x, CUDA 12.6
+- Workload: prefill 4096, decode 128, batch 32
+- Baseline: 12,450 tok/s, TTFT 45ms, p99 latency 230ms
+
+### FINDINGS
+| Rank | Component | Cost | Evidence | Status |
+|------|-----------|------|----------|--------|
+| 1 | attention | 68% | ncu: SM throughput 34%, L2 78% | CONFIRMED |
+| 2 | KV cache write | 12% | nsys: memcpy 1.2GB/s | SUSPECTED |
+| 3 | token sampling | 5% | perf: 8% cycles in top-k | UNRESOLVED |
+
+### HYPOTHESES
+| ID | Claim | For | Against | Test | Cost | Status |
+|----|-------|-----|---------|------|------|--------|
+| H1 | FlashAttention-2 kernel underutilised | SM occupancy 34% | - | try FA-3 | low | PENDING |
+| H2 | KV cache not paged | memcpy bottleneck | - | enable PagedAttention | med | PENDING |
+
+### ACTIONS
+- [ ] Implement FA-3 kernel (H1 test)
+- [ ] Enable PagedAttention (H2 test)
+- [ ] Profile with nsys after each
+
+## [RUN-002] 2026-10-08T16:15:00Z — MODE: LOW — TARGET: llama.cpp
+### DELTA from RUN-001
+- FA-3 applied: attention 68% → 52% (-16pp)
+- PagedAttention enabled: KV write 12% → 4% (-8pp)
+- New bottleneck: token sampling 5% → 18% (now #2)
+
+### UPDATED FINDINGS
+| Rank | Component | Cost | Δ | Status |
+|------|-----------|------|---|--------|
+| 1 | attention | 52% | -16pp | IMPROVED |
+| 2 | token sampling | 18% | +13pp | REGRESSED |
+| 3 | KV cache write | 4% | -8pp | FIXED |
+
+### NEW HYPOTHESES
+| ID | Claim | For | Against | Test | Cost | Status |
+|----|-------|-----|---------|------|------|--------|
+| H3 | Speculative decoding reduces sampling | - | - | enable draft model | med | PENDING |
+
+---
 
 ## Run Modes
 
@@ -91,16 +137,29 @@ Record run ID, timestamp, target/revision, environment, workload, baseline, meas
 
 ---
 
-## Diagnostic routing
+## Diagnostic Traps (8 Types)
 
-Use the [diagnostic detail](references/diagnostic-methods.md) only when the first-pass investigation cannot explain the result: classify instrumentation, cache, scheduling, workload, environment, measurement-boundary, concurrency or observer effects. Prefer one experiment that distinguishes live hypotheses.
+| Trap | Captures | When to Create |
+|------|----------|----------------|
+| Dispatch | Launch count, grid size, workgroup dims, launch latency | Kernel launch overhead suspected |
+| Memory | Bytes R/W, alignment, bandwidth, cache misses | Memory-bound suspected |
+| Instruction | Generated ISA, vectorisation, instruction mix, fallback paths | Compute-bound suspected |
+| Synchronisation | Barriers, fences, queue waits, idle gaps | Sync overhead suspected |
+| Allocation | Alloc frequency, memory pressure, temp buffers | Alloc overhead suspected |
+| Transfer | Host-device copies, staging, transfer latency | PCIe/NVLink bottleneck suspected |
+| Dependency | Serial exec, critical path, hidden sync | False dependency suspected |
+| Accuracy | Output diff, numerical error, precision-related perf | Precision loss suspected |
+
+**Each trap:** clear hypothesis + measurable output + disable mechanism.
+
+---
 
 ## Output Contract
 
 Produce evidence-backed report:
 
 - **Findings:** Ranked bottlenecks with raw measurements, invocation counts
-- **Root causes:** Proven/suspected/unresolved — explicitly distinguished
+- **Root causes:** Proven/suspected/unresolved: explicitly distinguished
 - **Hardware analysis:** Architectural limits vs observed utilisation
 - **Optimisation plan:** Specific changes, expected impact, validation criteria
 - **Results:** Before/after measurements, % change, correctness, reproducibility
@@ -125,21 +184,60 @@ Use tables for per-kernel/per-shader measurements. Include raw timings and workl
 
 ---
 
-## Goli-mat-de integrity gate
+## Log Management
 
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+### Auto-Load on Session Start
+```
+On sherlock-it load: read .opencode/sherlock-analysis.md
+If exists: show last 3 RUN entries summary
+If missing: create new log, start with FULL
+```
 
-- Give each run an immutable ID, revision, target, workload and timing boundary; compare only compatible baselines. Keep hypotheses, observations and interventions separate, and re-run the measured bottleneck after each optimisation without inventing profiler data.
+### Delta Comparison (Automatic)
+```python
+def compare_runs(current, previous):
+    # Compare bottlenecks, costs, statuses
+    # Mark: IMPROVED, REGRESSED, FIXED, NEW, UNCHANGED
+    # Update hypothesis statuses: PENDING → TESTING → CONFIRMED/FALSIFIED
+    # Carry forward UNRESOLVED hypotheses
+```
 
+### Sanitization
+- No paths, keys, emails, phones, machine names
+- Same rules as knowledge-base
 
-## Detailed examples
+### Validation Gates (Per RUN Entry)
+- [ ] Baseline recorded with full config
+- [ ] At least 3 measurements per bottleneck
+- [ ] Hypothesis status updated
+- [ ] Actions have checkboxes
+- [ ] Next RUN knows where to continue
 
-Use the [run-log template](references/run-log-template.md) for the full record format. Session-log mechanics are in [diagnostic and log details](references/diagnostic-methods.md).
+---
 
 ## Boundaries
 
 - Does not write kernel code (receives kernels to validate/optimise)
 - Does not manage CUDA/ROCm installation
-- Stop using the workflow; preserve existing project state.
+- `stop sherlock-it`: revert
 - Log persists across sessions; never auto-deleted
 
+## Example (of what the trace can contain)
+
+example of a sherlock trace:
+stdout:
+     component           ops   %dev      dev us     idle us     host us
+     attention            24  95.4%   535880.80      377.62       49.20
+     projections         187   3.2%    17723.32     2026.19      460.80
+     recurrent            90   1.1%     6127.59     1170.02      143.80
+     attention-mix        72   0.2%     1335.28     1102.27      111.60
+     head+sample           1   0.0%       98.20       91.80       56.90
+     bias                 18   0.0%       90.03      265.52       66.60
+     transfer              1   0.0%       79.80     1087.10     1084.30
+     norms                67   0.0%       72.98      784.24      139.40
+     residual             48   0.0%       23.40      198.44       73.30
+     ffn-activate         42   0.0%       21.52      372.84       67.70
+     embed                 1   0.0%        0.48       25.44        2.40
+   instrumentation floor, 256 empty ops timed through the same begin/end path: 0.70 us host, 19.54 us device each.
+
+---

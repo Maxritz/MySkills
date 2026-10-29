@@ -1,95 +1,52 @@
 ---
 name: tensorrt-llm-dev
-description: "TensorRT-LLM: C++ engine, quantization, tensor parallel."
+description: TensorRT-LLM model execution, LLM API, serving, CUDA integration, quantisation and performance validation.
 license: NVIDIA Source Code License
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
+  auto_trigger: false
+  trigger_keywords: ["TensorRT-LLM", "trtllm-serve", "TensorRT LLM API", "TensorRT engine"]
 ---
 
 # TensorRT-LLM Development
 
-## Architecture
+## Version gate first
 
-- **C++ core**: `cpp/` — model executor, attention plugins, KV cache, scheduler.
-- **Python build**: `examples/` + `scripts/` — quantization scripts, model builder.
-- **TRT engine**: `tensorrt_llm/build.py` — compiles HF model → TRT engine (`.engine`).
-- **Serving**: `triton_python_backend/` — Triton Inference Server backend.
+TensorRT-LLM has changed execution backends and deployment workflows. Before writing code, record the exact package version or source commit, CUDA/driver/TensorRT versions and GPU architecture. Inspect the installed CLI help and matching versioned official documentation.
 
-## Engine Build Pipeline
+Do not assume legacy symbols or commands such as `BuildConfig`, `LLaMAForCausalLM`, `trtllm-build`, checkpoint conversion or a prebuilt engine are part of the current release. The latest documentation includes a PyTorch-native LLM API and a `trtllm-serve` workflow; older pinned releases may have materially different engine-build paths. Do not blend instructions across those release families.
 
-```python
-from tensorrt_llm import BuildConfig, build
-from tensorrt_llm.models import LLaMAForCausalLM
+## Select the workflow
 
-model = LLaMAForCausalLM.from_hugging_face("meta-llama/Llama-2-7b-hf")
-config = BuildConfig(
-    max_batch_size=32,
-    max_input_len=2048,
-    max_output_len=512,
-    dtype="float16",
-    tensor_parallelism=4,
-    quant_algo="fp8",  # or "int8", "int4"
-)
-engine = build(model, config)
-engine.save("llama2-7b-fp8-tp4")
-```
+| Goal | Start here | Evidence |
+|---|---|---|
+| Offline inference | Current `LLM` API docs and examples | Load, generate, compare output, shut down cleanly |
+| Online serving | Current `trtllm-serve --help` and serving guide | Readiness, requests, streaming, errors and stop/cleanup |
+| Source development | Repository build instructions for the pinned commit | Clean build, targeted tests and ABI/runtime checks |
+| Legacy engine deployment | Only the docs for the exact release that supports it | Engine compatibility, model/plugin/CUDA/GPU match |
+| Quantisation or parallelism | Current supported-model, quantisation and parallelism matrices | Quality delta, memory, correctness and measured throughput |
 
-## Quantization
+## Developer workflow
 
-- **FP8**: `--quant_algo fp8` — requires H100/Tensor Core. `fp8_mode=fp8` in `BuildConfig`.
-- **INT8**: `--quant_algo int8` — weight-only or smoothquant (activation-aware).
-- **INT4**: AWQ (Activation-aware Weight Quantization) — `int4_weight_only=True`.
-- **SmoothQuant**: `--smoothquant 0.5` — scales weights and activations.
-- Quantization scripts in `examples/quantization/`.
+1. Freeze model revision, tokenizer, source revision, package and hardware/software tuple.
+2. Reproduce with the smallest supported model/input and preserve the first error.
+3. Trace request/model config through loading, weight representation, execution backend, cache and output conversion.
+4. Change one causal variable per iteration; do not rewrite a command or API based on examples from another release.
+5. Run targeted tests, reference comparisons and the relevant regression suite.
+6. Measure warm and steady-state performance separately after correctness passes.
 
-## Tensor Parallelism
+## Numerical and serving checks
 
-- `--tensor_parallel_size N` or `tensor_parallelism=N` in `BuildConfig`.
-- Uses `nccl` for inter-GPU communication. `MPI_COMM_WORLD` for multi-node.
-- TP splits QKV projection and MLP across GPUs. Each shard has full vocab.
-- `LLAMA_FOR_CAUSAL_LM.build_config` handles TP sharding automatically.
+- Compare tokenisation, stop conditions, output shape and logits or generated outputs against a trusted reference where available.
+- Record tolerances explicitly for quantised and mixed-precision paths.
+- Test allocation limits, cache exhaustion, cancellation, streaming order, invalid requests and clean shutdown.
+- For parallel execution, verify rank/world-size configuration, process-group setup, collective ordering and failure propagation.
+- Bench prefill, decode, time-to-first-token, inter-token latency, throughput, tail latency and peak memory separately.
 
-## Paged KV Cache
+## Build evidence
 
-- `paged_state=True` in `BuildConfig` — dynamic KV cache allocation.
-- Manages blocks (pages) of KV cache, like vLLM's PagedAttention.
-- Reduces GPU memory waste from over-allocation.
-- `--enable_pagecount` for monitoring.
+For source changes, follow the checked-out repository's documented build target. The current documentation contains a full source build path that builds a wheel, but flags and dependencies must match the pinned commit. Report exact commands, exit codes, logs, tests and unsupported/unavailable GPU checks. A successful Python import or engine creation alone does not validate inference correctness.
 
-## Speculative Decoding
-
-- Draft model + target model. `--medusa_num_heads` for Medusa-style.
-- `--speculative_decoding` flag. Draft model must be smaller (e.g., 300M draft).
-- `DraftTargetMode` in builder config. Accepted/rejected by target model.
-
-## Benchmarks
-
-```bash
-# Perplexity
-python examples/eval.py --engine_dir=./engines --dataset=wikitext2
-
-# Latency
-python examples/benchmark.py --engine_dir=./engines --num_requests=100 --input_len=512 --output_len=128
-
-# Throughput
-python examples/benchmark.py --engine_dir=./engines --batch_size=32
-```
-
-## Triton Backend
-
-- `/model_repository/` with versioned directories.
-- `config.pbtxt` — `parameters: {key: "engine_dir" value: {"string_value": "/engines/llama2-7b"}}`.
-- `model.py` — Triton Python backend wrapping TRT-LLM engine.
-- Supports streaming, beam search, constrained decoding.
-
-## Plugin System
-
-- Custom attention: `AttentionWithRelativePositionBias` plugin in `cpp/tensorrt/plugins/`.
-- LayerNorm, RMSNorm, SiLU, GELU fused kernels.
-- Build with `python setup.py install` or `pip install -r requirements.txt`.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Pin TensorRT-LLM, TensorRT, CUDA, GPU architecture, model config and build flags. Validate engine deserialisation on the intended deployment target, compare outputs with a reference, and benchmark separate prefill/decode paths rather than relying on a successful engine build.
-
+Use `llm-serving` for engine-agnostic serving decisions and `llm-advanced` for MoE/speculative decoding contracts.

@@ -3,7 +3,10 @@ name: debug-hypothesis
 description: Form and rank falsifiable debugging hypotheses using evidence and distinguishing experiments.
 compatibility: opencode
 metadata:
+  loading: on-demand
+  auto_unload: true
   role: debugging
+  trigger_keywords: ["hypothesis", "suspected cause", "root-cause investigation", "competing causes"]
 ---
 
 # Debug Hypothesis
@@ -32,13 +35,6 @@ Use this compact form:
 4. Update status from the result. Eliminate contradicted hypotheses immediately.
 5. If evidence supports none, revise the model instead of inventing more speculative variants.
 6. Confirm a root cause only when evidence establishes the causal chain or the fix removes the failure under relevant tests.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Keep credible competing explanations tied to supporting and contradicting observations, each with a falsifiable prediction and a distinguishing test. Retire a hypothesis only when a measured or inspected result warrants it.
-
 
 ## Boundaries
 

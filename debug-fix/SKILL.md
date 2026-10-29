@@ -3,7 +3,9 @@ name: debug-fix
 description: "Smallest patch for confirmed root cause. One causal hypothesis → one minimal patch → one verification cycle."
 compatibility: opencode
 metadata:
+  auto_unload: true
   role: debugging
+  loading: on-demand
 ---
 
 # Debug Fix
@@ -114,13 +116,6 @@ After all gates pass → emit:
 ```
 HANDOFF: debug-verify ready — fix applied, all gates passed.
 ```
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- A fix must target a confirmed causal mechanism, preserve unrelated behaviour and retain the original failure as a regression test. Do not alter checks merely to make a failure disappear.
-
 
 ## Boundaries
 

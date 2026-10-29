@@ -3,7 +3,10 @@ name: debug-reproduce
 description: Capture a reliable, minimal reproduction of an observed failure with expected and actual behaviour.
 compatibility: opencode
 metadata:
+  loading: on-demand
+  auto_unload: true
   role: debugging
+  trigger_keywords: ["reproduce bug", "minimal reproducer", "reproduction steps", "intermittent failure", "regression reproducer"]
 ---
 
 # Debug Reproduce
@@ -23,13 +26,6 @@ Establish exactly what fails and under which conditions before claiming a root c
 ## Reproducer record
 
 \`REPRO: <command> | INPUT: <fixture/version> | EXPECTED: <contract> | ACTUAL: <observation> | RATE: <passes/fails> | ENV: <relevant details>\`
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Record exact revision, command, input, environment, expected/actual result, seed and failure frequency. Redact secrets and private paths. A plausible narrative without an observed reproducer stays unconfirmed.
-
 
 ## Boundaries
 

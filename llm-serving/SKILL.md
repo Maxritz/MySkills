@@ -2,6 +2,11 @@
 name: llm-serving
 description: "Unified LLM serving: vLLM (PagedAttention), SGLang (KV cache, speculative), TensorRT-LLM (TRT engine, FP8/FP4), model-pool (endpoint routing). Benchmarks, monitoring, deployment."
 compatibility: opencode
+metadata:
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["vLLM", "SGLang", "TensorRT-LLM", "Triton", "serving", "PagedAttention", "KV cache", "tensor parallel", "speculative decoding", "quantization", "OpenAI API"]
 ---
 
 # LLM Serving
@@ -20,13 +25,77 @@ compatibility: opencode
 
 ---
 
-## Engine-specific implementation recipes
+## Engine-specific implementation
 
-Detailed vLLM, SGLang and TensorRT-LLM commands are kept in [`references/engine-recipes.md`](references/engine-recipes.md). Load that file only when implementing or debugging one of these engines. CLI flags, Python APIs, KV-cache layouts and quantisation support are version-sensitive; check the installed version and its own help/docs before executing examples.
+Keep detailed engine instructions in the specialist skill to avoid loading duplicate runbooks.
 
-## Model-pool routing (on demand)
+| Engine | Load | Use for |
+|---|---|---|
+| vLLM | vllm-dev | PagedAttention, scheduler, block management, runtime flags, kernels and engine-specific regressions |
+| SGLang | sglang-dev | RadixAttention, prefix reuse, KV cache and runtime profiling |
+| TensorRT-LLM | tensorrt-llm-dev | Engine build, plugins, quantisation, parallelism and TensorRT deployment |
 
-Use explicit policies for endpoint capability, context limits, health, latency/cost, privacy and failure isolation. Keep credentials and endpoint secrets outside version control. Detailed configuration and routing examples: [model-pool reference](references/model-pool.md).
+Verify current command-line flags, Python APIs, supported GPU architectures and quantisation modes against the exact installed version. Treat example flags in any skill as prompts to validate, not guarantees of current support.
+
+## Shared serving contract
+
+- Record model/tokenizer revision, quantisation, context length, concurrency, batch policy, KV-cache dtype and hardware/software versions before comparing engines.
+- Exercise the actual public API with success, malformed request, cancellation, timeout, overload and shutdown cases.
+- Check streaming order, request isolation, client disconnect cleanup, admission control, memory exhaustion and scheduler fairness.
+- Report time-to-first-token, inter-token latency, throughput, tail latency, peak memory and error rate separately. Do not combine prefill and decode into one unexplained throughput number.
+- Validate output correctness against a fixed prompt set and deterministic configuration before using speed results.
+
+## 4. Model Pool (Endpoint Routing)
+
+### Architecture
+```
+Request → debug-domain-router → Route
+  ├─ Code generation (cheap) → Small local model (7B-)
+  ├─ Validation/verify       → Main endpoint (GPT-4/Claude/70B+)
+  ├─ Security audit          → Cheap + debug-reference
+  └─ Numerical proof         → Main endpoint
+```
+
+### Configuration (`~/.config/opencode/models/pool.json` - gitignored)
+```json
+{
+  "write_endpoints": [
+    {"name": "gemma-2b-local", "base_url": "http://localhost:8080", "cost_per_1k": 0.0001, "max_tokens": 2048},
+    {"name": "phi-3-mini-local", "base_url": "http://localhost:8081", "cost_per_1k": 0.0002, "max_tokens": 4096}
+  ],
+  "verify_endpoints": [
+    {"name": "gpt-4o", "base_url": "https://api.openai.com/v1", "cost_per_1k": 0.03, "model": "gpt-4o"},
+    {"name": "claude-3-opus", "base_url": "https://api.anthropic.com/v1", "cost_per_1k": 0.075, "model": "claude-3-opus"},
+    {"name": "llama3-70b-local", "base_url": "http://localhost:8000", "cost_per_1k": 0.001, "model": "llama-3-70b"}
+  ],
+  "routing_rules": {
+    "code_generation": "write_endpoints",
+    "validation": "verify_endpoints",
+    "security_audit": ["write_endpoints", "debug-reference"],
+    "numerical_proof": "verify_endpoints"
+  }
+}
+```
+
+### Routing Logic
+```python
+def route_request(task_type, prompt, context):
+    if task_type == "code_generation":
+        endpoint = select_cheapest(write_endpoints)
+        response = call_endpoint(endpoint, prompt)
+        # Log for verification
+        log_to_analysis(response, endpoint.name)
+        return response
+    
+    elif task_type == "validation":
+        # Route to main endpoint for cross-check
+        endpoint = select_best(verify_endpoints)
+        return call_endpoint(endpoint, prompt)
+    
+    # ... other rules
+```
+
+---
 
 ## Unified Benchmarking
 
@@ -108,17 +177,10 @@ BLOCKERS: <list>
 
 ---
 
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Treat all engine flags and APIs below as version-sensitive examples. Check the installed package version and its own help/docs before execution; validate a real request through generation, streaming termination, cancellation and cleanup, then report TTFT, inter-token latency, throughput and memory for a named workload.
-
-
 ## Boundaries
 
 - Does not train/fine-tune (receives model artifacts)
 - Does not convert formats (see `model-formats`)
 - Does not write kernels (see `amd-gpu-stack`/`nvidia-cuda-stack`/`llm-hardcode`)
-- Does not validate components in isolation (see `llm-components`)
+- Does not validate components in isolation (see `llm-core`)
 - `stop llm-serving`: revert.

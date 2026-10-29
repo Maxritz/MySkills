@@ -1,31 +1,34 @@
 ---
 name: traceability-gate
-description: "On-demand gate for trace markers, code contracts and implementation-integrity verification."
+description: "Routes traceability and implementation-quality requests to the authoritative tracing and quality skills."
 compatibility: opencode
+metadata:
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["traceability gate", "Doxygen contract check", "implementation integrity gate", "trace marker audit"]
 ---
+
 # Traceability Gate
 
-Use this focused gate when trace markers, source mapping or behavioural contracts are in scope. For ordinary implementation edits, `code-quality-gate` owns the overall quality pipeline; do not run two duplicate full gates.
+This is a router, not a duplicated second quality gate.
 
-## Procedure
+- For stable runtime/source markers and path observability, use traceability.
+- For ordinary code-change review, use code-quality-gate.
+- For suspicious stubs, incomplete wiring, unverified claims or a whole-repository audit, use goli-mat-de.
+- For a specific fix, use debug-core then debug-verify.
+- For cross-module dependencies and ownership, use architecture-boundaries.
 
-1. Identify public APIs and non-trivial paths whose behaviour must be traceable.
-2. Document preconditions, postconditions, ownership/lifetime, errors and side effects that callers cannot infer from types and names.
-3. Trace entry, dispatch, state/resource changes, success and error exits. Add stable markers only where they answer a concrete diagnostic question.
-4. Check marker IDs, source mapping, build flags and release behaviour. Confirm whether tracing is compiled out, disabled or retained by design; do not assume.
-5. Ensure instrumentation does not disclose secrets, add unbounded I/O or change concurrency/timing enough to hide the defect.
-6. Run focused tests and inspect the resulting trace or binary/disassembly when the claim depends on it. If execution is unavailable, report the required verification as NOT RUN.
+## Traceability completion criteria
+
+1. The entry point and relevant exit/error/cleanup paths have stable identities.
+2. Instrumentation distinguishes the live hypothesis without changing hot-path semantics or leaking secrets.
+3. Source/symbol mapping is verified for the actual build and binary, including stripped-binary handling where relevant.
+4. Markers correlate the source, runtime observation, test and finding without being decorative or duplicated.
+5. The trace records what was observed, not what the reviewer expected to observe.
+
+Do not add a marker to every function mechanically. Select the minimum points that distinguish the hypotheses, and remove or disable noisy instrumentation after the investigation when it is not part of the product. A trace is evidence of observed execution, not by itself proof of correctness.
 
 ## Output
 
-Report scope/revision, missing contracts or trace paths, exact evidence, impact, minimal remediation and validation status. Separate source inspection from executed tracing.
-
-## Goli-mat-de integrity gate
-
-Tie every claimed trace path to observed source or runtime evidence. Report absent tests and unrun execution honestly; a marker's presence is not proof that the intended path executed.
-
-## Boundaries
-
-- This skill does not replace `code-quality-gate`, `goli-mat-de` or domain-specific testing.
-- Do not add markers to every line by default; optimise for diagnostic value and low overhead.
-
+Record the symbol/path traced, instrumentation, build and runtime revision, observed branches/errors, tests run and any coverage gaps. Do not claim a trace was executed unless it was.

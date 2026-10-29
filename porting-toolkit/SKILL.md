@@ -1,111 +1,117 @@
 ---
 name: porting-toolkit
-description: "Unified cross-porting toolkit: capability matrix, change isolation, cross-compilation, toolchains, assembly, emulation. Port semantics, not syntax."
+description: "Ports existing systems code across operating systems, language runtimes, CPU ISAs, ABIs and execution environments while preserving observable semantics."
 compatibility: opencode
+metadata:
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["port", "cross-platform", "adapter", "fallback", "capability probe", "platform delta", "ISA", "ABI", "emulator", "porting"]
 ---
 
 # Porting Toolkit
 
-**Port semantics, not syntax.** Start with a capability and behavior matrix for source and target. Freeze observable behavior, ABI, numeric tolerances, synchronization, ownership, error, and performance requirements.
+**Port semantics, not syntax.** A successful build proves neither behavioural equivalence nor deployability. For detailed compiler/sysroot setup, load cross-compilation. For hand-written assembly, disassembly and ABI details, load low-level-toolkit.
 
-## Phase 0: Capability & Behavior Matrix (Mandatory First Step)
+## Phase 0: Freeze the contract
 
-Before ANY code changes, produce:
+Before changing code, write a source-to-target capability and behaviour matrix.
 
-| Capability | Source | Target | Delta | Adapter Needed? |
-|------------|--------|--------|-------|-----------------|
-| Memory model | | | | |
-| Thread model | | | | |
-| Sync primitives | | | | |
-| Error handling | | | | |
-| Numeric precision | | | | |
-| ABI / calling convention | | | | |
-| File I/O | | | | |
-| Time/clock | | | | |
-| Random/entropy | | | | |
-| Dynamic loading | | | | |
-| Signal/exception | | | | |
-| GPU/accelerator | | | | |
-
-**Observable behavior contract (frozen):**
-- Input/output formats (bit-exact where possible)
-- Error codes and semantics
-- Timing tolerances (latency, throughput)
-- Concurrency guarantees (atomicity, ordering)
-- Resource lifecycle (alloc/free, open/close)
-
----
-
-## Phases 1, 2, 4, 5 and 6: execution outline
-
-| Phase | Required outcome |
+| Contract | Questions |
 |---|---|
-| 1. Cross-compile | Target-aware toolchain, explicit sysroot/SDK, clean build and dependency inspection |
-| 2. Semantic port | Keep portable logic separate from platform adapters; probe features, never guess from host macros |
-| 3. Change isolation | Land one coherent delta at a time and differential-test before continuing |
-| 4. Assembly/ABI | Hand-code only after compiler output and calling convention are understood; verify disassembly and unwind data |
-| 5. Emulation | Define fidelity boundaries and compare state/output with a trusted reference; emulation is not cycle-accuracy proof |
-| 6. Toolchains | Pin compiler, linker, SDK and dependencies; reproduce clean builds and test on target or remote hardware |
+| Data | Endianness, field widths, alignment, packing, file/protocol format |
+| Numeric | Precision, rounding, overflow, NaN/denormal behaviour, reduction order |
+| Memory | Ownership, lifetime, allocation/free pairing, virtual/physical/DMA address meaning |
+| Concurrency | Thread model, atomic guarantees, memory ordering, cancellation, shutdown |
+| OS | Files, clocks, entropy, signals/exceptions, dynamic libraries, permissions |
+| ABI | Calling convention, symbol visibility, object format, CRT/libc and struct layout |
+| Hardware | ISA features, SIMD width, cache/atomic capabilities, GPU APIs and fallback |
+| Failure | Error codes, partial results, timeout, retry, cleanup and unsupported capability |
+| Performance | Representative workload, baseline, target limit and acceptance range |
 
-For code/configuration templates, inspect [detailed porting recipes](references/porting-recipes.md). The original phase-specific checklists and examples are retained there.
+Classify each row as equivalent, adapter-required, unsupported or not yet verified. Do not silently weaken a guarantee to make the target compile.
 
-## Phase 3: Change Isolation (Porting Change Isolation)
+## Phase 1: Separate portable logic from platform capabilities
 
-**Make platform deltas explicit, small, reversible.**
+Keep business/protocol/math logic free of OS headers and SDK calls. Put OS, runtime and hardware-specific behaviour behind narrow interfaces with documented lifetime, ownership and failure semantics.
 
-### Isolation Checklist
+- Expose capability queries or feature-specific entry points. Do not make a fake fallback that returns success without doing the operation.
+- Return an explicit unsupported status when semantics cannot be preserved.
+- Keep allocation/deallocation pairs in the same platform adapter. Windows aligned allocation requires its matching deallocator; POSIX aligned allocation has different validation and error rules. Do not copy C11 aligned_alloc into a C99 or cross-platform contract.
+- C99 does not provide standard atomics or threads. A C11 atomic type, compiler intrinsic or OS primitive must be part of an explicit language/platform contract, not hidden behind an unimplemented preprocessor branch.
+- Use compile-time feature selection when the target is fixed. Use runtime dispatch only when the binary is intended to run on machines with differing capabilities.
+- Ensure the scalar/reference implementation remains available until the accelerated adapter passes differential tests.
 
-| Check | Requirement |
-|-------|-------------|
-| **Stable contract identified** | Exact behavior spec frozen (Phase 0) |
-| **Narrow adapter** | Single capability, single file, ≤50 lines |
-| **Capability probe** | Compile-time trait, not runtime `#ifdef` sprawl |
-| **Fallback explicit** | Observable, semantically equivalent where possible |
-| **One boundary at a time** | Land memory → test → thread → test → fs → test |
-| **Contract/differential tests** | Before cleanup/optimization |
-| **Temp code removal** | Only after target matrix proves safe |
+## Phase 2: Cross-compilation and target discovery
 
-### Delta Landing Template
+Use cross-compilation for toolchain files, target triples, sysroots, package discovery, host/target separation, artifact inspection and target-aware CI. Freeze the target tuple: OS, architecture, ABI, libc/runtime, compiler/linker, sysroot, minimum OS and deployment CPU/features.
 
-```diff
-# Commit: "port: add Linux memory adapter (1/5)"
-+ platform/linux/memory.c (new, 45 lines)
-+ platform/capability.h (updated: PLATFORM_ALIGNED_ALLOC)
-  test/memory_adapter_test.c (new, differential vs reference)
-```
+A CMake toolchain example must be adapted to the actual SDK and compiler. Do not assume a flag or linker mode is supported by every target. Host feature tests must not execute target binaries. A clean compile or link is not a substitute for running the resulting artifact on target hardware or a suitable emulator.
 
-**Test before next delta:**
-```bash
-# Differential test: portable logic + new adapter vs reference implementation
-./test_memory_adapter --compare=reference_impl
-```
+Before accepting a cross-build, inspect the actual compiler/link commands, object formats, architecture, interpreter/dependencies, exported symbols and minimum-runtime requirements.
 
----
+## Phase 3: Implement one semantic delta at a time
 
-## Output Report
+1. Add or update the interface contract and scalar/reference test first.
+2. Implement one adapter or capability change in isolation.
+3. Test the adapter's normal, boundary and failure paths.
+4. Differentially compare the portable path and target path with explicit numeric tolerances or exact output comparison.
+5. Inspect the final diff and remove temporary compatibility code only when the supported target matrix proves it is no longer needed.
 
-```
-PORTING TOOLKIT: PHASE <N>/6 COMPLETE
-MATRIX: <capabilities mapped>/<total> (<deltas> deltas)
-CROSS-COMPILE: <toolchain> ✅/❌
-ADAPTERS: <landed>/<planned> (<next capability>)
-ASSEMBLY: <functions hand-coded>/<total> (fallback: <status>)
-EMULATION: <fidelity level> ✅/❌
-TOOLCHAIN: <locked> ✅/❌
-DIFFERENTIAL: <passed>/<total> tests
-BLOCKERS: <list>
-```
+Avoid platform conditional branches scattered across core logic. A platform conditional is acceptable at the boundary that owns the capability; it is not a substitute for an architectural seam.
 
-## Goli-mat-de integrity gate
+## Phase 4: ISA and assembly
 
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+Do not register a stub or assembly placeholder under the name of a complete accelerated implementation. Before hand-writing instructions, record ISA, execution mode, ABI, object format, assembler syntax, calling convention, stack/unwind rules, preserved registers, flags, memory ordering and feature-detection policy.
 
-- Freeze a source-behaviour contract and capability matrix before translation. Build and test each target adapter independently, prove the fallback path and ABI, and distinguish compile-only targets from targets exercised at runtime.
+- Inspect compiler-generated assembly from the portable implementation first.
+- Check the full target feature set, including operating-system state requirements for vector extensions.
+- Preserve callee-saved registers, stack alignment, unwind metadata and ABI-visible state.
+- Handle tails, alignment and unsupported instructions explicitly. Never impose an alignment or even-block-count requirement without enforcing and documenting it.
+- Compare functional output with the portable oracle before measuring speed.
+- Use low-level-toolkit for concrete assembly templates, disassembly, relocations, symbols and instruction probes.
 
+## Phase 5: Emulation and test limits
+
+Use an emulator for fast functional checks when it models the required target behaviour. Record emulator/version, configuration, CPU/device model and unsupported instructions or peripherals.
+
+- Differential tests must compare the same inputs, observable outputs and defined architectural state. Exact PC traces are meaningful only when the instruction-level contract and stepping mode are aligned.
+- Emulator success does not prove real driver, timing, cache, DMA, interrupt, power-state or device performance.
+- Mark hardware-specific checks BLOCKED or NOT RUN if target hardware is unavailable. Do not turn an emulator run into a hardware-support claim.
+- Preserve crash inputs and reduce them to a minimal reproducer where possible.
+
+## Phase 6: Reproducibility
+
+Record source revision, compiler/linker, SDK/sysroot, dependency versions, relevant environment variables, build configuration and generated artefact hashes. Use a pinned lockfile as a record of a chosen toolchain, not as a claim that the listed versions are current or universally compatible.
+
+Build twice from clean, equivalent environments when reproducibility is required. Compare artefacts while accounting for documented nondeterminism such as timestamps, build IDs, archive ordering and absolute paths. Explain any difference instead of blindly stripping metadata until hashes match.
+
+## Acceptance gates
+
+- [ ] Contract matrix covers changed capabilities and error semantics.
+- [ ] Target tuple and actual compiler/link commands recorded.
+- [ ] No host library/header leakage into the target artifact.
+- [ ] Unsupported features fail explicitly or use a verified equivalent fallback.
+- [ ] Boundary and failure paths are tested.
+- [ ] Differential test passes against an independent reference.
+- [ ] Target runtime checks are distinguished from emulation.
+- [ ] Performance is measured against an equivalent baseline only after correctness.
+
+## Report
+
+    PORTING: SOURCE -> TARGET
+    CONTRACT: preserved / adapted / unsupported / unverified
+    TOOLCHAIN: triple, compiler, linker, SDK/sysroot
+    ADAPTERS: changed capabilities and fallback rules
+    DIFFERENTIAL: workload, oracle, tolerance and result
+    TARGET TEST: hardware / emulator / NOT RUN
+    PERFORMANCE: baseline and repeated measurement, if relevant
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
+    BLOCKERS: explicit list
 
 ## Boundaries
 
-- Does not write portable logic (receives it)
-- Does not optimize hand-coded assembly beyond correctness
-- Does not run on target hardware (emulation only)
-- `stop porting-toolkit`: revert.
+- Use cross-compilation for concrete toolchain/target configuration.
+- Use low-level-toolkit for assembly, ABI disassembly and emulator fidelity.
+- Use c-systems and c99-systems for language-specific ownership and portability constraints.
+- Use goli-mat-de to audit a port for missing wiring, fake fallbacks or overstated completion.

@@ -2,6 +2,10 @@
 name: memory-mgmt
 description: "Memory management: virtual memory layouts, allocator hierarchy (buddy, SLAB, vmalloc, CMA, GPU), DMA & coherence, NUMA-aware allocation, validation (kmemleak, buddyinfo, numastat). Unified across kernel and userspace."
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
+  trigger_keywords: ["virtual memory", "allocator", "buddy", "SLAB", "SLUB", "vmalloc", "CMA", "DMA", "coherence", "NUMA", "kmemleak", "buddyinfo", "pagetypeinfo", "numastat", "page tables", "page fault"]
 ---
 
 # Memory Management
@@ -98,13 +102,6 @@ numastat -p $(pidof app)
 1. Decode #PF error code (P=0, W=1, U=0, RSVD=1, I/D=1)
 2. `do_page_fault` path, `vmalloc_fault`, `kmap_atomic`
 3. Check page table state, `pgd_offset`, `pte_offset`
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Trace every allocation through success, failure and teardown; account for alignment, overflow, pressure and ownership. For DMA or GPU memory, prove the producer/consumer ordering and visibility on the target platform rather than assuming cache coherence.
-
 
 ## Boundaries
 

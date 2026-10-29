@@ -1,92 +1,107 @@
 ---
 name: optimization-toolkit
-description: Measurement-driven CPU/GPU performance analysis, profiling and architecture-specific optimisation. Use when a measured workload needs improvement.
+description: "Evidence-led optimisation using profiling, data layout, algorithmic simplification, SIMD, memory traffic and architecture-specific tuning."
 compatibility: opencode
+metadata:
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["optimization", "optimisation", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "extreme performance"]
 ---
 
-# Optimization Toolkit
+# Optimisation Toolkit
 
-Optimise a measured bottleneck, not a slogan. Every technique below is a hypothesis whose benefit must be verified on the target workload and hardware.
+Treat optimisation techniques as hypotheses, not rules. Correctness, workload semantics and a measured bottleneck decide which technique is appropriate. This skill covers the search strategy; use kernel-tuning and the relevant CPU/GPU stack for detailed target-specific work.
 
-## 1. Route to the narrowest technique
+## 1. Establish the objective
 
-- For byte/cycle budgets and demoscene code-size work, use [demoscene-opt](../demoscene-opt/SKILL.md); details are in [specialised techniques](references/specialised-techniques.md).
-- For AMD GPU architecture/runtime selection, use [amd-gpu-stack](../amd-gpu-stack/SKILL.md).
-- For a single GPU kernel, use [kernel-tuning](../kernel-tuning/SKILL.md).
-- For an end-to-end latency claim, use [sherlock-it](../sherlock-it/SKILL.md) to check measurement and instrumentation effects.
+Before tuning, record:
+- The exact function/request path and representative workload.
+- Required output semantics, precision, determinism and error tolerance.
+- Current end-to-end latency, throughput, memory use, code size and failure rate, as relevant.
+- Compiler, flags, binary revision, hardware, driver/runtime, power state and measurement boundary.
+- The strongest semantically equivalent baseline.
 
-## 2. Establish a baseline first
+Set an acceptance objective before editing. For example, improving a matmul microkernel is not a win if dispatch overhead, data conversion or copies make the application slower.
 
-Record the exact revision, compiler and flags, hardware, runtime, input shape, data type/precision, batch size, warm-up, power/clock state, and concurrency. Confirm correctness before timing. Keep the original implementation and a repeatable benchmark command.
+## 2. Find the actual bottleneck
 
-Use a profiler or counters to determine whether the limit is compute, bandwidth, cache/memory latency, launch/synchronisation, occupancy/register pressure, I/O, or host scheduling. Do not infer a bottleneck from high-level timing alone.
+1. Reproduce the workload and validate its output.
+2. Profile end-to-end behaviour, then drill into the measured hot region.
+3. Classify the dominant limit: algorithmic work, dependency latency, instruction throughput, memory bandwidth, cache misses, data movement, launch/dispatch, synchronisation, allocation or queueing.
+4. Write a falsifiable hypothesis that predicts which measurement should change.
+5. Change one principal variable at a time and rerun the same test.
+6. Keep the change only when improvement is reproducible and correctness remains within the declared contract.
 
-## 3. Choose an intervention from evidence
+Do not hard-code a rule such as “profile the 90% path” or assume Amdahl's law's hot region is already known. Use the measured profile and end-to-end impact.
 
-- **Fuse intermediates** only when avoided launch/allocation/traffic outweighs higher register pressure, reduced occupancy, lost reuse or code complexity.
-- **Change data layout** only when measurements show the existing access pattern wastes bandwidth, cache capacity or SIMD lanes.
-- **Remove branches** only when misprediction/divergence costs exceed extra instructions and data movement.
-- **Inline or unroll** only when call/loop overhead or vectorisation improves enough to offset code growth, instruction-cache pressure and register spills.
-- **Prefetch** only after evidence of predictable latency that hardware prefetch does not handle well. Measure both benefit and cache pollution.
-- **Specialise** only when the dispatch condition is stable and the specialised path preserves a correct fallback.
-- **NUMA placement** matters only on a NUMA system with demonstrated remote-memory effects. The numactl examples below are Linux-specific.
-- **SIMD/instruction selection** must follow the actual target ISA, compiler code generation and CPUID/runtime dispatch requirements.
+## 3. Candidate techniques
 
-## 4. Use the right model
+| Technique | Consider when | Verify before keeping |
+|---|---|---|
+| Algorithmic reduction | Work count or asymptotic cost dominates | Same semantics, edge cases and memory growth |
+| Fusion / remove intermediates | Allocation, writes or intermediate reads dominate | Aliasing, lifetime, parallelism and changed rounding |
+| Data layout / tiling | Poor locality or repeated loads are measured | Stride, alignment, cache footprint, tails and resource pressure |
+| SIMD / matrix instructions | Target ISA supports the operation and arithmetic dominates | Runtime feature dispatch, operand layout, accumulator semantics and scalar fallback |
+| Prefetching | Hardware misses are visible and access is predictable | Extra traffic, cache pollution and end-to-end result |
+| Non-temporal / cache-bypass operations | Streaming access has little near-term reuse | Exact architecture semantics, alignment, ordering and destination consumption |
+| Branch removal / bit tricks | Branch cost or dependency is measured | Valid input domain, overflow and compiler output |
+| Procedural generation / compression | Asset or model-data bandwidth dominates | Decode compute, determinism, quality and memory trade-off |
+| Specialisation / JIT | Workload shape/reuse justifies compile/cache cost | Cache keys, invalidation, security, warm-up and fallback |
+| Smaller binary / reduced runtime | Startup, distribution or footprint is the limit | Debuggability, CPU features, licensing and loader requirements |
 
-Roofline attainable throughput is bounded by both compute and bandwidth:
+Demoscene-inspired minimalism, procedural generation, aggressive compression and hand-tuned assembly are useful exploration prompts. They are not automatically faster than a general-purpose algorithm, cache, or compiler-generated implementation. Self-modifying code and runtime code generation add security and portability costs and must be justified separately.
 
-attainable performance <= min(peak compute, peak memory bandwidth × arithmetic intensity)
+## 4. Roofline and resource reasoning
 
-Keep units consistent. Arithmetic intensity is operations per byte transferred at the memory level being modelled; cache reuse can make the effective traffic at different levels very different. The roofline model does not explain launch-bound, dependency-bound, synchronisation-bound or host-bound work by itself.
+Use arithmetic intensity as a first-order model:
 
-Cache capacity and latency vary by CPU, cache topology, workload and contention. Do not use fixed L1/L2/L3 latency tables as evidence. Measure counters and working-set behaviour on the target. On Linux, for example:
+    arithmetic intensity = operations / bytes transferred at the relevant memory level
 
-~~~bash
-perf stat -e cycles,instructions,cache-misses ./app
-~~~
+A rough upper bound is the smaller of attainable compute throughput and arithmetic intensity multiplied by attainable bandwidth. Define what counts as an operation, which memory level supplies the bytes and which precision is being used. The roofline model does not capture launch overhead, dependencies, cache conflicts, synchronisation or irregular control flow by itself.
 
-Memory access descriptions such as contiguous, strided and random are starting points. The penalty depends on cache residency, transaction width, memory subsystem, coalescing rules and actual reuse. Verify with counters and a representative workload.
+For CPUs, inspect generated instructions, vectorisation reports, cache/TLB misses, branch behaviour, NUMA placement and memory-controller limits. Cache-line sizes and latencies vary by processor; query the target and do not turn sample values into universal constants.
 
-## 5. CPU and GPU tuning
+For GPUs, inspect registers, occupancy, shared/LDS usage, global-memory coalescing, wave/warp and subgroup assumptions, queue/launch overhead and measured achieved throughput. Maximum occupancy is not a universal goal: larger tiles or more register reuse can win even when occupancy falls.
 
-### CPU
+## 5. Architecture-specific discipline
 
-Use compiler vectorisation reports before rewriting loops by hand. Examples:
+- Compile and dispatch for features actually supported by the deployment target. A build flag that enables an instruction is not runtime feature detection.
+- Avoid family-name tables as substitutes for ISA documentation. Verify exact instruction names, operand packing, lane mapping and availability using the target ISA manual, compiler headers and generated code.
+- Cache hints, subgroup operations, matrix instructions and tensor formats have architecture-specific semantics. Never assume a cache-bypass flag means universal non-temporal behaviour.
+- Keep a scalar/reference path and compare edge cases before timing.
+- For AMD, use amd-gpu-stack for HIP/ROCm and shader-opt or vulkan-compute-stack for Vulkan. For NVIDIA, use nvidia-cuda-stack. For x86 instruction selection, use x86-arch.
 
-~~~bash
-# GCC
-g++ -O3 -fopt-info-vec-optimized -fopt-info-vec-missed ...
-# Clang
-clang++ -O3 -Rpass=loop-vectorize -Rpass-missed=loop-vectorize ...
-# MSVC
-cl /O2 /Qvec-report:2 ...
-~~~
+## 6. Benchmark discipline
 
-Flags differ by compiler; use only the relevant command. Compare generated code and measured throughput. -march=native is suitable for local benchmarks, not automatically for distributable binaries. Use runtime dispatch or a declared minimum ISA where portability matters.
+Run repeated, equivalent trials. Report a robust centre and spread, not only the fastest result. Warm-up, compilation, loading, CPU scheduling, GPU clocks, thermal state, power state and cache state can change results.
 
-### GPU
+Keep setup outside the timed region unless setup is the target being measured. Synchronise according to the API's actual completion semantics. For asynchronous GPU launches, do not time only the host enqueue call and label it device execution.
 
-Occupancy, wave/warp size, block size, register use and shared/local memory limits are architecture-specific. Maximum occupancy is not the objective; sufficient occupancy to cover latency while preserving reuse and instruction efficiency is the goal. Change one variable at a time and check correctness. Do not force register limits or fixed block sizes without profiling for spills, occupancy and throughput.
+Use hyperfine, perf, VTune, Nsight or a ROCm profiler only where appropriate to the platform and installed version. Check command help and capture raw output. Do not put a C intrinsic expression inside a shell-command block and imply it is executable. Do not use perf event names that are unsupported on the target CPU.
 
-### NUMA (Linux only)
+## 7. Acceptance and report
 
-~~~bash
-numactl -H
-numactl --cpunodebind=<node> --membind=<node> ./app
-~~~
+A proposed optimisation is accepted only when:
+- Reference/boundary tests pass.
+- The same workload and measurement boundary show a reproducible improvement.
+- The final diff has been reviewed for overflow, aliasing, races, error handling and fallback behaviour.
+- Memory, code size, power, startup time, debuggability and portability trade-offs are stated.
+- The end-to-end result is not worse beyond the declared tolerance.
 
-Use only when the machine exposes NUMA nodes and the benchmark shows locality effects. Do not apply CPU affinity or performance governors blindly on shared systems.
+    OPTIMISATION REPORT
+    HOT PATH: symbol/request path and measured share
+    BOTTLENECK: evidence and hypothesis
+    CHANGE: algorithm/layout/ISA/runtime and target
+    BASELINE: workload and repeated measurements
+    RESULT: centre, spread, speedup and end-to-end impact
+    CORRECTNESS: reference and edge-case results
+    TRADE-OFFS: memory, code size, power, portability
+    STATUS: PASS / FAIL / BLOCKED / NOT RUN
 
-## 6. Benchmark and validate
+## Boundaries
 
-1. Warm up and run repeated baseline/candidate measurements on the same workload and environment.
-2. Alternate or randomise run order when thermal, clock or background drift could bias the comparison.
-3. Report sample count, median, spread/percentiles, throughput and relevant counters. Keep best-observed latency separate; it is not a hardware ceiling.
-4. Make one material change per experiment and preserve a control.
-5. Re-run correctness and the original reproducer. Keep fallback behaviour and unsupported-hardware paths valid.
-6. Accept the change only if the measured improvement exceeds observed noise and the workload's acceptance threshold without violating correctness, memory, latency or portability constraints.
-
-Report the hot path and its measured share, baseline and candidate distributions, profiler evidence, compiler/hardware context, correctness results, regressions and trade-offs. If no repeatable improvement was demonstrated, say so.
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
+- Use kernel-tuning for a focused measured CPU/GPU kernel.
+- Use demoscene-opt for compact procedural graphics and size-constrained design patterns.
+- Use sherlock-it for multi-layer root-cause performance tracing.
+- Use low-level-toolkit for assembly, disassembly and ABI work.

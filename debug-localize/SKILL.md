@@ -3,7 +3,10 @@ name: debug-localize
 description: Find the earliest observable boundary where behaviour diverges from its expected contract.
 compatibility: opencode
 metadata:
+  loading: on-demand
+  auto_unload: true
   role: debugging
+  trigger_keywords: ["localise bug", "localize bug", "first bad state", "call path", "data flow", "failing boundary"]
 ---
 
 # Debug Localize
@@ -28,13 +31,6 @@ Model the path as \`INPUT → STATE → TRANSFORMATION → OUTPUT\`. Find the ea
 \`ENTRY → call_A[branch/value] → call_B[branch/value] → FIRST DIVERGENCE\`
 
 Include file/line or symbol at each meaningful boundary, the expected value, observed value, and the smallest next probe.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Compare expected and observed state at progressively narrower boundaries until the earliest divergence is evidenced. Record instrumentation effects and do not infer cause from proximity alone.
-
 
 ## Boundaries
 

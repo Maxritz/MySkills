@@ -3,6 +3,10 @@ name: shader-opt
 description: Optimise compute and graphics shaders using compiler output, profiling, wave behaviour, memory access, register pressure and measured workload constraints.
 license: MIT
 compatibility: opencode
+metadata:
+  loading: on-demand
+  auto_unload: true
+  trigger_keywords: ["shader optimisation", "shader optimization", "HLSL", "GLSL", "SPIR-V", "wave divergence", "VGPR", "LDS", "shader occupancy"]
 ---
 
 # Shader Optimisation
@@ -54,13 +58,6 @@ Record API and shader language/version, target GPU/driver, compiler/toolchain, w
 ## Output
 
 State target, compiler, dispatch shape, before/after GPU and wall timings, variance, resource/compiler deltas, correctness result, generated-code evidence and remaining limitations.
-
-## Goli-mat-de integrity gate
-
-Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
-
-- Record target GPU, compiler, shader model/SPIR-V version, launch shape and precision. Verify memory access, barriers, atomics and edge dimensions before tuning; inspect compiler output and measure the same workload with correctness retained.
-
 
 ## Boundaries
 
