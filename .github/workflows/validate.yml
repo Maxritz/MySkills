@@ -114,6 +114,7 @@ jobs:
         run: node --test tests/runtime-router.test.mjs
 
       - name: Check OpenCode plugin registration
+        shell: bash
         run: |
           node --input-type=module - <<'JS'
           import assert from "node:assert/strict";
