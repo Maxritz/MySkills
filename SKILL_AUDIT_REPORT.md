@@ -95,3 +95,11 @@ The catalogue now targets 65 specialist skills and keeps full topic details on-d
 ## Goli-mat-de deep-audit reference
 
 Expanded the optional audit matrix with catalogue/loader integrity, script and example validation, coverage-ledger fields, priority and confidence separation, retest criteria and an explicit audit-completion gate. The concise core remains under the 750-word budget; these extended checks are loaded only for broad audits.
+
+
+## Always-loaded workflow and LLM algorithm fixes
+
+- Reduced the automatic `knowledge-process` core from an overlong runbook to 535 words and moved optional log/context templates and risk-based test recipes to `knowledge-process/references/workflow-recipes.md`. Removed its mandatory ten-iteration rule, which conflicted with the risk-proportional verification standard, and removed sample all-green logs that could be mistaken for executed evidence.
+- Removed empty `pass` methods from the LLM core paged-KV example. The skill now states the actual block-ownership, copy-on-write, free-list, transfer-completion, rollback, eviction and differential-test contracts instead of depicting a non-implementation as code.
+- Rewrote `llm-advanced` to distinguish greedy-token equivalence from stochastic target-distribution equivalence, remove the unsubstantiated universal 1.3x speed threshold and model-specific speedup table, and require a workload-matched repeated benchmark.
+- Aligned `llm-core` metadata with the loader's on-demand policy. The intended always-loaded set remains exactly `debug-core`, `code-quality-gate` and `knowledge-process`, alongside the compact root quality standard.
