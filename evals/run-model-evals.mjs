@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,7 +11,23 @@ if (!model) throw new Error("Set OPENCODE_EVAL_MODEL=provider/model first.");
 const cases = JSON.parse(readFileSync(join(root, "evals/cases.json"), "utf8")).cases;
 const outputDir = resolve(process.env.MYSKILLS_EVAL_OUT || join(root, "evals/results"));
 mkdirSync(outputDir, { recursive: true });
-const report = { model, startedAt: new Date().toISOString(), results: [] };
+
+function gitOutput(args) {
+  const result = spawnSync("git", args, { cwd: root, encoding: "utf8" });
+  return result.status === 0 ? String(result.stdout || "").trim() : null;
+}
+
+const runtimeSource = readFileSync(join(root, ".opencode/plugins/myskills-runtime.js"));
+const revision = gitOutput(["rev-parse", "HEAD"]);
+const status = gitOutput(["status", "--porcelain"]);
+const report = {
+  model,
+  revision,
+  workingTreeClean: status === null ? null : status.length === 0,
+  runtimeSha256: createHash("sha256").update(runtimeSource).digest("hex"),
+  startedAt: new Date().toISOString(),
+  results: [],
+};
 
 for (const c of cases) {
   const prompt = buildEvalPrompt(c);
@@ -39,6 +56,8 @@ for (const c of cases) {
     requiredTests: c.required_tests,
     requiredVerdict: c.required_verdict,
     exitCode: run.status,
+    launchError: run.error ? String(run.error) : null,
+    signal: run.signal ?? null,
     stderr: String(run.stderr || "").slice(0, 5000),
     rawEvents: events,
     tokenUsage: usage.length ? usage : null,
