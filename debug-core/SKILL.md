@@ -1,12 +1,10 @@
 ---
 name: debug-core
-description: "Debug orchestrator: 12-step loop, truth tables, auto-unload, knowledge capture. Default entry for all debugging."
+description: "Evidence-first debugging workflow: reproduce, localise divergence, test hypotheses, establish causality and verify fixes."
 compatibility: opencode
 metadata:
-  auto_unload: true
   role: debugging
   loading: on-demand
-  auto_trigger: true
   priority: critical
 ---
 
@@ -57,18 +55,11 @@ Load ONLY the smallest debug skill:
 
 **Never preload domain packs.** Max 2 specialized skills per cycle.
 
-## Auto-Skill Unload (Prevent Lingering Context)
+## Context budget and continuity
 
-On-demand debug skills must be UNLOADED after serving their purpose:
+OpenCode does not guarantee removal of a loaded skill body from the current conversation. Do not claim that a skill was unloaded or that its tokens were reclaimed unless the active runtime exposes and confirms such an operation.
 
-1. **Unload trigger:** After `VALIDATION: tests passed` (step 12)
-2. **Unload scope:** All debug-* skills loaded during this cycle, EXCEPT debug-core + debug-domain-router
-3. **Unload action:** Remove skill body from context. Keep only summary:
-   > "debug-localize: applied, fixed n%32 check, validated."
-4. **Context-tracker:** Log unload via `ctx.py unload debug-localize` — summary persists in sessions/
-5. **Exception:** Keep debug-deep loaded until root cause is confirmed+validated
-
-See `knowledge-process` → Context Tracker for session memory and unload logging.
+After a diagnostic phase, stop repeating specialist instructions and keep a compact status record: applied skill, evidence collected, current hypothesis status, tests actually run and the next action. Read additional reference files only when they answer a live question. If a local context-management command is proposed, first verify that the command exists and inspect its implementation; otherwise record the action as a recommendation, not an executed operation.
 
 ## Compact Status
 
