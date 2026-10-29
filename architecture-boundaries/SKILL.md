@@ -290,7 +290,7 @@ BLOCKERS: <circular dep|missing interface|untested adapter>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Verify dependency direction, ownership, interface errors, timeout/cancellation, and failure/rollback behaviour against the actual call graph. Diagrams and directory structure alone do not prove that runtime wiring respects the boundary.
 

@@ -293,7 +293,7 @@ BLOCKERS: <unsupported combos, missing primitives>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Record device architecture, driver/runtime/compiler versions and required features. Trace submission, queue selection, synchronisation and transfers to measured device work; distinguish host launch cost from execution and prove correctness on the named target.
 

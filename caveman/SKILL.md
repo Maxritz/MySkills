@@ -46,7 +46,7 @@ When unsure, go terser.
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Compress wording, not meaning. Preserve required actions, caveats, uncertainty and safety-critical details; terse prose must not imply work was performed when it was not.
 
