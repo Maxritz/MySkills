@@ -253,3 +253,7 @@ prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 - Does not cover Windows (see `windows-user`)
 - Does not cover architecture patterns (see `sys-arch`)
 - `stop linux-user`: revert.
+
+## Optional references
+
+- [userspace-recipes.md](references/userspace-recipes.md)
