@@ -54,3 +54,7 @@ Record the final revision, files changed, exact checks/results, remaining risks,
 Do not create external issues, tasks or deployments from proposed findings until the user authorises that action. Route deployment-specific work to app-engine-deploy and mark cloud checks BLOCKED or NOT RUN when access is unavailable.
 
 Load references/workflow-recipes.md only when a concrete log, handoff, knowledge schema or multi-step verification plan would help.
+
+## Optional references
+
+- [workflow-templates.md](references/workflow-templates.md)
