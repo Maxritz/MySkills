@@ -2,11 +2,6 @@
 name: c99-systems
 description: C99-focused systems programming, portable APIs, memory and integer safety, ABI boundaries, and strict compiler validation.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["C99", "portable C", "strict C", "C systems programming"]
 ---
 
 # C99 Systems
