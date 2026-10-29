@@ -3,6 +3,7 @@ name: vulkan-compute-stack
 description: "Unified Vulkan compute: instance, device, memory, buffers, descriptors, command buffers, synchronization, shaders (GLSL→SPIR-V), validation, profiling. Vulkan SDK 1.4.357.0."
 compatibility: opencode
 metadata:
+  auto_unload: true
   loading: on-demand
   auto_trigger: true
   trigger_keywords: ["Vulkan", "VK_KHR", "SPIR-V", "glslc", "VMA", "compute shader", "descriptor", "command buffer", "fence", "semaphore", "subgroup", "cooperative matrix"]
