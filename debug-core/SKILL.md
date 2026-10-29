@@ -104,3 +104,7 @@ See `knowledge-process` → Context Tracker for session memory and unload loggin
 - Does not run deep analysis (escalates to debug-deep)
 - Does not validate fixes (hands off to debug-verify)
 - `stop debug-core` or `normal mode`: revert to standard operation
+
+## Optional references
+
+- [escalation-techniques.md](references/escalation-techniques.md)
