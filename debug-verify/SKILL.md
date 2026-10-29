@@ -158,7 +158,7 @@ Do not preserve one dated debug case as evergreen policy. Store reusable pattern
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Verify the exact changed revision and the original failure predicate. Report commands and results separately; distinguish PASS, FAIL, BLOCKED, NOT RUN and NOT APPLICABLE, and repeat the smallest affected regression set after each subsequent edit.
 

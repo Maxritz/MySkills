@@ -55,7 +55,7 @@ Report baseline, target budget, transformed mechanism, correctness result, binar
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Name the size/cycle budget and target before tuning. Measure the exact artifact and workload, change one technique at a time, compare output to a correctness reference, and reject gains that depend on unstable measurement or invalid language behaviour.
 

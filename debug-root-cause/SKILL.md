@@ -39,7 +39,7 @@ A root cause is more than a plausible explanation. Establish how the observed fa
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Connect trigger to the first bad state, operation and violated contract, and explain why competing causes fit less well. Validate the cause through an intervention or distinguishing test before recommending a fix.
 
