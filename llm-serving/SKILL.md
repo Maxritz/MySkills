@@ -444,5 +444,5 @@ BLOCKERS: <list>
 - Does not train/fine-tune (receives model artifacts)
 - Does not convert formats (see `model-formats`)
 - Does not write kernels (see `amd-gpu-stack`/`nvidia-cuda-stack`/`llm-hardcode`)
-- Does not validate components in isolation (see `llm-components`)
+- Does not validate components in isolation (see `llm-core`)
 - `stop llm-serving`: revert.

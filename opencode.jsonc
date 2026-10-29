@@ -14,10 +14,14 @@
     ],
     "conditional_load": [
       "amd-gpu-stack",
+      "app-engine-deploy",
       "architecture-boundaries",
       "bare-metal-kernel",
+      "build-ci",
       "c-systems",
+      "c99-systems",
       "caveman",
+      "cross-compilation",
       "debug-deep",
       "debug-domain-router",
       "debug-fix",
@@ -31,15 +35,17 @@
       "debug-root-cause",
       "debug-verify",
       "demoscene-opt",
-      "goli-mat-de",
       "gguf-ggml",
+      "goli-mat-de",
+      "graphics-shader-kernels",
+      "implementation-integrity",
       "kernel-tuning",
+      "linux-kernel-dev",
+      "linux-user",
       "llm-advanced",
       "llm-core",
       "llm-hardcode",
       "llm-serving",
-      "linux-kernel-dev",
-      "linux-user",
       "low-level-toolkit",
       "memory-mgmt",
       "model-formats",
@@ -52,11 +58,14 @@
       "python-engineering",
       "python-perf",
       "rust-safety",
+      "security-hardening",
       "sglang-dev",
       "shader-opt",
       "sherlock-it",
       "sys-arch",
+      "systems-ml-stack-router",
       "tensorrt-llm-dev",
+      "test-engineering",
       "traceability",
       "traceability-gate",
       "utility-pair",
@@ -78,6 +87,13 @@
         "RCCL",
         "rocprof"
       ],
+      "app-engine-deploy": [
+        "App Engine",
+        "app.yaml",
+        "dispatch.yaml",
+        "Google Cloud deployment",
+        "Cloud SQL"
+      ],
       "architecture-boundaries": [
         "component boundary",
         "backend boundary",
@@ -93,6 +109,15 @@
         "IDT",
         "PCI enumeration"
       ],
+      "build-ci": [
+        "CMake",
+        "Ninja",
+        "MSBuild",
+        "build failure",
+        "CI pipeline",
+        "reproducible build",
+        "linker error"
+      ],
       "c-systems": [
         "C99",
         "C++",
@@ -102,6 +127,17 @@
         "allocator",
         "concurrency"
       ],
+      "c99-systems": [
+        "C99",
+        "portable C",
+        "strict C",
+        "C systems programming"
+      ],
+      "caveman": [
+        "caveman",
+        "ultra-terse",
+        "terse human-facing output"
+      ],
       "code-quality-gate": [
         "write code",
         "edit code",
@@ -110,6 +146,13 @@
         "refactor",
         "implement",
         "fix"
+      ],
+      "cross-compilation": [
+        "cross compilation",
+        "cross-compile",
+        "target toolchain",
+        "sysroot",
+        "CMake toolchain"
       ],
       "debug-core": [
         "debug",
@@ -191,6 +234,14 @@
         "code size optimisation",
         "register pressure"
       ],
+      "gguf-ggml": [
+        "GGUF",
+        "GGML",
+        "GGUF parser",
+        "GGML quantisation",
+        "GGML quantization",
+        "Q4_0"
+      ],
       "goli-mat-de": [
         "goli-mat-de",
         "goli mat de",
@@ -202,13 +253,19 @@
         "kaam chalau code",
         "thook patti code"
       ],
-      "gguf-ggml": [
-        "GGUF",
-        "GGML",
-        "GGUF parser",
-        "GGML quantisation",
-        "GGML quantization",
-        "Q4_0"
+      "graphics-shader-kernels": [
+        "shader kernel",
+        "compute shader",
+        "GLSL",
+        "HLSL",
+        "SPIR-V",
+        "workgroup size"
+      ],
+      "implementation-integrity": [
+        "implementation integrity",
+        "fake implementation",
+        "completion audit",
+        "missing wiring"
       ],
       "kernel-tuning": [
         "kernel tuning",
@@ -222,6 +279,21 @@
         "knowledge base",
         "session continuity",
         "development process"
+      ],
+      "linux-kernel-dev": [
+        "Linux kernel",
+        "kernel module",
+        "KASAN",
+        "ftrace",
+        "lockdep"
+      ],
+      "linux-user": [
+        "syscall",
+        "pthread",
+        "epoll",
+        "mmap",
+        "systemd",
+        "seccomp"
       ],
       "llm-advanced": [
         "MoE",
@@ -253,21 +325,6 @@
         "Triton",
         "PagedAttention",
         "serving"
-      ],
-      "linux-kernel-dev": [
-        "Linux kernel",
-        "kernel module",
-        "KASAN",
-        "ftrace",
-        "lockdep"
-      ],
-      "linux-user": [
-        "syscall",
-        "pthread",
-        "epoll",
-        "mmap",
-        "systemd",
-        "seccomp"
       ],
       "low-level-toolkit": [
         "assembly",
@@ -363,6 +420,14 @@
         "FFI",
         "Cargo"
       ],
+      "security-hardening": [
+        "security review",
+        "threat model",
+        "untrusted input",
+        "model file parser",
+        "secret leakage",
+        "sandboxing"
+      ],
       "sglang-dev": [
         "SGLang",
         "RadixAttention",
@@ -389,10 +454,25 @@
         "failure domain",
         "dependency direction"
       ],
+      "systems-ml-stack-router": [
+        "systems stack",
+        "ML stack",
+        "which skill",
+        "architecture routing",
+        "select backend"
+      ],
       "tensorrt-llm-dev": [
         "TensorRT-LLM",
         "Triton backend",
         "TensorRT engine"
+      ],
+      "test-engineering": [
+        "test strategy",
+        "test coverage",
+        "differential testing",
+        "property-based test",
+        "fuzz testing",
+        "flaky test"
       ],
       "traceability": [
         "trace markers",
@@ -441,12 +521,10 @@
         "AVX2",
         "CPUID",
         "memory ordering"
-      ],
-      "caveman": [
-        "caveman",
-        "ultra-terse",
-        "terse human-facing output"
       ]
     }
-  }
+  },
+  "instructions": [
+    "SKILL_QUALITY_STANDARD.md"
+  ]
 }

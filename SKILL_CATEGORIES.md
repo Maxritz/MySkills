@@ -2,7 +2,7 @@
 
 This file is derived from actual top-level skill directories, not a planned or historical inventory.
 
-**Catalogue size on this branch: 54 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
+**Catalogue size on this branch: 63 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
 
 ## 1. Debugging and Diagnostics (14)
 
@@ -21,11 +21,13 @@ This file is derived from actual top-level skill directories, not a planned or h
 - debug-verify
 - ponytail-diag
 
-## 2. Systems, Operating Systems and Architecture (10)
+## 2. Systems, Operating Systems and Architecture (13)
 
 - c-systems
+- c99-systems
 - architecture-boundaries
 - sys-arch
+- systems-ml-stack-router
 - bare-metal-kernel
 - linux-kernel-dev
 - linux-user
@@ -33,13 +35,15 @@ This file is derived from actual top-level skill directories, not a planned or h
 - memory-mgmt
 - x86-arch
 - low-level-toolkit
+- cross-compilation
 
-## 3. GPU Compute and Optimisation (7)
+## 3. GPU Compute and Optimisation (8)
 
 - amd-gpu-stack
 - nvidia-cuda-stack
 - vulkan-compute-stack
 - shader-opt
+- graphics-shader-kernels
 - kernel-tuning
 - optimization-toolkit
 - demoscene-opt
@@ -64,13 +68,18 @@ This file is derived from actual top-level skill directories, not a planned or h
 - python-conversion
 - rust-safety
 
-## 6. Quality, Knowledge and Workflow (6)
+## 6. Quality, Knowledge and Workflow (11)
 
 - goli-mat-de
+- implementation-integrity
 - code-quality-gate
 - traceability-gate
 - traceability
 - knowledge-process
+- app-engine-deploy
+- build-ci
+- security-hardening
+- test-engineering
 - sherlock-it
 
 ## 7. Output-Style Utilities (3)
@@ -82,7 +91,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 ## Observations from the audit
 
 1. The previous README claimed 32 skills although the repository had 40 skill directories before this branch's additions.
-2. The previous category document used many names that had no matching directories, including c99-systems, systems-ml-stack-router, implementation-integrity, cross-compilation and graphics-shader-kernels.
+2. Several previously named capabilities had no dedicated folder. This branch adds focused entries for C99, cross-compilation, shader-kernel implementation, general stack routing and implementation-integrity routing. Each remains a thin specialist or router where an existing skill is the source of truth.
 3. The previous loader configuration referred to absent directories and did not include all installed skill directories.
 4. code-quality-gate and traceability-gate overlapped substantially and both claimed automatic triggering. The loader now designates only code-quality-gate as the automatic code-change gate.
 5. The focused debugging skills restore links in the intended pipeline: localise → reproduce/reduce → form hypotheses → distinguish them → check invariants/reference → establish root cause → fix → verify.

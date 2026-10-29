@@ -159,6 +159,6 @@ BLOCKERS: <circular dep|missing interface|budget breach>
 ## Boundaries
 
 - Does not write platform-specific code (see `linux-user` / `windows-user`)
-- Does not write kernel code (see `os-kernel-systems`)
+- Does not write kernel code (see `linux-kernel-dev`)
 - Does not manage C/C++ ownership (see `c-systems`)
 - `stop sys-arch`: revert.

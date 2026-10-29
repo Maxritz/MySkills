@@ -380,7 +380,7 @@ BLOCKERS: <list>
 
 ## Boundaries
 
-- Does not write kernel code (see `os-kernel-systems`)
-- Does not manage memory allocators (see `memory-management`)
+- Does not write kernel code (see `linux-kernel-dev or bare-metal-kernel`)
+- Does not manage memory allocators (see `memory-mgmt`)
 - Does not optimize assembly (see `assembler`)
 - `stop c-systems`: revert.

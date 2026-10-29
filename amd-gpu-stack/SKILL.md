@@ -17,14 +17,14 @@ metadata:
 
 | Layer | Skill | When to Use |
 |-------|-------|-------------|
-| **Platform/Library** | `rocm-stack` | rocBLAS, RCCL, rocprof, rocminfo, HIP API, packaging |
-| **Runtime** | `rocr-runtime` | HSA agents, queues, AQL packets, signals, memory pools, code objects |
+| **Platform/Library** | `ROCm platform/library layer` | rocBLAS, RCCL, rocprof, rocminfo, HIP API, packaging |
+| **Runtime** | `ROCr runtime layer` | HSA agents, queues, AQL packets, signals, memory pools, code objects |
 | **Architecture (CDNA)** | `cdna` | MI200/MI300: matrix cores, MFMA, multi-GPU (RCCL), HSA memory pools |
 | **Architecture (RDNA)** | `rdna` | RX 6000/7000: wave32, LDS, VGPR/SGPR, Infinity Cache, HIP translation |
 
 ---
 
-## 1. Platform/Library Layer (rocm-stack)
+## 1. Platform/Library Layer (ROCm platform/library layer)
 
 ### Mandatory Recording
 ```
@@ -78,7 +78,7 @@ Read `_systems-ml-shared/version-policy.md`. Never conflate:
 
 ---
 
-## 2. Runtime Layer (rocr-runtime)
+## 2. Runtime Layer (ROCr runtime layer)
 
 ### HSA Agent & Queue Model
 ```
@@ -248,20 +248,20 @@ Global (256-bit/channel) → L2 (shared, 1-4MB) → L1 (16KB/CU unified) → Inf
 ## Cross-Layer Workflow
 
 ### For Performance Issues
-1. **rocr-runtime** → Verify queue/packet/signal ordering, memory pool
-2. **rocm-stack** → Check HIP API usage, rocBLAS/RCCL primitives
+1. **ROCr runtime layer** → Verify queue/packet/signal ordering, memory pool
+2. **ROCm platform/library layer** → Check HIP API usage, rocBLAS/RCCL primitives
 3. **cdna/rdna** → Analyze occupancy, register pressure, MFMA utilization, cache behavior
 
 ### For Correctness Issues
-1. **rocr-runtime** → Reduce to minimal AQL packet sequence
-2. **rocm-stack** → Validate HIP error codes, stream sync
+1. **ROCr runtime layer** → Reduce to minimal AQL packet sequence
+2. **ROCm platform/library layer** → Validate HIP error codes, stream sync
 3. **cdna/rdna** → Check alignment, wave size, MFMA tile correctness
 
 ### For Porting (CUDA → HIP)
 1. **hipify** → Automated translation
 2. **rdna/cdna** → Replace PTX with `__builtin_amdgcn_*`
-3. **rocr-runtime** → Verify HSA queue/signal model
-4. **rocm-stack** → Swap cuBLAS/cuDNN → rocBLAS/MIOpen
+3. **ROCr runtime layer** → Verify HSA queue/signal model
+4. **ROCm platform/library layer** → Swap cuBLAS/cuDNN → rocBLAS/MIOpen
 
 ---
 

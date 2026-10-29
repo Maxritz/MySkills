@@ -175,7 +175,7 @@ msiexec /i MyApp.msi /qn /norestart
 
 ## Boundaries
 
-- Does not write kernel code (see `os-kernel-systems`)
+- Does not write kernel code (see `linux-kernel-dev`)
 - Does not manage C/C++ ownership (see `c-systems`)
 - Does not cover Linux (see `linux-user`)
 - Does not cover architecture patterns (see `sys-arch`)
