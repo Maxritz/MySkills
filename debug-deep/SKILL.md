@@ -222,3 +222,7 @@ Do not apply fixes in deep mode.
 - Probe placement: branch decision → function entry with args → invariant assert before nil propagates.
 - Does not write study docs unless asked.
 - `stop debug-deep`: revert.
+
+## Optional references
+
+- [diagnostic-techniques.md](references/diagnostic-techniques.md)
