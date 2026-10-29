@@ -27,9 +27,9 @@ Route debugging through the cheapest evidence path. Stay domain-neutral until ev
 | 7 | **Choose MDE** | HYPOTHESIS | Cheapest experiment to falsify most |
 | 8 | **Run + eliminate** | RESULT | ≥1 hypothesis eliminated or supported |
 | 9 | **Confirm root cause** | CONCLUSION | Causal chain: failure→bad-state→op→expectation→defect |
-| 10 | **Apply smallest fix** | RESULT | One causal hypothesis → one minimal patch |
-| 11 | **Rebuild/retest** | VALIDATION | Original reproducer passes |
-| 12 | **Validate + capture** | VALIDATION | Regression suite passes; KB updated |
+| 10 | **Hand off confirmed cause** | HANDOFF | `debug-fix` receives the cause, contract and reproducer |
+| 11 | **Verify the patch** | VALIDATION | `debug-verify` runs risk-appropriate checks |
+| 12 | **Capture result** | VALIDATION | Actual verification status and knowledge updates are recorded |
 
 **After VALIDATION (step 12):** document to both KB tiers:
 ```
@@ -39,9 +39,9 @@ kb.py add --category <domain> --bug ... --cause ... --fix ... --pattern ...
 
 Evidence tags: `FACT=observed`, `HYPOTHESIS=unproven`, `RESULT=outcome`, `CONCLUSION=supported cause`, `VALIDATION=tests passed`.
 
-## Instrumentation (Required)
+## Instrumentation (When Needed)
 
-Every function MUST use trace markers:
+Instrument the relevant failure path only when existing observations cannot distinguish the live hypotheses. Trace the entry, branch decisions, state transitions and exits needed to answer the diagnostic question; do not add logging mechanically to every function.
 ```c
 #define DBG_TRACE(fmt, ...) fprintf(stderr, "[T] %s:%d %s: " fmt "\n", __FILE__, __LINE__, __func__, ##__VA_ARGS__)
 #define DBG_ASSERT(cond) do { if(!(cond)) { DBG_TRACE("ASSERT: %s", #cond); abort(); } } while(0)
@@ -100,7 +100,7 @@ On-demand debug skills must be UNLOADED after serving their purpose:
 
 ## Boundaries
 
-- Does not apply fixes (hands off to debug-fix)
+- Does not apply fixes; hands off to debug-fix and uses debug-verify for executed verification
 - Does not run deep analysis (escalates to debug-deep)
 - Does not validate fixes (hands off to debug-verify)
 - `stop debug-core` or `normal mode`: revert to standard operation
