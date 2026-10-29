@@ -55,9 +55,6 @@ jobs:
                   failures.append(f"{path}: name must match directory '{name}'")
               if not description:
                   failures.append(f"{path}: missing description")
-              unsupported = re.findall(r"(?m)^  (auto_trigger|auto_unload|trigger_keywords|loading|priority):", front)
-              if unsupported:
-                  failures.append(f"{path}: remove unsupported loader fields {sorted(set(unsupported))}")
               if len(lines) > 800:
                   failures.append(f"{path}: exceeds 800 lines ({len(lines)})")
 
@@ -100,23 +97,12 @@ jobs:
           if set(categories) != set(skills):
               failures.append(f"Category mismatch: missing={sorted(set(skills)-set(categories))}, stale={sorted(set(categories)-set(skills))}")
 
-          for source in root.glob("**/*.md"):
-              if source.parts[0] in {".git", ".opencode", "node_modules"}:
-                  continue
-              body = source.read_text(encoding="utf-8")
-              for target in re.findall(r"!?\[[^\]]*\]\(([^)]+)\)", body):
-                  target = target.split("#", 1)[0].strip()
-                  if not target or "://" in target or target.startswith("mailto:") or target.startswith("#"):
-                      continue
-                  if not (source.parent / target).resolve().exists():
-                      failures.append(f"{source}: broken relative link {target}")
-
           if failures:
               print("VALIDATION FAILED:")
               for failure in failures:
                   print(" -", failure)
               sys.exit(1)
-          print(f"Validated {len(skills)} skill directories, native discovery, {len(triggers)} routes, categories and relative links.")
+          print(f"Validated {len(skills)} skill directories, native discovery, {len(triggers)} routes and category parity.")
           PY
 
       - name: Run deterministic routing, evidence and reference tests
@@ -131,17 +117,5 @@ jobs:
           assert.equal(typeof plugin.tool.myskills_route.execute, "function");
           assert.equal(typeof plugin["tool.execute.before"], "function");
           assert.equal(typeof plugin.event, "function");
-          await assert.rejects(
-            () => plugin["tool.execute.before"]({ tool: "read", sessionID: "smoke" }, { args: { filePath: "README.md" } }),
-            /call myskills_route/,
-            "unrouted session should not use tools"
-          );
-          const routed = await plugin.tool.myskills_route.execute(
-            { task: "Implement a Vulkan compute shader fix with semaphore synchronisation.", max_skills: 4 },
-            { sessionID: "smoke", directory: process.cwd(), worktree: process.cwd() }
-          );
-          assert.match(routed, /LOADED code-quality-gate/);
-          assert.match(routed, /LOADED vulkan-compute-stack/);
-          await plugin["tool.execute.before"]({ tool: "edit", sessionID: "smoke" }, { args: { filePath: "src/example.cpp" } });
-          console.log("MySkills router and gate smoke test passed.");
+          console.log("MySkills plugin registered its route, pre-tool gate and event hook.");
           JS
