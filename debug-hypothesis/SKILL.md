@@ -39,7 +39,7 @@ Use this compact form:
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Keep credible competing explanations tied to supporting and contradicting observations, each with a falsifiable prediction and a distinguishing test. Retire a hypothesis only when a measured or inspected result warrants it.
 

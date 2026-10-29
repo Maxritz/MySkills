@@ -38,7 +38,7 @@ Prefer an experiment that is safe and reversible, low-cost, deterministic, minim
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Choose the experiment with the best expected separation per unit cost. Write the prediction before running it, change one variable when possible, and retain a control. Stop when the result distinguishes the competing causes.
 
