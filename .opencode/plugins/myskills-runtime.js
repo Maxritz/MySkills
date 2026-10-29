@@ -96,6 +96,13 @@ export const MySkillsRuntime = async ({ directory, worktree, client }) => {
         throw new Error("MySkills task gate: call myskills_route with the current user request before using other tools. It will return matching skill instructions or explicitly report no match.");
       }
 
+      if (toolName === "skill") {
+        const requestedSkill = output.args?.id ?? output.args?.name;
+        if (requestedSkill && !state.selected.has(requestedSkill)) {
+          throw new Error(`MySkills routing gate: '${requestedSkill}' was not in the selected skill set. Re-route the task with myskills_route if this additional domain is genuinely needed.`);
+        }
+      }
+
       if (sourceMutation(toolName, output.args ?? {}, config.routing.mutationTools ?? []) &&
           !state.selected.has("code-quality-gate")) {
         throw new Error("MySkills implementation gate: this operation looks like a source mutation, but code-quality-gate was not loaded for this task. Call myskills_route with the implementation request, inspect the quality checks, then retry.");
