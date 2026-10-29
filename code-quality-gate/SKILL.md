@@ -3,6 +3,8 @@ name: code-quality-gate
 description: "Unified quality gate: Doxygen contracts, 10-iteration validation, no-fake-code, traceability, Rust safety, component boundaries. Auto-triggers on all code changes."
 compatibility: opencode
 metadata:
+  auto_unload: true
+  loading: on-demand
   auto_trigger: true
   trigger_keywords: ["write", "edit", "create", "add", "refactor", "implement", "fix"]
   priority: critical
