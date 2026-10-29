@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["virtual memory", "allocator", "buddy", "SLAB", "SLUB", "vmalloc", "CMA", "DMA", "coherence", "NUMA", "kmemleak", "buddyinfo", "pagetypeinfo", "numastat", "page tables", "page fault"]
 ---
 
@@ -102,6 +103,13 @@ numastat -p $(pidof app)
 1. Decode #PF error code (P=0, W=1, U=0, RSVD=1, I/D=1)
 2. `do_page_fault` path, `vmalloc_fault`, `kmap_atomic`
 3. Check page table state, `pgd_offset`, `pte_offset`
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Trace every allocation through success, failure and teardown; account for alignment, overflow, pressure and ownership. For DMA or GPU memory, prove the producer/consumer ordering and visibility on the target platform rather than assuming cache coherence.
+
 
 ## Boundaries
 

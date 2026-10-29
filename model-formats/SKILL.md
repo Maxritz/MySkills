@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["GGUF", "SafeTensors", "ONNX", "OpenVINO", "model format", "quantization", "tensor", "shard", "convert", "ggml", "safetensors"]
 ---
 
@@ -308,6 +308,13 @@ BLOCKERS: <list>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Treat model files as untrusted input. Pin source and destination format/runtime versions, validate bounds and metadata before mapping, and compare representative tensors, tokenisation and outputs after conversion; file creation alone is not successful conversion.
+
 
 ## Boundaries
 

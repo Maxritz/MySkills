@@ -9,9 +9,11 @@ description: >-
   over-engineering/bloat.
 argument-hint: "[lite|full|ultra]"
 license: MIT
+compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # Ponytail
@@ -60,6 +62,13 @@ Never simplify away: input validation at trust boundaries, error handling that p
 Never lazy about understanding. Ladder shortens solution, never reading. Trace the whole thing first.
 
 Lazy code without its check is unfinished. Non-trivial logic → ONE runnable check (assert-based self-test or `test_*.py`). Trivial one-liners → no test (YAGNI applies to tests).
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Stop at the simplest solution that satisfies the stated contract, tests, error handling and supported targets. Do not remove necessary validation, observability or rollback merely to reduce lines or dependencies; simplicity must be demonstrated, not asserted.
+
 
 ## Boundaries
 

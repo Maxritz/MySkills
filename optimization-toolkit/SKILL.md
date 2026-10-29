@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["optimization", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "farbrausch", "Ryg", "Haujobb", "extreme performance"]
 ---
 
@@ -222,6 +222,13 @@ BLOCKERS: <ISA support|compiler|debuggability>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Optimise only a bottleneck shown by measurement. Preserve a baseline, isolate one change, report median and spread on the same workload, and retain correctness and fallback behaviour; do not mistake best observed latency for a hardware ceiling.
+
 
 ## Boundaries
 

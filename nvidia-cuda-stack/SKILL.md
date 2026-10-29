@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["CUDA", "NVIDIA", "H100", "H200", "B200", "GB200", "A100", "RTX 4090", "PTX", "SASS", "Nsight", "cuBLAS", "cuDNN", "NCCL", "TensorRT"]
 ---
 
@@ -308,6 +308,13 @@ BLOCKERS: <unsupported CC, missing primitives, driver bugs>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Record GPU compute capability, driver, CUDA/toolkit/library versions and enabled features. Profile host scheduling, transfers and device kernels separately, then verify output correctness and the original workload on the same target before claiming a gain.
+
 
 ## Boundaries
 
