@@ -1,10 +1,12 @@
 ---
 name: traceability-gate
-description: "Code quality gate: trace markers [T-XXX], Doxygen contracts, implementation integrity (no fake code), 10-iter validation. Auto-triggers on all code changes."
+description: "On-demand gate for trace markers, code contracts and implementation-integrity verification."
 compatibility: opencode
 metadata:
-  auto_trigger: true
-  trigger_keywords: ["write", "edit", "create", "add", "refactor", "implement", "fix", "Doxygen", "trace", "implementation integrity", "contracts"]
+  auto_unload: true
+  loading: on-demand
+  auto_trigger: false
+  trigger_keywords: ["traceability gate", "Doxygen contract check", "implementation integrity gate"]
   priority: critical
 ---
 
@@ -76,7 +78,7 @@ objcopy --add-gnu-debuglink=app.debug app
  * @return 0 on success, -EINVAL if src==NULL or dst==NULL or block_count==0
  * @pre src points to valid block_size bytes; dst has >= block_count*32 floats
  * @post dst contains dequantized values
- * @note Quantization scale stored in block[0]; zero-point in block[1]
+ * @note Verify the exact Q4_0 block layout and signed-nibble decoding against the pinned GGML revision; layouts differ by quantisation type
  * @warning Do NOT call with overlapping src/dst buffers
  */
 int ggml_dequantize_q4_0(const void* src, float* dst, int block_count);
@@ -147,10 +149,10 @@ int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len);
 ## Stage 4: No Fake Code Rule (Zero Tolerance)
 
 **FORBIDDEN — automatic FAIL:**
-- `TODO`, `FIXME`, `HACK`, `XXX` comments in committed code
+- `TODO`, `FIXME`, `HACK`, `XXX` markers that identify in-scope behaviour as missing or incomplete; harmless future-work notes should be triaged rather than treated as proof of a broken feature
 - `pass`, `unimplemented!()`, `todo!()`, `assert!(false)`, `panic!()`
 - `// write your code here` or similar placeholders
-- Stub functions: `void foo() {}`, `int foo() { return 0; }`
+- Empty or constant-return bodies when the declared contract promises meaningful work and no intentional no-op or constant-return contract justifies the body
 - Example/demo modules unless explicitly requested
 - `print("Hello World")` or placeholder outputs
 - Hardcoded expected outputs to make tests pass

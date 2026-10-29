@@ -3,6 +3,7 @@ name: debug-verify
 description: "Verification ladder: static→build→targeted→repro→differential→regression→integration. Never claim unrun PASS."
 compatibility: opencode
 metadata:
+  auto_unload: true
   role: debugging
   loading: on-demand
 ---

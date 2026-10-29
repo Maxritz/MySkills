@@ -9,90 +9,444 @@
   "skill": {
     "auto_trigger": [
       "debug-core",
-      "traceability-gate",
+      "code-quality-gate",
       "knowledge-process"
     ],
     "conditional_load": [
-      "systems-ml-stack-router",
-      "debug-domain-router",
-      "debug-deep",
-      "debug-fix",
-      "debug-verify",
-      "porting-toolkit",
       "amd-gpu-stack",
-      "nvidia-cuda-stack",
-      "vulkan-compute-stack",
-      "llm-serving",
-      "model-formats",
-      "llm-core",
-      "llm-advanced",
-      "c-systems",
-      "linux-kernel-dev",
+      "architecture-boundaries",
       "bare-metal-kernel",
-      "x86-arch",
-      "memory-mgmt",
+      "c-systems",
+      "caveman",
+      "debug-deep",
+      "debug-domain-router",
+      "debug-fix",
+      "debug-hypothesis",
+      "debug-invariants",
+      "debug-localize",
+      "debug-mde",
+      "debug-reduce",
+      "debug-reference",
+      "debug-reproduce",
+      "debug-root-cause",
+      "debug-verify",
+      "demoscene-opt",
+      "goli-mat-de",
+      "gguf-ggml",
+      "kernel-tuning",
+      "llm-advanced",
+      "llm-core",
+      "llm-hardcode",
+      "llm-serving",
+      "linux-kernel-dev",
       "linux-user",
-      "windows-user",
-      "sys-arch",
+      "low-level-toolkit",
+      "memory-mgmt",
+      "model-formats",
+      "nvidia-cuda-stack",
+      "optimization-toolkit",
+      "ponytail",
+      "ponytail-diag",
+      "porting-toolkit",
+      "python-conversion",
       "python-engineering",
       "python-perf",
-      "python-conversion",
-      "graphics-shader-kernels",
-      "optimization-toolkit",
-      "architecture-boundaries",
-      "low-level-toolkit",
-      "utility-pair",
+      "rust-safety",
       "sglang-dev",
-      "tensorrt-llm-dev",
-      "vllm-dev",
+      "shader-opt",
       "sherlock-it",
-      "ponytail-diag"
+      "sys-arch",
+      "tensorrt-llm-dev",
+      "traceability",
+      "traceability-gate",
+      "utility-pair",
+      "vllm-dev",
+      "vulkan-compute-stack",
+      "windows-user",
+      "x86-arch"
     ],
     "trigger_keywords": {
-      "systems-ml-stack-router": ["architecture", "cross-platform", "GPU", "kernel", "model format", "toolchain"],
-      "implementation-integrity": ["implement", "write code", "fix code", "complete", "production", "stub", "placeholder"],
-      "code-contract-comments": ["comment", "contract", "precondition", "postcondition", "ownership", "Doxygen"],
-      "modular-component-boundaries": ["component", "module", "refactor", "interface", "dependency direction"],
-      "backend-component-demarcation": ["backend", "service", "repository", "worker", "API layer"],
-      "porting-change-isolation": ["port", "adapter", "fallback", "capability probe", "platform delta"],
-      "amd-gpu-stack": ["AMD GPU", "ROCm", "HIP", "HSA", "ROCr", "CDNA", "RDNA", "MI200", "MI300", "RX 6000", "RX 7000", "rocBLAS", "RCCL", "rocprof", "rocminfo"],
-      "nvidia-cuda-stack": ["CUDA", "NVIDIA", "H100", "H200", "B200", "GB200", "A100", "RTX 4090", "PTX", "SASS", "Nsight", "cuBLAS", "cuDNN", "NCCL", "TensorRT", "FP8", "FP4", "TMA", "cluster"],
-      "vulkan-compute-stack": ["Vulkan", "VK_KHR", "SPIR-V", "glslc", "VMA", "compute shader", "descriptor", "command buffer", "fence", "semaphore", "subgroup", "cooperative matrix"],
-      "llm-serving": ["vLLM", "SGLang", "TensorRT-LLM", "Triton", "serving", "PagedAttention", "KV cache", "tensor parallel", "speculative decoding", "quantization", "OpenAI API"],
-      "model-formats": ["GGUF", "SafeTensors", "ONNX", "OpenVINO", "model format", "quantization", "tensor", "shard", "convert", "ggml", "safetensors"],
-      "llm-core": ["tokenizer", "embeddings", "attention", "KV cache", "MLP", "sampling", "LLM component", "intermediate tensor", "logits"],
-      "llm-advanced": ["MoE", "Mixture of Experts", "speculative decoding", "Medusa", "EAGLE", "router", "expert", "shared experts", "numerical tolerances", "INT4", "AWQ", "GPTQ"],
-      "c-systems": ["C99", "C++", "RAII", "ABI", "ownership", "lifetime", "allocator", "concurrency", "template", "systems code", "portable C", "performance contract"],
-      "linux-kernel-dev": ["Linux kernel", "kernel module", "driver", "KASAN", "ftrace", "lockdep", "perf", "crash", "kdump", "kselftest", "kunit", "slabinfo", "vmstat"],
-      "bare-metal-kernel": ["bootloader", "GRUB", "Stivale2", "long mode", "page tables", "PML4", "IDT", "interrupts", "PCI", "bare metal", "kernel", "boot", "x86-64", "kernel_main"],
-      "x86-arch": ["x86-64", "ISA", "memory ordering", "TSO", "atomicity", "privilege", "paging", "interrupts", "CPUID", "SIMD", "AVX-512", "AVX2", "SSE", "perf", "top-down", "branch prediction", "cache hierarchy"],
-      "memory-mgmt": ["virtual memory", "allocator", "buddy", "SLAB", "SLUB", "vmalloc", "CMA", "DMA", "coherence", "NUMA", "kmemleak", "buddyinfo", "pagetypeinfo", "numastat", "page tables", "page fault"],
-      "linux-user": ["syscall", "pthread", "epoll", "mmap", "signal", "IPC", "systemd", "cgroup", "process", "thread", "Linux", "mmap", "shared memory", "pipe", "socket", "seccomp", "capability"],
-      "windows-user": ["Windows", "Win32", "NT", "process", "thread", "handle", "IOCP", "ETW", "WDDM", "KMDF", "UMDF", "driver", "deployment", "MSI", "MSIX", "Event Tracing", "critical section", "SRW lock", "condition variable", "thread pool"],
-      "sys-arch": ["architecture", "component", "boundary", "dependency direction", "non-functional", "budget", "contract", "decomposition", "failure domain", "observability", "rollback"],
-      "directx-ai-ml": ["DirectX", "D3D12", "DirectML", "Agility SDK", "DXGI", "DXIL"],
-      "graphics-shader-kernels": ["shader", "HLSL", "GLSL", "SPIR-V", "subgroup", "barrier"],
-      "optimization-toolkit": ["optimization", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "farbrausch", "Ryg", "Haujobb", "extreme performance"],
-      "traceability-gate": ["quality gate", "Doxygen", "trace", "implementation integrity", "contracts", "validation", "no fake code", "10-iteration"],
-      "architecture-boundaries": ["component", "module", "architecture", "boundary", "backend", "service", "porting", "adapter", "interface", "dependency direction", "replacement seam"],
-      "low-level-toolkit": ["assembly", "emulation", "toolchain", "ISA", "ABI", "calling convention", "binary", "disassembly", "compiler", "linker", "sysroot", "emulator", "simulator", "JIT"],
-      "utility-pair": ["caveman", "ponytail", "terse", "lazy", "YAGNI", "stdlib", "minimal", "shortest path", "output style"],
-      "knowledge-process": ["analysis log", "context tracker", "dev process", "knowledge base", "app engine", "deploy", "10-iteration", "sanitization"],
-      "cross-compilation": ["cross-compile", "sysroot", "target triple", "toolchain file", "ABI"],
-      "toolchains": ["compiler", "linker", "assembler", "CMake", "Ninja", "SDK"],
-      "emulation": ["emulator", "simulation", "JIT", "binary translation", "snapshot", "deterministic replay"],
-      "debug-core": ["debug", "reproduce", "root cause", "hypothesis", "fix", "verify", "trace"],
-      "debug-deep": ["deep debug", "fishbone", "fault tree", "5 whys", "barrier analysis", "change analysis", "waterfall trace"],
-      "debug-fix": ["apply fix", "minimal patch", "root cause fix"],
-      "debug-verify": ["verify fix", "validation", "regression test", "differential test"],
-      "debug-domain-router": ["domain debug", "specialized debug", "C++ debug", "GPU debug", "LLM debug"],
-      "code-quality-gate": ["quality gate", "Doxygen", "contracts", "validation", "traceability", "Rust safety", "component boundaries"],
-      "porting-toolkit": ["port", "cross-compile", "cross-platform", "adapter", "capability probe", "platform delta", "emulation", "toolchain", "assembly"],
-      "sherlock-it": ["performance", "profile", "bottleneck", "optimize", "benchmark", "trap"],
-      "ponytail-diag": ["diagnose", "one-line verdict", "truth table", "hypothesis", "root cause"],
-      "python-engineering": ["Python", "packaging", "typing", "asyncio", "testing", "cffi", "meson", "uv", "ruff", "mypy", "reproducible"],
-      "python-perf": ["Python", "NumPy", "Numba", "cffi", "profiling", "vectorization", "JIT", "AVX2", "AVX-512", "CUDA", "optimization", "benchmark"],
-      "python-conversion": ["Python", "conversion", "C++", "CUDA", "HIP", "ONNX", "MLIR", "differential test", "quantization", "deployment", "torch", "tensorflow"]
+      "amd-gpu-stack": [
+        "AMD GPU",
+        "ROCm",
+        "HIP",
+        "HSA",
+        "ROCr",
+        "CDNA",
+        "RDNA",
+        "rocBLAS",
+        "RCCL",
+        "rocprof"
+      ],
+      "architecture-boundaries": [
+        "component boundary",
+        "backend boundary",
+        "dependency direction",
+        "replacement seam",
+        "module architecture"
+      ],
+      "bare-metal-kernel": [
+        "bare metal",
+        "GRUB",
+        "long mode",
+        "page tables",
+        "IDT",
+        "PCI enumeration"
+      ],
+      "c-systems": [
+        "C99",
+        "C++",
+        "RAII",
+        "ABI",
+        "ownership",
+        "allocator",
+        "concurrency"
+      ],
+      "code-quality-gate": [
+        "write code",
+        "edit code",
+        "create implementation",
+        "add feature",
+        "refactor",
+        "implement",
+        "fix"
+      ],
+      "debug-core": [
+        "debug",
+        "reproduce",
+        "root cause",
+        "hypothesis",
+        "fix and verify"
+      ],
+      "debug-deep": [
+        "deep debug",
+        "truth table",
+        "fishbone",
+        "fault tree",
+        "5 whys",
+        "waterfall trace"
+      ],
+      "debug-domain-router": [
+        "domain debug",
+        "specialised debug",
+        "specialized debug",
+        "GPU debug",
+        "LLM debug"
+      ],
+      "debug-fix": [
+        "apply fix",
+        "minimal patch",
+        "confirmed root cause"
+      ],
+      "debug-hypothesis": [
+        "hypothesis",
+        "competing causes",
+        "falsifiable explanation"
+      ],
+      "debug-invariants": [
+        "invariant",
+        "precondition",
+        "postcondition",
+        "contract violation"
+      ],
+      "debug-localize": [
+        "localise bug",
+        "localize bug",
+        "first bad state",
+        "failing boundary"
+      ],
+      "debug-mde": [
+        "MDE",
+        "minimum distinguishing experiment",
+        "cheapest experiment"
+      ],
+      "debug-reduce": [
+        "reduce reproducer",
+        "shrink failing input",
+        "delta debugging"
+      ],
+      "debug-reference": [
+        "golden reference",
+        "oracle",
+        "differential test"
+      ],
+      "debug-reproduce": [
+        "reproduce bug",
+        "minimal reproducer",
+        "intermittent failure"
+      ],
+      "debug-root-cause": [
+        "root cause",
+        "causal chain",
+        "underlying defect"
+      ],
+      "debug-verify": [
+        "verify fix",
+        "regression test",
+        "validation"
+      ],
+      "demoscene-opt": [
+        "demoscene",
+        "tiny executable",
+        "code size optimisation",
+        "register pressure"
+      ],
+      "goli-mat-de": [
+        "goli-mat-de",
+        "goli mat de",
+        "implementation integrity audit",
+        "fake code",
+        "stub audit",
+        "placeholder audit",
+        "skipped implementation",
+        "kaam chalau code",
+        "thook patti code"
+      ],
+      "gguf-ggml": [
+        "GGUF",
+        "GGML",
+        "GGUF parser",
+        "GGML quantisation",
+        "GGML quantization",
+        "Q4_0"
+      ],
+      "kernel-tuning": [
+        "kernel tuning",
+        "roofline",
+        "arithmetic intensity",
+        "kernel performance"
+      ],
+      "knowledge-process": [
+        "analysis log",
+        "context tracker",
+        "knowledge base",
+        "session continuity",
+        "development process"
+      ],
+      "llm-advanced": [
+        "MoE",
+        "Mixture of Experts",
+        "speculative decoding",
+        "Medusa",
+        "EAGLE",
+        "expert routing"
+      ],
+      "llm-core": [
+        "tokenizer",
+        "embeddings",
+        "attention",
+        "KV cache",
+        "MLP",
+        "sampling",
+        "logits"
+      ],
+      "llm-hardcode": [
+        "LLM kernel",
+        "quantisation kernel",
+        "SIMD",
+        "AVX-512"
+      ],
+      "llm-serving": [
+        "vLLM",
+        "SGLang",
+        "TensorRT-LLM",
+        "Triton",
+        "PagedAttention",
+        "serving"
+      ],
+      "linux-kernel-dev": [
+        "Linux kernel",
+        "kernel module",
+        "KASAN",
+        "ftrace",
+        "lockdep"
+      ],
+      "linux-user": [
+        "syscall",
+        "pthread",
+        "epoll",
+        "mmap",
+        "systemd",
+        "seccomp"
+      ],
+      "low-level-toolkit": [
+        "assembly",
+        "emulation",
+        "ISA",
+        "ABI",
+        "linker",
+        "sysroot",
+        "JIT"
+      ],
+      "memory-mgmt": [
+        "virtual memory",
+        "allocator",
+        "NUMA",
+        "DMA",
+        "coherence",
+        "page fault"
+      ],
+      "model-formats": [
+        "GGUF",
+        "SafeTensors",
+        "ONNX",
+        "OpenVINO",
+        "model format",
+        "model conversion"
+      ],
+      "nvidia-cuda-stack": [
+        "CUDA",
+        "NVIDIA",
+        "H100",
+        "H200",
+        "B200",
+        "PTX",
+        "SASS",
+        "Nsight",
+        "NCCL"
+      ],
+      "optimization-toolkit": [
+        "optimisation",
+        "optimization",
+        "profiling",
+        "cache",
+        "SIMD",
+        "occupancy"
+      ],
+      "ponytail": [
+        "ponytail",
+        "YAGNI",
+        "simplest solution",
+        "do less",
+        "stdlib first"
+      ],
+      "ponytail-diag": [
+        "ponytail-diag",
+        "what should vs did happen",
+        "one-line verdict"
+      ],
+      "porting-toolkit": [
+        "port",
+        "cross-compile",
+        "cross-platform",
+        "capability probe",
+        "platform adapter"
+      ],
+      "python-conversion": [
+        "Python to C++",
+        "Python conversion",
+        "ONNX",
+        "MLIR",
+        "differential conversion test"
+      ],
+      "python-engineering": [
+        "Python",
+        "packaging",
+        "typing",
+        "asyncio",
+        "uv",
+        "ruff",
+        "mypy"
+      ],
+      "python-perf": [
+        "NumPy",
+        "Numba",
+        "Python profiling",
+        "vectorisation",
+        "vectorization"
+      ],
+      "rust-safety": [
+        "Rust",
+        "ownership",
+        "lifetimes",
+        "unsafe",
+        "FFI",
+        "Cargo"
+      ],
+      "sglang-dev": [
+        "SGLang",
+        "RadixAttention",
+        "SGLang KV cache"
+      ],
+      "shader-opt": [
+        "shader optimisation",
+        "shader optimization",
+        "HLSL",
+        "GLSL",
+        "SPIR-V",
+        "wave divergence"
+      ],
+      "sherlock-it": [
+        "sherlock-it",
+        "performance bottleneck",
+        "profile",
+        "benchmark",
+        "instrumentation traps"
+      ],
+      "sys-arch": [
+        "system architecture",
+        "non-functional budget",
+        "failure domain",
+        "dependency direction"
+      ],
+      "tensorrt-llm-dev": [
+        "TensorRT-LLM",
+        "Triton backend",
+        "TensorRT engine"
+      ],
+      "traceability": [
+        "trace markers",
+        "DBG_TRACE",
+        "execution trace",
+        "source mapping"
+      ],
+      "traceability-gate": [
+        "traceability gate",
+        "Doxygen contract check",
+        "implementation integrity gate"
+      ],
+      "utility-pair": [
+        "utility-pair",
+        "caveman and ponytail",
+        "output style"
+      ],
+      "vllm-dev": [
+        "vLLM",
+        "PagedAttention",
+        "vLLM scheduler"
+      ],
+      "vulkan-compute-stack": [
+        "Vulkan",
+        "VK_KHR",
+        "SPIR-V",
+        "glslc",
+        "VMA",
+        "compute shader",
+        "descriptor",
+        "command buffer",
+        "semaphore"
+      ],
+      "windows-user": [
+        "Windows",
+        "Win32",
+        "IOCP",
+        "ETW",
+        "WDDM",
+        "MSIX"
+      ],
+      "x86-arch": [
+        "x86-64",
+        "SIMD",
+        "AVX-512",
+        "AVX2",
+        "CPUID",
+        "memory ordering"
+      ],
+      "caveman": [
+        "caveman",
+        "ultra-terse",
+        "terse human-facing output"
+      ]
     }
   }
 }

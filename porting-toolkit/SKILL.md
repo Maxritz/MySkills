@@ -3,6 +3,7 @@ name: porting-toolkit
 description: "Unified cross-porting toolkit: capability matrix, change isolation, cross-compilation, toolchains, assembly, emulation. Port semantics, not syntax."
 compatibility: opencode
 metadata:
+  auto_unload: true
   loading: on-demand
   auto_trigger: true
   trigger_keywords: ["port", "cross-compile", "cross-platform", "adapter", "fallback", "capability probe", "platform delta", "ISA", "ABI", "sysroot", "emulator"]

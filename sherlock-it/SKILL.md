@@ -1,7 +1,6 @@
 ---
 name: sherlock-it
-description: "Measurement-driven performance investigation and optimisation. Profiles every execution layer, creates instrumentation traps to expose hidden bottlenecks, identifies root causes, implements verified optimisations, and retests against measured baselines. Persistent analysis log with FULL/LOW/HIGH modes.
-, /sherlock-it."
+description: "Measurement-driven performance investigation and optimisation with instrumentation, baseline comparison and retesting. Trigger: /sherlock-it."
 metadata:
   loading: on-demand
   auto_unload: true

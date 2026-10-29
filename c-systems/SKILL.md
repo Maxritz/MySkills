@@ -3,6 +3,7 @@ name: c-systems
 description: "Unified C/C++ systems: portable C99, C++ RAII/templates, ownership, ABI, concurrency, allocators, performance. Write, port, review, debug production systems code."
 compatibility: opencode
 metadata:
+  auto_unload: true
   loading: on-demand
   auto_trigger: true
   trigger_keywords: ["C99", "C++", "RAII", "ABI", "ownership", "lifetime", "allocator", "concurrency", "template", "systems code", "portable C", "performance contract"]
