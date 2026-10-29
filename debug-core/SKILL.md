@@ -35,7 +35,7 @@ Route debugging through the cheapest evidence path. Stay domain-neutral until ev
 ```
 kb.py add --category <domain> --bug ... --cause ... --fix ... --pattern ...
 ```
-@see knowledge-base for two-tier protocol. Append analysis to `.opencode/analysis.md`. @see analysis-log.
+See `knowledge-process` → Knowledge Base for the two-tier protocol and Analysis Log for append-only session notes.
 
 Evidence tags: `FACT=observed`, `HYPOTHESIS=unproven`, `RESULT=outcome`, `CONCLUSION=supported cause`, `VALIDATION=tests passed`.
 
@@ -92,7 +92,7 @@ On-demand debug skills must be UNLOADED after serving their purpose:
 4. **Context-tracker:** Log unload via `ctx.py unload debug-localize` — summary persists in sessions/
 5. **Exception:** Keep debug-deep loaded until root cause is confirmed+validated
 
-@see context-tracker for session memory + unload logging.
+See `knowledge-process` → Context Tracker for session memory and unload logging.
 
 ## Compact Status
 
