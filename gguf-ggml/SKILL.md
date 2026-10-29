@@ -3,11 +3,6 @@ name: gguf-ggml
 description: Inspect, parse, validate and integrate GGUF model files and GGML tensor/quantisation operations using version-pinned format and implementation contracts.
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["GGUF", "GGML", "gguf parser", "ggml quantisation", "ggml quantization", "GGUF tensor", "Q4_0", "ggml dequant"]
 ---
 # GGUF & GGML Development
 

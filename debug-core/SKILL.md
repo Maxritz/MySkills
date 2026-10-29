@@ -4,8 +4,6 @@ description: "Evidence-first debugging workflow: reproduce, localise divergence,
 compatibility: opencode
 metadata:
   role: debugging
-  loading: on-demand
-  priority: critical
 ---
 
 # Debug Core

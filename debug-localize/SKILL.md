@@ -3,11 +3,7 @@ name: debug-localize
 description: Find the earliest observable boundary where behaviour diverges from its expected contract.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["localise bug", "localize bug", "first bad state", "call path", "data flow", "failing boundary"]
 ---
 
 # Debug Localize

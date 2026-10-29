@@ -2,10 +2,6 @@
 name: sherlock-it
 description: "Measurement-driven performance investigation and optimisation with instrumentation, baseline comparison and retesting. Trigger: /sherlock-it."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
 ---
 
 # Sherlock-It

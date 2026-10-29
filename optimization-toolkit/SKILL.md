@@ -2,11 +2,6 @@
 name: optimization-toolkit
 description: Measurement-driven CPU/GPU performance analysis, profiling and architecture-specific optimisation. Use when a measured workload needs improvement.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["optimisation", "optimization", "profiling", "cache", "SIMD", "occupancy"]
 ---
 
 # Optimization Toolkit

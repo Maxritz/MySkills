@@ -3,11 +3,7 @@ name: debug-reduce
 description: Minimise a failing input or execution while preserving a defined failure predicate.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["reduce reproducer", "minimise test case", "minimize test case", "shrink failing input", "delta debugging"]
 ---
 
 # Debug Reduce

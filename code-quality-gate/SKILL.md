@@ -2,9 +2,6 @@
 name: code-quality-gate
 description: "Implementation review checklist for behavioural contracts, placeholder detection, risk-sized verification, traceability, Rust safety and component boundaries. Invoke for code changes."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  priority: critical
 ---
 # Code Quality Gate
 

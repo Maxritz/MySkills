@@ -3,11 +3,7 @@ name: debug-reproduce
 description: Capture a reliable, minimal reproduction of an observed failure with expected and actual behaviour.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["reproduce bug", "minimal reproducer", "reproduction steps", "intermittent failure", "regression reproducer"]
 ---
 
 # Debug Reproduce

@@ -2,11 +2,6 @@
 name: networking-systems
 description: Engineer and debug socket, protocol and distributed I/O paths with explicit framing, timeouts, cancellation, backpressure and security boundaries.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["networking", "socket", "TCP", "UDP", "HTTP protocol", "TLS", "RPC", "network I/O", "backpressure", "connection timeout"]
 ---
 
 # Networking Systems

@@ -2,11 +2,6 @@
 name: model-formats
 description: "Unified model formats: GGUF, SafeTensors, ONNX, OpenVINO IR. Validate, convert, shard, quantize, integrate with runtimes. Binary contract verification."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["GGUF", "SafeTensors", "ONNX", "OpenVINO", "model format", "quantization", "tensor", "shard", "convert", "ggml", "safetensors"]
 ---
 # Model Formats
 

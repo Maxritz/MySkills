@@ -2,11 +2,6 @@
 name: observability-engineering
 description: Build useful logs, metrics, traces and alerts with clear timing boundaries, low-cardinality labels, privacy safeguards and SLO-driven diagnosis.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["observability", "metrics", "distributed tracing", "structured logs", "SLO", "SLI", "Prometheus", "OpenTelemetry", "alerting", "latency histogram"]
 ---
 
 # Observability Engineering

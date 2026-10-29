@@ -3,11 +3,6 @@ name: demoscene-opt
 description: Apply size- and cycle-conscious optimisation techniques after establishing a measured bottleneck and a correctness reference.
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["demoscene", "tiny executable", "size optimisation", "size optimization", "code golf performance", "register pressure", "farbrausch", "ryg"]
 ---
 
 # Demoscene Optimisation

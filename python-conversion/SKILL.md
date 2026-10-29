@@ -2,11 +2,6 @@
 name: python-conversion
 description: "Python to native conversion: component-by-component translation to C/C++/CUDA/HIP/ONNX/MLIR with differential testing. Frozen reference, specification template, tolerance tracking, reproducible toolchain."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Python", "conversion", "C++", "CUDA", "HIP", "ONNX", "MLIR", "differential test", "quantization", "deployment", "torch", "tensorflow"]
 ---
 # Python Conversion
 

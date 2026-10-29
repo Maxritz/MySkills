@@ -3,11 +3,7 @@ name: debug-root-cause
 description: Establish a causal chain from the observed failure to the first bad state, triggering operation and violated contract.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["root cause", "causal chain", "underlying defect", "cause confirmed"]
 ---
 
 # Debug Root Cause

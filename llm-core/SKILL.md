@@ -2,11 +2,6 @@
 name: llm-core
 description: "LLM core components: tokenizer, embeddings, attention, KV cache, MLP, sampling. Deterministic reference, intermediate validation, numerical tolerances. Foundational LLM building blocks."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["tokenizer", "embeddings", "attention", "KV cache", "MLP", "sampling", "LLM component", "intermediate tensor", "logits"]
 ---
 # LLM Core Components
 

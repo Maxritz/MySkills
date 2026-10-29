@@ -2,11 +2,6 @@
 name: llm-advanced
 description: "LLM advanced components: MoE (router, expert capacity, shared experts), speculative decoding (standard, Medusa, EAGLE, Lookahead), numerical tolerances per component per precision. Advanced/specialised LLM subsystems."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["MoE", "Mixture of Experts", "speculative decoding", "Medusa", "EAGLE", "router", "expert", "shared experts", "numerical tolerances", "INT4", "AWQ", "GPTQ"]
 ---
 # LLM Advanced Components
 

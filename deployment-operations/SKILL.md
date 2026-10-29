@@ -2,11 +2,6 @@
 name: deployment-operations
 description: Plan and operate application deployment across environments with reproducible configuration, health checks, migrations, secrets, rollout controls and recovery.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["deployment", "deploy service", "container deployment", "runtime configuration", "health check", "rollout", "rollback", "production operations"]
 ---
 
 # Deployment Operations

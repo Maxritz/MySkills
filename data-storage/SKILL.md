@@ -2,11 +2,6 @@
 name: data-storage
 description: Design persistent data models and storage paths with explicit consistency, transaction, durability, migration, corruption and recovery contracts.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["database design", "data storage", "transaction isolation", "schema migration", "durability", "write-ahead log", "data consistency", "backup restore", "atomic file"]
 ---
 
 # Data Storage

@@ -3,11 +3,7 @@ name: debug-reference
 description: Compare a failing result with the lowest-cost trustworthy specification or implementation reference.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["differential test", "golden reference", "reference comparison", "oracle", "expected output"]
 ---
 
 # Debug Reference

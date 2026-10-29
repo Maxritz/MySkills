@@ -2,11 +2,6 @@
 name: linux-user
 description: "Linux userspace systems: syscalls, pthreads, epoll, mmap, signals, IPC, systemd/cgroups, security hardening. User-space systems programming."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["syscall", "pthread", "epoll", "mmap", "signal", "IPC", "systemd", "cgroup", "process", "thread", "Linux", "mmap", "shared memory", "pipe", "socket", "seccomp", "capability"]
 ---
 # Linux Userspace Systems
 

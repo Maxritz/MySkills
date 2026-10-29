@@ -2,11 +2,6 @@
 name: security-review
 description: Threat-model code and systems, find trust-boundary failures, and prioritise evidence-backed security risks with safe validation guidance.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["security review", "threat model", "attack surface", "secret leak", "authentication", "authorisation", "injection", "dependency vulnerability", "secure coding"]
 ---
 
 # Security Review

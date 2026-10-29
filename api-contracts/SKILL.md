@@ -2,11 +2,6 @@
 name: api-contracts
 description: Define and evolve API contracts with explicit schemas, errors, authentication, idempotency, compatibility and executable contract tests.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["API design", "API contract", "OpenAPI", "REST API", "gRPC", "schema compatibility", "versioning", "idempotency", "error response"]
 ---
 
 # API Contracts

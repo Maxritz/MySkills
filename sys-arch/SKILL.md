@@ -2,11 +2,6 @@
 name: sys-arch
 description: "System architecture (platform-agnostic): architecture decomposition, component contracts, non-functional budgets, dependency direction, cross-platform patterns, validation gates. Platform-agnostic architecture design and review."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["architecture", "component", "boundary", "dependency direction", "non-functional", "budget", "contract", "decomposition", "failure domain", "observability", "rollback"]
 ---
 
 # System Architecture

@@ -2,12 +2,6 @@
 name: traceability-gate
 description: "On-demand gate for trace markers, code contracts and implementation-integrity verification."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["traceability gate", "Doxygen contract check", "implementation integrity gate"]
-  priority: critical
 ---
 # Traceability Gate
 

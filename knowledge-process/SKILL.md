@@ -2,11 +2,6 @@
 name: knowledge-process
 description: "Sanitised analysis logs, compact context tracking, knowledge retention and risk-sized development validation. Session continuity and evidence capture."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: true
-  priority: high
 ---
 # Knowledge & Process
 

@@ -3,10 +3,6 @@ name: sglang-dev
 description: "SGLang: KVCache, parallelism, speculative."
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
 ---
 
 # SGLang Development

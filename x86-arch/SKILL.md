@@ -2,11 +2,6 @@
 name: x86-arch
 description: "x86-64 architecture deep-dive: ISA contracts, memory ordering, atomicity, privilege, paging, interrupts, CPUID, SIMD (AVX-512/AVX2/SSE), performance analysis with perf. Microarchitectural vs architectural guarantees."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["x86-64", "ISA", "memory ordering", "TSO", "atomicity", "privilege", "paging", "interrupts", "CPUID", "SIMD", "AVX-512", "AVX2", "SSE", "perf", "top-down", "branch prediction", "cache hierarchy"]
 ---
 
 # x86-64 Architecture Deep-Dive

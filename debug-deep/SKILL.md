@@ -3,10 +3,7 @@ name: debug-deep
 description: "Escalation techniques: flow/state/contract/fishbone/FTA/5-whys/barrier/change/waterfall. Use only when fast loop cannot resolve."
 compatibility: opencode
 metadata:
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  loading: on-demand
 ---
 
 # Debug Deep

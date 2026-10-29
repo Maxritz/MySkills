@@ -2,11 +2,6 @@
 name: python-perf
 description: "Python performance optimization: NumPy vectorization, Numba JIT (CPU/GPU), C extensions (cffi), profiling (cProfile, line_profiler, memory_profiler, perf). Deterministic benchmarking."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Python", "NumPy", "Numba", "cffi", "profiling", "vectorization", "JIT", "AVX2", "AVX-512", "CUDA", "optimization", "benchmark"]
 ---
 # Python Performance
 

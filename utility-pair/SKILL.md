@@ -2,11 +2,6 @@
 name: utility-pair
 description: "Output styles: caveman (ultra-terse prose) + ponytail (lazy senior dev, YAGNI, stdlib first). Use caveman for human-facing output, ponytail for code decisions."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["caveman", "ponytail", "terse", "lazy", "YAGNI", "stdlib", "minimal", "shortest path", "output style"]
 ---
 # Utility Pair
 

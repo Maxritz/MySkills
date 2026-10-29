@@ -3,11 +3,7 @@ name: debug-hypothesis
 description: Form and rank falsifiable debugging hypotheses using evidence and distinguishing experiments.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["hypothesis", "suspected cause", "root-cause investigation", "competing causes"]
 ---
 
 # Debug Hypothesis

@@ -2,11 +2,6 @@
 name: testing-engineering
 description: Design meaningful unit, contract, integration, property, fuzz and regression tests with explicit acceptance criteria and honest execution evidence.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["testing strategy", "test design", "property-based testing", "fuzz testing", "regression test", "coverage", "flaky test", "test oracle"]
 ---
 
 # Testing Engineering

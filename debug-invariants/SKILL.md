@@ -3,11 +3,7 @@ name: debug-invariants
 description: Check the contracts and invariants that can distinguish live failure hypotheses.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["invariant", "precondition", "postcondition", "contract violation", "bounds", "ownership"]
 ---
 
 # Debug Invariants

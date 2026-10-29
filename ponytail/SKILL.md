@@ -10,10 +10,6 @@ description: >-
 argument-hint: "[lite|full|ultra]"
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
 ---
 
 # Ponytail

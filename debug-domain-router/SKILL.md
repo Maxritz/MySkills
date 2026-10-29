@@ -3,10 +3,7 @@ name: debug-domain-router
 description: "Load domain debug knowledge only when needed. Maps unresolved facts to minimal debug specializations."
 compatibility: opencode
 metadata:
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  loading: on-demand
 ---
 
 # Debug Domain Router

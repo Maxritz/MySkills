@@ -2,11 +2,6 @@
 name: kernel-tuning
 description: Measure and improve CPU/GPU compute kernels using profiling, bandwidth and arithmetic-intensity models, memory/layout analysis and controlled experiments.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["kernel tuning", "kernel performance", "roofline", "cache misses", "arithmetic intensity", "vectorisation", "vectorization", "occupancy"]
 ---
 
 # Kernel Tuning

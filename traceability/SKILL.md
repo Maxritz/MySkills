@@ -3,11 +3,7 @@ name: traceability
 description: Trace non-trivial execution paths from entry to exit with stable markers, contracts and source-level evidence.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: code-quality
-  trigger_keywords: ["traceability", "trace markers", "source mapping", "DBG_TRACE", "execution trace"]
 ---
 
 # Traceability

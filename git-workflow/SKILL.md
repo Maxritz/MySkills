@@ -2,11 +2,6 @@
 name: git-workflow
 description: Make safe, reviewable repository changes with explicit branch bases, scoped diffs, traceable commits and honest pull-request status.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["git workflow", "branch management", "pull request", "commit changes", "review diff", "merge conflict", "git status", "repository changes"]
 ---
 
 # Git Workflow

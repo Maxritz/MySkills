@@ -2,11 +2,6 @@
 name: nvidia-cuda-stack
 description: "Unified NVIDIA CUDA stack: runtime, driver, streams, graphs, memory, kernels, profiling. Develop, debug, optimize across Hopper, Blackwell, Ampere."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["CUDA", "NVIDIA", "H100", "H200", "B200", "GB200", "A100", "RTX 4090", "PTX", "SASS", "Nsight", "cuBLAS", "cuDNN", "NCCL", "TensorRT"]
 ---
 
 # NVIDIA CUDA Stack

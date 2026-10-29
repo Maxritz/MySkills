@@ -2,11 +2,6 @@
 name: memory-mgmt
 description: "Memory management: virtual memory layouts, allocator hierarchy (buddy, SLAB, vmalloc, CMA, GPU), DMA & coherence, NUMA-aware allocation, validation (kmemleak, buddyinfo, numastat). Unified across kernel and userspace."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["virtual memory", "allocator", "buddy", "SLAB", "SLUB", "vmalloc", "CMA", "DMA", "coherence", "NUMA", "kmemleak", "buddyinfo", "pagetypeinfo", "numastat", "page tables", "page fault"]
 ---
 
 # Memory Management

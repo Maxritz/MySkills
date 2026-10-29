@@ -2,11 +2,6 @@
 name: windows-user
 description: "Windows userspace systems: Win32/NT processes, threads, handles, I/O, synchronization, IOCP, ETW, driver model (WDDM/KMDF/UMDF), deployment. Windows userspace systems programming."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Windows", "Win32", "NT", "process", "thread", "handle", "IOCP", "ETW", "WDDM", "KMDF", "UMDF", "driver", "deployment", "MSI", "MSIX", "Event Tracing", "critical section", "SRW lock", "condition variable", "thread pool"]
 ---
 
 # Windows Userspace Systems

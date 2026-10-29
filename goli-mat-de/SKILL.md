@@ -2,11 +2,6 @@
 name: goli-mat-de
 description: Evidence-led audit for fake, skipped, incomplete or misleading implementation and verification. Audits code, wiring, tests and claims; prioritises fixes and gates task creation on acknowledgement.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["goli-mat-de", "goli mat de", "implementation integrity audit", "fake code", "stub audit", "placeholder audit", "skipped implementation", "kaam chalau code", "thook patti code"]
 ---
 
 # Goli-mat-de

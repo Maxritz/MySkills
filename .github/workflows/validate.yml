@@ -62,6 +62,9 @@ jobs:
                   failures.append(f"{path}: name must match directory '{dirname}'")
               if not description:
                   failures.append(f"{path}: missing description")
+              unsupported = re.findall(r"(?m)^  (auto_trigger|auto_unload|trigger_keywords|loading|priority):", front)
+              if unsupported:
+                  failures.append(f"{path}: remove unsupported OpenCode loader metadata: {sorted(set(unsupported))}")
               if len(lines) > 800:
                   failures.append(f"{path}: {len(lines)} lines exceeds the 800-line hard limit")
 

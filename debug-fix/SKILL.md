@@ -3,10 +3,7 @@ name: debug-fix
 description: "Smallest patch for confirmed root cause. One causal hypothesis → one minimal patch → one verification cycle."
 compatibility: opencode
 metadata:
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  loading: on-demand
 ---
 
 # Debug Fix

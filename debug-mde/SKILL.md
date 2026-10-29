@@ -3,11 +3,7 @@ name: debug-mde
 description: Choose the minimum distinguishing experiment that best separates competing failure hypotheses.
 compatibility: opencode
 metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
   role: debugging
-  trigger_keywords: ["minimum distinguishing experiment", "MDE", "cheapest experiment", "falsify hypothesis"]
 ---
 
 # Debug MDE: Minimum Distinguishing Experiment

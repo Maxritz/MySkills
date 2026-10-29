@@ -2,11 +2,6 @@
 name: linux-kernel-dev
 description: "Linux kernel development: modules, drivers, KASAN, ftrace, lockdep, perf, crash debugging. Kernel-space and kernel/driver boundary work."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Linux kernel", "kernel module", "driver", "KASAN", "ftrace", "lockdep", "perf", "crash", "kdump", "kselftest", "kunit", "slabinfo", "vmstat"]
 ---
 
 # Linux Kernel Development

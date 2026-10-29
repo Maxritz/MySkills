@@ -3,11 +3,6 @@ name: shader-opt
 description: Optimise compute and graphics shaders using compiler output, profiling, wave behaviour, memory access, register pressure and measured workload constraints.
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["shader optimisation", "shader optimization", "HLSL", "GLSL", "SPIR-V", "wave divergence", "VGPR", "LDS", "shader occupancy"]
 ---
 
 # Shader Optimisation

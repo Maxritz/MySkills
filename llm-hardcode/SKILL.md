@@ -3,10 +3,6 @@ name: llm-hardcode
 description: "Hand-optimised LLM kernels: tensor layouts, quantised matvec/GEMM, SIMD, cache behaviour, numerical accuracy and differential validation."
 license: MIT
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
 ---
 # LLM Hardcode Development
 

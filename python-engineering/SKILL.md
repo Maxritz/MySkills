@@ -2,11 +2,6 @@
 name: python-engineering
 description: "Production Python engineering: packaging, typing, async, native extensions, testing, reproducible environments. Modern tooling (ruff, mypy, uv, meson)."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Python", "packaging", "typing", "asyncio", "testing", "cffi", "meson", "uv", "ruff", "mypy", "reproducible"]
 ---
 # Python Engineering
 

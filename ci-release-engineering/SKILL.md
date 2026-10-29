@@ -2,11 +2,6 @@
 name: ci-release-engineering
 description: Design reproducible CI pipelines and safe release workflows with pinned dependencies, verified artefacts, staged rollout and rollback evidence.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["CI pipeline", "continuous integration", "release engineering", "build pipeline", "artifact signing", "release workflow", "rollback", "software supply chain"]
 ---
 
 # CI and Release Engineering

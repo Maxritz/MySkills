@@ -2,11 +2,6 @@
 name: rust-safety
 description: "Rust safety and correctness: ownership, lifetimes, error handling, memory safety, unsafe contracts, FFI boundaries, testing, tooling. Production-grade Rust with zero unsafe leaks."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["Rust", "ownership", "lifetimes", "unsafe", "FFI", "thiserror", "proptest", "cargo", "borrow checker", "pin", "async"]
 ---
 
 # Rust Safety

@@ -2,11 +2,6 @@
 name: amd-gpu-stack
 description: "Unified AMD GPU stack: ROCm/HIP platform, ROCr/HSA runtime, CDNA/RDNA architectures. Develop, debug, profile, optimize across MI200/MI300 and RX 6000/7000."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["AMD GPU", "ROCm", "HIP", "HSA", "ROCr", "CDNA", "RDNA", "MI200", "MI300", "RX 6000", "RX 7000", "rocBLAS", "RCCL", "rocprof", "rocminfo"]
 ---
 # AMD GPU Stack
 
