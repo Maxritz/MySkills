@@ -135,3 +135,7 @@ Set `KDIR` to the build tree for the exact target kernel version/configuration. 
 - Does not cover x86 architecture (see `x86-arch`)
 - Does not cover memory management (see `memory-mgmt`)
 - `stop linux-kernel-dev`: revert.
+
+## Optional references
+
+- [kernel-recipes.md](references/kernel-recipes.md)
