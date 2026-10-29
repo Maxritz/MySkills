@@ -168,3 +168,7 @@ BLOCKERS: <circular dep|missing interface|budget breach>
 ## Optional references
 
 - [architecture-recipes.md](references/architecture-recipes.md)
+
+## Optional reference
+
+See [architecture-recipes.md](references/architecture-recipes.md) for worked architecture patterns.
