@@ -16,53 +16,9 @@ metadata:
 
 **File:** `.opencode/sherlock-analysis.md` (project root, append-only)
 
-### Log Format (Dox-Style)
-```markdown
-# Sherlock Analysis Log
+### Compact run record
 
-## [RUN-001] 2026-10-08T14:30:00Z — MODE: FULL — TARGET: llama.cpp
-### BASELINE
-- Hardware: H100 (CC 9.0), Driver 560.x, CUDA 12.6
-- Workload: prefill 4096, decode 128, batch 32
-- Baseline: 12,450 tok/s, TTFT 45ms, p99 latency 230ms
-
-### FINDINGS
-| Rank | Component | Cost | Evidence | Status |
-|------|-----------|------|----------|--------|
-| 1 | attention | 68% | ncu: SM throughput 34%, L2 78% | CONFIRMED |
-| 2 | KV cache write | 12% | nsys: memcpy 1.2GB/s | SUSPECTED |
-| 3 | token sampling | 5% | perf: 8% cycles in top-k | UNRESOLVED |
-
-### HYPOTHESES
-| ID | Claim | For | Against | Test | Cost | Status |
-|----|-------|-----|---------|------|------|--------|
-| H1 | FlashAttention-2 kernel underutilised | SM occupancy 34% | - | try FA-3 | low | PENDING |
-| H2 | KV cache not paged | memcpy bottleneck | - | enable PagedAttention | med | PENDING |
-
-### ACTIONS
-- [ ] Implement FA-3 kernel (H1 test)
-- [ ] Enable PagedAttention (H2 test)
-- [ ] Profile with nsys after each
-
-## [RUN-002] 2026-10-08T16:15:00Z — MODE: LOW — TARGET: llama.cpp
-### DELTA from RUN-001
-- FA-3 applied: attention 68% → 52% (-16pp)
-- PagedAttention enabled: KV write 12% → 4% (-8pp)
-- New bottleneck: token sampling 5% → 18% (now #2)
-
-### UPDATED FINDINGS
-| Rank | Component | Cost | Δ | Status |
-|------|-----------|------|---|--------|
-| 1 | attention | 52% | -16pp | IMPROVED |
-| 2 | token sampling | 18% | +13pp | REGRESSED |
-| 3 | KV cache write | 4% | -8pp | FIXED |
-
-### NEW HYPOTHESES
-| ID | Claim | For | Against | Test | Cost | Status |
-|----|-------|-----|---------|------|------|--------|
-| H3 | Speculative decoding reduces sampling | - | - | enable draft model | med | PENDING |
-
----
+Record run ID, timestamp, target/revision, environment, workload, baseline, measurements, hypotheses, actions and validation status. Use the [run-log template](references/run-log-template.md); do not keep dated sample runs in the core.
 
 ## Run Modes
 
@@ -231,22 +187,14 @@ Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly
 - `stop sherlock-it`: revert
 - Log persists across sessions; never auto-deleted
 
-## Example (of what the trace can contain)
+## Detailed example
 
-example of a sherlock trace:
-stdout:
-     component           ops   %dev      dev us     idle us     host us
-     attention            24  95.4%   535880.80      377.62       49.20
-     projections         187   3.2%    17723.32     2026.19      460.80
-     recurrent            90   1.1%     6127.59     1170.02      143.80
-     attention-mix        72   0.2%     1335.28     1102.27      111.60
-     head+sample           1   0.0%       98.20       91.80       56.90
-     bias                 18   0.0%       90.03      265.52       66.60
-     transfer              1   0.0%       79.80     1087.10     1084.30
-     norms                67   0.0%       72.98      784.24      139.40
-     residual             48   0.0%       23.40      198.44       73.30
-     ffn-activate         42   0.0%       21.52      372.84       67.70
-     embed                 1   0.0%        0.48       25.44        2.40
-   instrumentation floor, 256 empty ops timed through the same begin/end path: 0.70 us host, 19.54 us device each.
+Use the [run-log template](references/run-log-template.md) for the full record shape and trace example.
 
----
+## Boundaries
+
+- Does not write kernel code (receives kernels to validate/optimise)
+- Does not manage CUDA/ROCm installation
+- `stop sherlock-it`: revert
+- Log persists across sessions; never auto-deleted
+
