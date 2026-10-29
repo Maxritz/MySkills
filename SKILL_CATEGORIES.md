@@ -96,7 +96,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 
 ## Observations from the audit
 
-1. The previous README claimed 32 skills although the repository had 40 skill directories before this branch's additions.
+1. Before the catalogue-reconciliation change, the README claimed 32 skills while 40 skill directories existed. The reconciled catalogue grew to 54 skills, and this branch adds nine specialist skills for a total of 63.
 2. The previous category document used many names that had no matching directories, including c99-systems, systems-ml-stack-router, implementation-integrity, cross-compilation and graphics-shader-kernels.
 3. The previous loader configuration referred to absent directories and did not include all installed skill directories.
 4. code-quality-gate and traceability-gate overlapped substantially and both claimed automatic triggering. The loader now designates only code-quality-gate as the automatic code-change gate.

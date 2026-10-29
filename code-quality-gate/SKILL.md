@@ -26,7 +26,7 @@ Every applicable stage must PASS before completion. If a stage fails, fix it and
 
 ## Stage 1: Doxygen Contracts (Public APIs and non-trivial interfaces)
 
-**Required tags:** `@brief`, `@param[in|out|in,out]`, `@return`, `@pre`, `@post`, `@note`, `@warning`
+**Document what callers cannot infer:** `@brief` for public or non-trivial interfaces; `@param` for meaningful parameter contracts; `@return` for non-void or fallible results; `@pre`/`@post` when they express non-trivial conditions; `@note`/`@warning` only when relevant. Do not add empty boilerplate tags.
 
 ```c
 /**
@@ -53,7 +53,7 @@ int ggml_dequantize_q4_0(const void* src, float* dst, int block_count);
 typedef struct tensor tensor_t;
 ```
 
-**Validation:** `doxygen -u` + custom checker for required tags. Missing `@pre`/`@post` on public API = FAIL.
+**Validation:** use Doxygen and project-specific checks where available. Flag missing contract information that affects correctness or callers; do not fail a public API only because an irrelevant tag is absent.
 
 ---
 
@@ -107,20 +107,16 @@ int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len);
 
 ## Stage 3: No Fake Code Rule (Zero Tolerance)
 
-**FORBIDDEN — automatic FAIL:**
-- `TODO`, `FIXME`, `HACK`, `XXX` markers that identify in-scope behaviour as missing or incomplete; harmless future-work notes should be triaged rather than treated as proof of a broken feature
-- `pass`, `unimplemented!()`, `todo!()`, `assert!(false)`, `panic!()`
-- `// write your code here` or similar placeholders
-- Empty or constant-return bodies when the declared contract promises meaningful work and no intentional no-op or constant-return contract justifies the body
-- Example/demo modules unless explicitly requested
-- `print("Hello World")` or placeholder outputs
-- Hardcoded expected outputs to make tests pass
-- Mock implementations in production paths
+**Red flags: inspect the live path and contract before classifying:**
+- TODO/FIXME/HACK/XXX markers that coincide with required, in-scope behaviour not implemented
+- `pass`, `unimplemented!()`, `todo!()`, unconditional panic/assertion or placeholder comments on reachable production paths where they violate the declared contract
+- Empty or constant-return bodies where meaningful behaviour is promised
+- Canned outputs, fake progress/metrics, mock leakage or hard-coded test answers in production paths
+- Tests weakened, disabled or skipped to conceal a failure
 
-**IF a function cannot be fully implemented:**
-1. State this BEFORE coding
-2. Ask for clarification or scope reduction
-3. Do NOT emit incomplete code
+A marker or pattern alone is not proof. Expected test fixtures, examples, deliberate no-ops, explicit unsupported-operation errors and invariant assertions can be valid. Confirm reachability and contract before declaring a defect.
+
+**If requirements cannot be fully satisfied:** state the limitation before presenting the result. Ask only when missing information blocks a safe/correct decision; otherwise implement a coherent bounded scope, label omissions and do not present a stub as finished.
 
 ---
 
@@ -145,7 +141,7 @@ A compile is not an end-to-end pass. A skipped test is not evidence. The user ca
 
 ## Stage 5: Traceability Markers (Lean)
 
-Every non-trivial function gets `[T-XXX]` markers in source (stripped from binary only):
+Add stable `[T-XXX]` markers at diagnostic boundaries where they answer a concrete question. Do not instrument every function by default; marker density and overhead must be justified:
 
 ```c
 int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len) {
@@ -164,11 +160,11 @@ int gguf_parse(gguf_t** ctx, const uint8_t* buf, size_t len) {
 ```
 
 **Requirements:**
-- [ ] Every non-trivial function has `[T-XXX]` in DBG_TRACE + Doxygen `@brief`
-- [ ] DBG_TRACE at entry + **every exit path** (success + each error)
-- [ ] DBG_ASSERT on all pre-conditions
-- [ ] `-g3` (GCC/Clang) / `/Zi` (MSVC) in build flags
-- [ ] `addr2line -e app <addr>` works on sample crash address
+- [ ] Important entry, state transition and failure boundaries are traceable where needed
+- [ ] Material error exits have useful context without exposing secrets
+- [ ] Input preconditions are checked at the boundary; use recoverable errors for untrusted/runtime input rather than assertions that abort production
+- [ ] Debug symbols are available in the diagnostic build for the target toolchain; do not force debug symbols into release artefacts without policy approval
+- [ ] Validate source mapping with the platform's matching tooling, such as `addr2line` for ELF or PDB-aware tools on Windows
 
 **Stripped binary debugging:**
 ```bash
@@ -189,13 +185,13 @@ objcopy --add-gnu-debuglink=app.debug app
 | **Errors** | `Result<T, E>` for all fallible ops; **no `.unwrap()`/.expect()` in prod** |
 | **Error Types** | Custom with `thiserror`; map at boundaries |
 | **Propagation** | `?` operator; avoid nested `match` for simple forwarding |
-| **Public Types** | `#[derive(Debug, Clone, PartialEq)]` |
+| **Public Types** | Implement `Debug`, `Clone` or equality traits only when semantically appropriate and needed |
 | **Unsafe** | Only for FFI; document safety invariant in `// SAFETY:` comment |
 | **Null** | Prefer `Option<T>`; use `let-else` for early returns |
 | **Indexing** | Prefer `.get(i)` over `[i]`; bounds-checked |
 | **Testing** | `#[cfg(test)]` module per file; `proptest`/`quickcheck` for parsers/core logic |
 | **Build** | `cargo build --release` for perf; `cargo flamegraph` for profiling |
-| **Workspace** | `Cargo.toml` at root, crates in `src/`, no dev-deps leak |
+| **Workspace** | Follow the repository's declared workspace layout; keep development-only dependencies out of runtime builds |
 
 ---
 
@@ -220,11 +216,11 @@ TRANSPORT (HTTP/gRPC)
 4. Background jobs & external integrations behind interfaces; fake/test adapters **only in test code**
 5. Test each layer + one E2E path; verify startup, migration, shutdown, failure recovery
 
-**Anti-patterns (FAIL):**
-- HTTP handler calls SQL directly
-- Domain struct has `http.ResponseWriter` field
-- Global `config` variable used in domain logic
-- Worker imports web framework
+**Boundary violations (when they contradict the declared architecture):**
+- Transport-specific types leak into domain interfaces
+- Domain rules depend directly on infrastructure or mutable process-wide configuration
+- Background jobs couple themselves to transport frameworks without a justified reason
+- Handlers bypass required authorisation, transaction or validation boundaries
 
 ---
 
@@ -232,7 +228,7 @@ TRANSPORT (HTTP/gRPC)
 
 ```
 QUALITY GATE: PASSED/FAILED
-STAGE: <failed stage> / 7
+STAGE: <failed or blocked stage> / 7
 DOXYGEN: <missing tags>
 CONTRACTS: <missing elements>
 FAKE_CODE: <violations found>

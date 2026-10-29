@@ -43,8 +43,8 @@ metadata:
 
 ### Sanitization (Mandatory)
 **Never write:** personal paths, API keys, emails, phone numbers, machine names, credentials, endpoints.
-- Same regex enforcement as knowledge-base.
-- Validate: `test_analysis_log.py` — 6 tests pass.
+- Apply a tested sanitisation implementation when available; if absent, review writes manually until the implementation exists.
+- Run the corresponding sanitisation tests if present. Do not claim they pass without executing them.
 
 ### Lookup (Summary first, source verification when needed)
 ```bash
@@ -87,7 +87,7 @@ grep "pattern:" .opencode/analysis.md
 
 **Save/Update** (idempotent, append-style):
 ```
-Save {topic}: "{new info}" → append to existing summary, update refs, bump timestamp.
+Save {topic}: "{new info}" → append to existing summary, update refs, bump timestamp. Recheck the current source for claims that may have changed.
 Max 500 tokens. Overflow → trim oldest key_points to `{topic}.history`.
 ```
 
@@ -100,7 +100,7 @@ Search "gguf" → fuzzy match topics → show top 3 summaries.
 ### Unload Protocol (After Task Completion)
 ```
 Unload {topic} → remove from context, keep 1-line summary.
-ctx.py unload debug-localize → "debug-localize: applied, validated. 42 tokens freed."
+Example output only: a tool may report unloaded topics and an estimated token delta. Never emit a success message unless the unload actually occurred.
 ```
 @see debug-core:Auto-Skill-Unload for full protocol.
 
@@ -186,11 +186,11 @@ kb.py search "block size"     # max 3 results
 ### Sanitization (Every Write)
 **Strip:** personal paths, API keys, emails, phone numbers, credentials, endpoints, machine names.
 - Keys **never committed**.
-- Test: `test_knowledge_base.py:6` passes.
+- Run knowledge-base sanitisation tests if present; record their actual output.
 
 ### Usage
 - **Before debugging:** `kb.py search` — known pattern skips full cycle.
-- **After fix (VALIDATION step 12):** `kb.py add` to both tiers.
+- **After a verified fix:** add a sanitised entry only if the knowledge-base tooling exists and the project permits it; otherwise update the documented knowledge file manually.
 
 ---
 
@@ -225,9 +225,9 @@ For platform-specific deployment, release, rollback and runtime operations, load
 
 ### Post-Validation (Step 12 of debug-core)
 ```
-[ ] kb.py add to central + project tier
+[ ] Store a sanitised, verified knowledge entry if the repository has an authorised mechanism
 [ ] Append to .opencode/analysis.md
-[ ] ctx.py unload for completed topics
+[ ] Unload completed context only if the context tool is available
 [ ] Sanitization verified
 ```
 
@@ -261,4 +261,4 @@ Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and o
 - Does not write code (receives code to validate/process)
 - Does not provision or manage infrastructure; use deployment-operations and ci-release-engineering
 - Does not replace git history (context tracker supplements)
-- `stop knowledge-process`: revert.
+- Do not revert unrelated work to stop this skill; stop using the workflow and preserve existing project state.
