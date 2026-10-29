@@ -43,7 +43,7 @@ NEXT PROBE: <exact experiment and predicted outcomes>
 FIX: <only if justified; otherwise NONE or candidate only>
 ~~~
 
-Omit empty fields. For a one-line request, compress the same information without changing the verdict status. When asked to show work, include the call/data flow, contract, branch values that are actually known, hypothesis table, distinguishing test and result. Use a truth table only when interacting conditions matter; use fault trees, fishbone or 5 Whys only when they address a specific unresolved question.
+Omit empty fields. For a one-line request, compress the same information without changing the verdict status. When asked to show work, include the call/data flow, contract, branch values that are actually known, hypothesis table, distinguishing test and result. Use a truth table only when interacting conditions matter; use fault trees, fishbone or 5 Whys only when they address a specific unresolved question. Load [conditional diagnostic methods](references/deep-diagnostic-templates.md) only when the selected method needs a template or extended procedure.
 
 ## Handoff and boundaries
 
