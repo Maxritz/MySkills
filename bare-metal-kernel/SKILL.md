@@ -2,10 +2,6 @@
 name: bare-metal-kernel
 description: "Bare-metal OS kernel development: boot process (GRUB/Stivale2), long mode, page tables (4-level), IDT/interrupts, PCI enumeration. x86-64 kernel development from bootloader to long mode."
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  trigger_keywords: ["bootloader", "GRUB", "Stivale2", "long mode", "page tables", "PML4", "IDT", "interrupts", "PCI", "bare metal", "kernel", "boot", "x86-64", "kernel_main"]
 ---
 
 # Bare-Metal OS Kernel
