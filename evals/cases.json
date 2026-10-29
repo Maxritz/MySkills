@@ -16,7 +16,10 @@
         "Function returns a constant inconsistent with stated contract"
       ],
       "required_verdict": "evidence-backed finding; verify intentional no-op/fallback possibility",
-      "required_tests": []
+      "required_tests": [
+        "Inspect callers and the contract",
+        "Add a test with count > 0 and assert stored rows and return value"
+      ]
     },
     {
       "id": "injected-parser-defect",
@@ -32,7 +35,10 @@
         "Missing field-count contract/validation before indexing"
       ],
       "required_verdict": "confirmed only after the failing input reproduces or equivalent execution evidence exists",
-      "required_tests": []
+      "required_tests": [
+        "Run the supplied input",
+        "Test zero-, one-, two- and three-field rows"
+      ]
     },
     {
       "id": "concurrency-bug",
@@ -48,7 +54,10 @@
         "In C++, the data race makes behaviour undefined"
       ],
       "required_verdict": "causal claim grounded in conflicting access and missing synchronisation",
-      "required_tests": []
+      "required_tests": [
+        "Use ThreadSanitizer where supported",
+        "Compare a mutex/atomic variant under the same workload"
+      ]
     },
     {
       "id": "vulkan-synchronisation",
@@ -64,7 +73,10 @@
         "Verify whether queue submission or other barriers already provide the required dependency before confirming"
       ],
       "required_verdict": "UNRESOLVED until the complete synchronisation path is inspected",
-      "required_tests": []
+      "required_tests": [
+        "Inspect complete command buffer and submission/queue flow",
+        "Add a COMPUTE_SHADER/SHADER_WRITE to TRANSFER/TRANSFER_READ dependency when required, then compare readback"
+      ]
     },
     {
       "id": "quantisation-mismatch",
@@ -80,7 +92,10 @@
         "Use the reference formula for this fixture; do not generalise without checking the actual format spec"
       ],
       "required_verdict": "confirmed for the supplied fixture only; verify target format before transferring conclusion",
-      "required_tests": []
+      "required_tests": [
+        "Compare every decoded nibble against reference vectors",
+        "Include minimum/maximum code, block boundaries and tail cases"
+      ]
     },
     {
       "id": "performance-regression",
@@ -97,7 +112,10 @@
         "Use paired repeated runs on the same workload, report median and spread, inspect counters/profiles"
       ],
       "required_verdict": "NO DEFECT ESTABLISHED from the supplied measurements alone",
-      "required_tests": []
+      "required_tests": [
+        "Repeated comparable baseline/candidate measurements",
+        "Correctness equivalence and profiler/counter check if slowdown persists"
+      ]
     },
     {
       "id": "deployment-failure",
@@ -113,7 +131,10 @@
         "The supplied evidence supports an endpoint mismatch; verify the deployed image/config is the same revision"
       ],
       "required_verdict": "supported/confirmed only to the extent that evidence ties the active deployment to the shown configuration",
-      "required_tests": []
+      "required_tests": [
+        "Inspect rendered deployment config and effective container health check",
+        "Probe the configured endpoint and the documented readiness endpoint in the deployed container"
+      ]
     },
     {
       "id": "negative-no-defect-established",
@@ -128,12 +149,14 @@
         "Ask for an unmet requirement, failing reproduction or comparable performance baseline instead of inventing a root cause"
       ],
       "required_verdict": "NO DEFECT ESTABLISHED",
-      "required_tests": []
+      "required_tests": [
+        "Request the actual violated contract or capture comparable repeat measurements if performance is the complaint"
+      ]
     },
     {
       "id": "negative-confounded-performance",
       "category": "negative-control",
-      "task": "Run ponytail-diag on this claim: version B appears 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. No defect is established by this evidence alone. Do not assign a code root cause without a discriminating test.",
+      "task": "Run ponytail-diag on this claim: version B appears 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. No defect is established by this evidence alone. Use a comparable benchmark if needed. Do not assign a code root cause without a discriminating test.",
       "required_skills": [
         "ponytail-diag",
         "sherlock-it"
@@ -144,7 +167,9 @@
         "No root cause can be assigned; control host, workload, warm-up and logging, then repeat"
       ],
       "required_verdict": "UNRESOLVED / NO DEFECT ESTABLISHED",
-      "required_tests": []
+      "required_tests": [
+        "Run paired or otherwise comparable repeated benchmarks with the same workload and environment"
+      ]
     }
   ]
 }
