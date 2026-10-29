@@ -218,7 +218,7 @@ Do not apply fixes in deep mode.
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Select the diagnostic structure that resolves the current uncertainty, state why it fits, and stop when evidence distinguishes the cause. Do not generate a truth table, fishbone or fault tree merely to fill a template.
 

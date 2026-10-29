@@ -100,7 +100,7 @@ See `knowledge-process` → Context Tracker for session memory and unload loggin
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Keep a coverage ledger of observations, hypotheses, experiments and results. Choose the cheapest experiment that separates live hypotheses; do not escalate through every diagnostic method by rote or close the issue without retesting the original failure.
 

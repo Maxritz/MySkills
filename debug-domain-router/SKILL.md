@@ -89,7 +89,7 @@ ESTIMATED COST: <low/medium/high>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Load only the specialist that matches the unresolved fact; verify every routed skill path exists. After the fact is resolved, hand back the result and unload irrelevant specialists instead of stacking overlapping orchestrators.
 
