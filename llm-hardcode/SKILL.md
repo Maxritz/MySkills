@@ -77,7 +77,7 @@ Report target ISA, compiler flags, layout and quant type, correctness deltas, ra
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Pin the exact quantisation layout and compiler/ISA. Dispatch only after checking CPU features and OS-managed vector state, keep a safe fallback, and compare dequantised values and outputs against a trusted oracle before performance claims.
 

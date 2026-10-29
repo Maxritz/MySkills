@@ -249,7 +249,7 @@ prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Handle partial reads/writes, EINTR, descriptor lifetime, signal interruption, cancellation and shutdown explicitly. Validate permissions and trust boundaries, and test the actual process/service lifecycle rather than relying on a successful compile.
 

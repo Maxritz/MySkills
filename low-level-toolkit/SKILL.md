@@ -368,7 +368,7 @@ BLOCKERS: <missing ISA|unstable ABI|non-determinism>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Pin target ABI, object format, compiler/linker and CPU feature set. Check disassembly, relocations, stack/unwind metadata and runtime feature dispatch; emulator success is not proof of cycle accuracy or real-hardware behaviour.
 

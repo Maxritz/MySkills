@@ -163,7 +163,7 @@ BLOCKERS: <list>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Treat all engine flags and APIs below as version-sensitive examples. Check the installed package version and its own help/docs before execution; validate a real request through generation, streaming termination, cancellation and cleanup, then report TTFT, inter-token latency, throughput and memory for a named workload.
 

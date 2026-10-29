@@ -177,7 +177,7 @@ BLOCKERS: <list>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Measure expert selection, dispatch, cache hits and routing balance for MoE; measure draft acceptance and target verification for speculative decoding. Compare final tokens/logits with a trustworthy reference under stated precision-specific tolerances.
 
