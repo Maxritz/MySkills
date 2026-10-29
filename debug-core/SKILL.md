@@ -3,6 +3,7 @@ name: debug-core
 description: "Debug orchestrator: 12-step loop, truth tables, auto-unload, knowledge capture. Default entry for all debugging."
 compatibility: opencode
 metadata:
+  auto_unload: true
   role: debugging
   loading: on-demand
   auto_trigger: true
