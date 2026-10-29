@@ -1,215 +1,86 @@
 ---
 name: goli-mat-de
-description: Evidence-driven implementation-integrity audit for repositories, files, functions, symbols, features, diffs, tests, builds, and performance claims. Finds placeholders, stubs, superficial work, disconnected code, skipped implementation, fake success, weak verification, and AI-agent shortcuts. Produces prioritised fixes and creates task tickets only after explicit user acknowledgement.
+description: Evidence-led audit for fake, skipped, incomplete or misleading implementation and verification. Audits repositories, files, functions, diffs, tests, wiring and performance claims. Produces prioritised fixes; creates tasks only after user acknowledgement.
 compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
   auto_trigger: false
-  trigger_keywords: ["goli-mat-de", "goli mat de", "implementation integrity audit", "fake code", "stub audit", "placeholder audit", "incomplete implementation", "skipped implementation", "kaam chalau code", "thook patti code"]
+  trigger_keywords: ["goli-mat-de", "goli mat de", "implementation integrity audit", "fake code", "stub audit", "placeholder audit", "skipped implementation", "kaam chalau code", "thook patti code"]
 ---
 
 # Goli-mat-de
 
-## Mission
+**Goal:** Find work that is missing, superficial, disconnected, falsely reported complete, or inadequately verified. Judge behaviour against requirements and evidence, not coding style or keywords alone.
 
-Do not let unfinished work masquerade as complete. Audit code against requirements, contracts, actual call paths, tests, configuration, and execution evidence. The objective is implementation truth, not keyword counting or style policing.
+## Rules
 
-Treat suspicious code as a lead, not proof of bad intent. Distinguish a confirmed defect from a risk, a missing test, and a behaviour that could not be verified.
+- Evidence first. A search hit is a lead, not proof. Inspect context and the real contract; intentional no-ops and tested fallbacks may be valid.
+- Never invent source locations, call paths, tool output, test results, benchmarks or capabilities.
+- Separate FACT, HYPOTHESIS, RESULT and CONCLUSION. Mark unverified work honestly.
+- Do not claim exhaustive coverage after sampling. Track inspected, validated, excluded and untouched scope.
+- Audit only. Do not mutate code, create tasks, commit, push, deploy or delete data unless separately authorised. Task creation has the acknowledgement gate below.
 
-## Non-negotiable rules
+## Scope and coverage
 
-1. Evidence before verdict. Every actionable finding needs a real path and line, symbol, configuration key, test, command output, or traced call path. Never invent evidence.
-2. A search hit is not a finding. Inspect surrounding implementation and contract before classifying TODO, mock, fallback, constant return, empty body, or other suspicious pattern.
-3. Do not claim exhaustive coverage after sampling. Maintain a file-by-file ledger and clearly mark what was not inspected or executed.
-4. Trace the behaviour end to end: entry point, validation, dispatch, core computation, state change, errors, result, caller, configuration, and tests.
-5. Separate source facts, documented claims, assumptions, hypotheses, and executed results.
-6. Never say build, test, benchmark, integration, fix, or implementation passed unless the relevant command or tool actually ran and the result supports that exact claim.
-7. Do not call every shortcut a defect. A deliberate, tested fallback can be correct. Compare it with explicit requirements and expected behaviour.
-8. Do not create tickets, commit changes, push, deploy, delete data, or mutate external state during the audit. Ticket creation is allowed only after the user acknowledges the specific proposed task list. Other changes require explicit authorisation.
-9. Prefer correctness, completeness, security, data integrity, reliability, interoperability, and truthful performance claims over cosmetic issues.
-10. Use the minimum analysis machinery sufficient to prove or falsify a claim. Escalate to deeper methods when simple tracing does not resolve it.
+Infer scope from the request: repository, directory, file, function/symbol, feature, diff, test or claim. Read applicable project instructions and acceptance criteria first: AGENTS.md, CLAUDE.md, README/CONTRIBUTING, architecture notes, build/test config and CI.
 
-## Scope selection
+For a repository, inventory source, headers/APIs, tests, scripts, build/config, packaging, docs and generated boundaries. For a function, trace declaration, callers, callees, state/resources, errors and tests. For a diff, inspect every changed line plus the surrounding call path. Record branch/revision when available.
 
-Infer the scope when the target is explicit. For a repository audit, inspect project instructions, source, headers, tests, build files, feature flags, packaging, scripts, documentation claims, CI and relevant generated-code boundaries. For a function audit, inspect the declaration, implementation, overloads, callers, callees, contracts, state, resources, error paths and tests. For a diff, inspect every changed line and enough surrounding context to understand the impact.
+Maintain a compact ledger: path | role | status | finding IDs. Status: NOT STARTED, INSPECTED, VALIDATED, EXCLUDED (reason). Batch large repos and state exact coverage, gaps and next batch. Never label partial work exhaustive.
 
-Read applicable AGENTS.md, CLAUDE.md, CONTRIBUTING files, architecture notes, acceptance criteria, build/test guidance and configuration before judging completeness. Record the branch or revision when the tools expose it.
+## Audit surfaces
 
-## Coverage ledger
+Search appropriate language-specific patterns, then inspect implementation and call paths:
 
-Create an inventory and classify each file as source, header/interface, test, build/configuration, script, generated, vendored, fixture, documentation, or binary. Track each in-scope file as NOT STARTED, INSPECTED, EXECUTED/VALIDATED, or EXCLUDED WITH REASON. Do not silently exclude project-owned code.
+- **Stubs/markers:** TODO, FIXME, TBD, XXX, HACK, WIP, placeholder, NotImplemented, todo!, unimplemented!, empty bodies, dummy/demo code, unfinished switch/match cases, missing definitions or executable ellipses.
+- **Fake or shallow work:** canned/hard-coded outputs, constant success/default returns, magic values, fake progress/metrics, placeholder maths, toy algorithms presented as production, functions that only log/copy/forward, unconditional fallbacks, test answers in production, mocks/fixtures leaking into production.
+- **Missing wiring:** uncalled/unlinked modules, unregistered backends/plugins, ignored config/flags/results, dead branches, incomplete protocol/API/platform paths, dropped async work, unawaited futures, inactive callbacks, incorrect queue/stream/buffer paths, inconsistent CLI/library/service/package/deployment paths.
+- **Weak verification:** empty/tautological assertions, tests bypassing the feature, mock-only “integration”, disabled/skipped/filtered tests, weakened assertions, swallowed test failures, stale binaries, wrong build/config/device, useless fuzzing, setup-only benchmarks, invalid timing, unrun checks reported as passed.
+- **Reliability:** swallowed errors, ignored return values, missing validation/bounds/overflow handling, races, cleanup gaps, leaks, stale handles, partial writes, unbounded queues, missing cancellation/timeouts/retry/idempotency and incorrect error propagation.
+- **Security/portability/operations:** trust-boundary validation, auth/permissions, secrets, injection/deserialisation/path risks, dependency provenance, ABI/calling convention, alignment/endianness, feature probes, unsupported ISA, SDK/runtime version, install/startup/shutdown and rollback.
+- **Performance/numerics:** wrong workload or timing boundary, stale baseline, scalar fallback, instruction/layout/stride issues, extra copies/launches/sync, hidden transfers, misleading units, precision/tolerance errors. Check hardware, OS, compiler/flags, driver, workload, configuration, revision and repeated results.
+- **Agent shortcuts:** claiming read/run/build/fix/push without evidence; delivering plans/docs/scaffolds instead of working code; invented APIs/paths/output; fixing one occurrence only; suppressing warnings or tests; loosening tolerances; changing scope silently; stopping at compile; validating a stale revision.
 
-For large codebases, process batches and preserve the ledger. If limits stop the audit, report exact coverage, untouched paths and the next batch. Never label a partial audit exhaustive.
+Markers are not automatically defects. A deliberate simplification is acceptable when it satisfies the contract, is disclosed where relevant, and has suitable tests.
 
-## Search and inspect implementation avoidance
+## Trace the real behaviour
 
-Search language-appropriate variants of the following groups. Search is discovery only; inspect each hit in context.
+For each material feature or finding, follow:
 
-### 1. Explicit unfinished markers
+requirement → entry/API → validation → dispatch → implementation → state/resource effect → output/error → caller → test/evidence
 
-TODO, FIXME, TBD, XXX, HACK, WIP, stub, placeholder, temporary, later, not implemented, unfinished, dummy, example only, future work, NotImplemented, NotImplementedError, todo!, unimplemented!, pass, panic!, assert(false), ellipses inside executable bodies, empty methods, missing switch cases, unimplemented virtual methods, skeletal files and declarations without required definitions.
+Include feature flags, fallback selection, ownership/lifetime, async completion, GPU/network/storage transfers and measurement boundaries when relevant. Confirm that configuration affects the running path and that the tested binary/revision is the one being claimed.
 
-### 2. Kaam-chalau, thook-patti, superficial or fake implementation
+Evidence status: CONFIRMED, SUPPORTED, SUSPECTED, NEEDS VERIFICATION, NOT A DEFECT, or BLOCKED. A build proves buildability, not runtime correctness.
 
-- Hard-coded outputs, canned responses, fixed indices, magic values, fake progress, synthetic metrics, fabricated scores or sample data used as production data.
-- Functions returning constant success, zero, null, an empty collection, a default object or a plausible answer without doing the promised work.
-- Branches that accept every input, skip validation, bypass the main algorithm, or return a test-specific expected answer.
-- Toy or approximate algorithms silently substituted for the requested algorithm; placeholder mathematics; fallback paths selected unconditionally.
-- Functions that only log, rename, copy, forward or wrap values where real computation or a required side effect is missing.
-- Demo adapters, fake providers, mocks or fixtures leaking into production builds.
-- Configuration knobs that parse but are ignored, values that are overwritten later, flags with no consumer, and settings that have no observable effect.
-- Comments, documentation or progress reports claiming functionality that the implementation does not provide.
+## Use only useful diagnostics
 
-### 3. Missing or disconnected wiring
+Choose a method to answer a specific uncertainty: call/data-flow for missing wiring; state model or invariants for corrupt state/contracts; truth table for interacting flags; differential/golden test for correctness; reproduce/reduce for a stable case; minimum distinguishing experiment for competing hypotheses; diff bisection for regressions; fishbone/FTA/5 Whys for multi-cause/systemic issues; sanitizers/fuzz/race/fault-injection for relevant risks; Pareto for many findings. Do not emit every method or fabricate dynamic branch values.
 
-- Modules that compile but are never linked, registered, instantiated, dispatched, called, or exposed through the intended API.
-- Backend implementations not selected by the runtime, dead feature flags, unregistered plugins, unhandled protocol messages, missing platform cases and incomplete fallback chains.
-- Missing caller-to-callee flow, dead code, unreachable branches, placeholder dispatch tables and functions whose outputs are ignored.
-- Async calls that are not awaited, futures/promises dropped, callbacks never registered, event subscriptions never activated, cancellation ignored, and completion returned before work finishes.
-- Host/device data paths that never reach the intended queue, stream, buffer or output; transfers counted outside the timed region; stale caches; incorrect ownership or lifetime.
-- CLI, library, service, bindings, packaging and deployment paths that disagree or do not exercise the same implementation.
+## Rank findings
 
-### 4. Fake or weak tests and verification
+- **P0 Critical:** severe security exposure, data loss/corruption or catastrophic correctness/release blocker.
+- **P1 High:** core promised feature missing/broken/misrepresented; major correctness or reliability failure.
+- **P2 Medium:** material integration, edge-case, portability or verification gap with bounded impact.
+- **P3 Low:** limited cleanup, documentation mismatch or low-risk improvement.
 
-- Empty assertions, tautological assertions, tests that never exercise the intended branch, test-only expected answers hard-coded into implementation, mocks used to claim real integration, and tests that pass when the feature is disabled.
-- Disabled, skipped, quarantined, xfail, ignored or silently filtered tests; reduced coverage; weakened assertions; swallowed test exceptions; success exit codes despite failure.
-- Build success presented as runtime correctness; stale executable or stale generated files; a test run against the wrong binary, configuration, device, backend or source revision.
-- Fuzzers with no meaningful input variation, benchmarks measuring setup instead of the target, timing windows that exclude the work claimed, single noisy runs, invalid warm-up, missing synchronisation, or incompatible baselines.
-- Claimed tests, sanitizers, benchmarks, hardware runs, golden comparisons or end-to-end tests for which no actual execution evidence exists.
+Rank by impact, likelihood, blast radius, confidence and dependency. Deduplicate symptoms sharing a root cause. Keep severity separate from confidence.
 
-### 5. Error handling and reliability gaps
+Each finding: ID | priority | confidence | file:line/symbol | expected vs observed | evidence | impact/root cause | concrete fix | test/acceptance criteria | dependency/effort | validation status. Mark commands NOT RUN or BLOCKED. Give a definition of done, not a vague “improve”.
 
-- Swallowed exceptions, empty catch blocks, ignored return values, fabricated success, generic recovery that hides the first failure, partial cleanup and missing rollback.
-- Missing input/range/overflow checks, malformed-input handling, timeouts, cancellation, retries, idempotency, race handling, backpressure, resource limits and failure propagation.
-- Resource leaks, double free, use-after-free, stale handles, lock imbalance, unbounded queues, invalid state transitions, partial writes and non-atomic updates.
-- Silent data truncation, lossy conversions, precision assumptions, schema drift, uninitialised state and incorrect error codes.
+## Installed skills
 
-### 6. Security, portability and operational omissions
+If a skill catalogue exists, inspect headers first: name, description, triggers, loading and dependencies. Read full instructions only for relevant skills. Check references, triggers, redundancy, conflicts, stale/orphaned skills and loader configuration. State whether each skill was only inspected or actually applied. Report unavailable catalogue access.
 
-Check authentication and authorisation, validation at trust boundaries, secrets, unsafe deserialisation, path traversal, injection, permission assumptions, cryptographic misuse, dependency provenance and failure-safe defaults when relevant.
+## Report
 
-Check OS/compiler/architecture support, ABI, calling conventions, alignment, endianness, feature probes, unsupported instructions, SDK/runtime versions, packaging, install/uninstall, startup/shutdown, configuration and deployment rollback. Do not infer portability from compiling one platform.
+Start with verdict, scope/revision, coverage counts and key risks. Then give deduplicated prioritised findings, actual versus unrun verification, missing wiring/capabilities, recommended specialist skills/methods, task proposals, blockers and residual uncertainty. Separate source inspection from executed validation.
 
-### 7. Performance and numerical claims
+## Acknowledgement gate for tasks
 
-Confirm what was measured, for which workload, model, input sizes, precision, hardware, driver, compiler, flags, configuration and source revision. Separate setup, model load, prefill, decode, transfers, synchronisation, host dispatch and device execution. Check that counters and units mean what the report claims.
+After reporting, present a concrete prioritised task list with IDs, scope, dependencies, effort, implementation steps and acceptance criteria. Ask the user to acknowledge it.
 
-Check scalar fallback, missed vectorisation, wrong instruction family, layout/stride errors, poor tiling, excess launches, memory traffic, synchronisation, cache behaviour, allocation and hidden copies. Verify numerical correctness against a suitable reference and explicit tolerance before accepting speedups.
+**Before explicit acknowledgement, create no issues, tickets, reminders or task records.** An audit request is not consent to create tasks. After acknowledgement, use the requested authorised task system. For GitHub work, create Issues only when explicitly approved for that destination. Avoid duplicates and report actual IDs/URLs. If unavailable, provide ready-to-copy tasks and say none were created.
 
-### 8. AI coding-agent avoidance patterns
-
-- Claiming to have read, run, built, benchmarked, fixed, pushed or integrated something without tool evidence.
-- Writing a plan, interface, documentation or scaffold instead of the requested working implementation.
-- Inventing APIs, compiler flags, file paths, device capabilities, test output or repository contents.
-- Editing one occurrence while ignoring parallel implementations, callers, related tests or platform variants.
-- Suppressing warnings, deleting failing tests, broadening exception handlers, loosening tolerances or disabling checks to make a run appear green.
-- Solving a symptom with a hard-coded special case while leaving the general contract broken.
-- Changing the requested scope without saying so, stopping after the first successful build, or reporting only positive tests while hiding skipped checks.
-- Generating a large patch without tracing dependencies, reviewing the diff, checking regressions or validating the exact final revision.
-- Reusing stale analysis or benchmark output after relevant source, configuration, hardware or model changes.
-- Asking the user to perform investigation that available tools can perform, while implying the investigation was completed.
-
-## End-to-end tracing protocol
-
-For every material feature or defect, map:
-
-REQUIREMENT → PUBLIC ENTRY → VALIDATION → DISPATCH → IMPLEMENTATION → STATE/RESOURCE EFFECT → OUTPUT/ERROR → CALLER → TEST/EVIDENCE.
-
-For GPU, inference, storage, network and asynchronous code, include queue/stream submission, synchronisation, byte movement, ownership/lifetime, fallback selection and measurement boundaries where relevant.
-
-Use the following evidence states:
-
-- CONFIRMED: directly observed in source or reproduced with a reliable test.
-- SUPPORTED: multiple facts support the conclusion, but one proof step is missing.
-- SUSPECTED: credible indicator requiring a discriminating test.
-- NEEDS VERIFICATION: behaviour cannot be established with current access.
-- NOT A DEFECT: investigated and justified by the actual contract.
-- BLOCKED: required source, dependency, hardware or permission is unavailable.
-
-## Diagnostic methods
-
-Choose the technique that resolves the uncertainty:
-- Data/state model for variable, tensor, resource or cache state.
-- Control/data-flow diagram for routing, skipped branches or disconnected execution.
-- Logic table or truth table for combined flags, feature gates and boundary cases.
-- Invariants/contracts for preconditions, postconditions, ownership, shape, range and numerical properties.
-- Call graph and symbol-reference map for missing wiring and dead paths.
-- Fishbone for interacting causes across code, build, environment, input and toolchain.
-- Fault-tree analysis for multi-condition failures.
-- Five Whys for systemic causes rooted in requirements, dependencies or configuration.
-- Change analysis and diff bisection for regressions.
-- Pareto ranking when many issues compete for attention.
-- Differential testing, golden reference, fuzzing, sanitizers, race detection, fault injection or controlled experiments when they can settle an uncertainty.
-
-Do not print every method by default. Explain why a method was selected and what evidence it produced. Never fabricate a truth table value, call path or measurement.
-
-## Prioritisation
-
-Assign each finding a unique ID and one severity:
-
-- P0 CRITICAL: active security exposure, data corruption/loss, catastrophic correctness issue or a release blocker with immediate severe impact.
-- P1 HIGH: core promised functionality is missing or misleading, primary execution is broken, severe reliability issue, or major correctness/performance claim is unsupported.
-- P2 MEDIUM: substantial edge-case, integration, portability, test-coverage or maintainability gap with bounded impact.
-- P3 LOW: limited-scope cleanup, documentation mismatch or low-risk improvement.
-
-Prioritise by impact, likelihood, blast radius, user-visible effect, confidence and dependency order. Do not inflate priority to get attention. Mark urgency separately from certainty. Deduplicate findings that share one root cause and order tasks by blocking dependency.
-
-## Finding format
-
-For each finding provide:
-
-- ID, title, priority, confidence and status.
-- Exact file/path and line range or symbol. Link evidence when available.
-- Claim/requirement versus observed behaviour.
-- Why it is a real defect or risk, including the affected execution path.
-- Root cause, or clearly labelled hypotheses if not proven.
-- Concrete implementation change, not merely “improve” or “fix”.
-- Tests and commands needed, acceptance criteria and definition of done.
-- Dependencies, estimated effort/risk and expected user impact.
-- Validation actually run and its result. Clearly mark NOT RUN or BLOCKED.
-
-Group duplicate symptoms under their shared root cause, but preserve separate acceptance criteria where fixes differ.
-
-## Installed-skill discovery
-
-When a skill catalogue is available:
-1. Enumerate installed skills and inspect their headers first: name, description, scope, trigger keywords, loading rules and declared dependencies.
-2. Map the current task to relevant skills and state briefly why each applies.
-3. Read the complete instructions for selected skills, not every unrelated skill body.
-4. Check the referenced skills actually exist and that their interfaces, names and triggers agree.
-5. Identify redundant, contradictory, stale, orphaned or unreachable skills and recommend a precise change.
-6. Do not claim a skill was loaded or executed when only its header was read. If catalogue access is unavailable, report that limitation.
-
-## Final audit report
-
-Lead with a one-line verdict and summary counts. Then provide:
-1. Scope, repository/revision and coverage ledger summary.
-2. Ranked findings with evidence.
-3. False-completion and implementation-integrity risks.
-4. Testing/build/performance claims verified versus unverified.
-5. Missing capabilities and integration gaps.
-6. Recommended relevant skills/methods and why.
-7. A prioritised remediation checklist in dependency order.
-8. Exclusions, blockers, assumptions and residual risk.
-
-Do not use a green status without evidence. Distinguish “source inspection completed” from “runtime validation completed”.
-
-## Acknowledgement and task-creation gate
-
-After the audit, show the proposed task list with IDs, priorities, scopes, dependencies, effort, concrete actions and definitions of done. Ask the user to acknowledge that list.
-
-Before explicit acknowledgement, do not create issues, tickets, tasks, reminders or other task records. An instruction to perform an audit is not by itself acknowledgement of the resulting task list. Do not treat silence or an ambiguous response as consent.
-
-After explicit acknowledgement:
-1. Use the user's specified task system when available and authorised.
-2. If auditing a GitHub repository and no other destination is specified, ask or use GitHub Issues only when the user has explicitly approved task creation there.
-3. Create tasks in priority/dependency order. Each task must include evidence, implementation steps and acceptance criteria.
-4. Link related tasks and avoid duplicate tickets.
-5. Report the actual created IDs and URLs. If task integration is unavailable, provide ready-to-copy tasks and state that no external tasks were created.
-
-This acknowledgement gate does not prohibit edits or commits that the user separately and explicitly requested. It specifically governs creation of task records based on audit findings.
-
-## Completion criteria
-
-An audit is complete only when the coverage report reflects the actual inspected scope, each reported finding has traceable evidence, uncertainties and exclusions are explicit, findings are ranked and deduplicated, recommended validation is actionable, and the task list has been presented for acknowledgement. Never equate a completed report with repaired code.
+This gate applies to task records from findings, not edits the user separately authorised. An audit is complete only when coverage and exclusions are honest, findings are evidenced and prioritised, and the task list is presented. A complete report does not mean the code has been fixed.
