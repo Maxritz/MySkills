@@ -25,7 +25,7 @@ Load the **smallest specialization** needed. Max 2 per cycle. Never preload enti
 | **Quantization** | Block formats, numerical reconstruction | `debug-invariants` + `debug-mde` | Per-tensor error, scale/zero-point verify |
 | **Networking** | Protocol/state/packet semantics | `debug-reproduce` + `debug-root-cause` | PCAP, state machine, RFC compliance |
 | **GPU Kernels** | Launch config, occupancy, sync | `debug-localize` + `debug-invariants` | rocprof/Nsight, ISA, timeline |
-| **Model Serving** | Routing, batching, cache, fallback | `debug-reproduce` + `model-pool` | Request trace, latency breakdown |
+| **Model Serving** | Routing, batching, cache, fallback | `debug-reproduce` + `llm-serving` | Request trace, latency breakdown |
 | **Filesystem** | Path resolution, locking, atomicity | `debug-localize` + `debug-reproduce` | strace, lockdep, fsck |
 | **Distributed** | Consensus, partition, clock sync | `debug-root-cause` + `debug-hypothesis` | Jepsen-style, vector clocks |
 
