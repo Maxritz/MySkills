@@ -8,7 +8,11 @@ on:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,7 +32,7 @@ jobs:
       - name: Validate native discovery and router inventory
         shell: bash
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           import json, re, sys
           from pathlib import Path
 
