@@ -166,7 +166,7 @@ MODULE_DESCRIPTION("Minimal char device");
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Pin kernel version, config, symbols and reproduction environment. Use the diagnostic appropriate to the suspected layer; verify lock ordering, interrupt context and allocation context, and report whether the test ran on a real target or emulator.
 

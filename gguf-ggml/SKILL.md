@@ -64,7 +64,7 @@ Record upstream revision, file version, tensor type, test fixture provenance, pa
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Pin the GGML commit and quant type before relying on byte layouts. Validate untrusted offsets, counts, alignment and integer overflow before allocating or mapping; compare parsing and dequantisation with version-matched golden vectors.
 

@@ -255,7 +255,7 @@ BLOCKERS: <sanitisation gap|source not rechecked|failed gate|tool unavailable|un
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Persist only verified, sanitised deltas. Keep hypotheses distinct from facts, avoid recording secrets or personal identifiers, and never make a saved note or example authoritative for a newer repository revision without rechecking it.
 

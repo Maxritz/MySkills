@@ -54,7 +54,7 @@ Provide baseline and result, raw measurements, repetitions/spread, target and co
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Record workload shape, target/compiler, warm-up, synchronisation boundary, repetitions and spread. Establish correctness before tuning, identify the measured limiting resource, and report median plus variance rather than the fastest sample alone.
 
