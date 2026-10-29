@@ -3,6 +3,7 @@ name: optimization-toolkit
 description: "Extreme optimization: demoscene legends (farbrausch, Ryg, Haujobb) + kernel tuning (roofline, cache, SIMD, GPU occupancy). For when you need maximum performance at any cost."
 compatibility: opencode
 metadata:
+  auto_unload: true
   loading: on-demand
   auto_trigger: true
   trigger_keywords: ["optimization", "demoscene", "kernel tuning", "roofline", "cache", "SIMD", "occupancy", "farbrausch", "Ryg", "Haujobb", "extreme performance"]
