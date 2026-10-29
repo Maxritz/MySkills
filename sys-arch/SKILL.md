@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["architecture", "component", "boundary", "dependency direction", "non-functional", "budget", "contract", "decomposition", "failure domain", "observability", "rollback"]
 ---
 
@@ -155,6 +156,13 @@ CONTRACTS: versioned/validated ✅/❌
 BUDGETS: <met>/<total>
 BLOCKERS: <circular dep|missing interface|budget breach>
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Translate each requirement into an owner, interface contract, resource/SLO budget and failure mode. Check dependency direction, startup/shutdown and rollback paths against the real wiring; mark estimates and untested assumptions explicitly.
+
 
 ## Boundaries
 

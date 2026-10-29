@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # SGLang Development
@@ -65,3 +66,10 @@ metadata:
 2. `python -m pytest tests/` — unit tests.
 3. `python -m sglang.entrypoints.http_server --model /path/model ...`
 4. Validate with `curl -X POST http://localhost:30000/generate ...`
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin the SGLang and kernel-library revisions and verify command flags against that installation. Trace request scheduling, prefix/radix cache hits, KV allocation and stream completion; compare generated outputs and benchmark a stated workload.
+

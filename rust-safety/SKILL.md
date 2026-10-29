@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["Rust", "ownership", "lifetimes", "unsafe", "FFI", "thiserror", "proptest", "cargo", "borrow checker", "pin", "async"]
 ---
 
@@ -299,6 +300,13 @@ BLOCKERS: <list>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- For each unsafe block, document the invariant that makes it sound and test the boundary where that invariant can fail. Verify ownership, FFI layouts, panic/error propagation, async cancellation and backpressure; run Miri/fuzzing only where supported and report gaps.
+
 
 ## Boundaries
 

@@ -1,9 +1,11 @@
 ---
 name: sherlock-it
 description: "Measurement-driven performance investigation and optimisation with instrumentation, baseline comparison and retesting. Trigger: /sherlock-it."
+compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # Sherlock-It
@@ -214,6 +216,13 @@ def compare_runs(current, previous):
 - [ ] Next RUN knows where to continue
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Give each run an immutable ID, revision, target, workload and timing boundary; compare only compatible baselines. Keep hypotheses, observations and interventions separate, and re-run the measured bottleneck after each optimisation without inventing profiler data.
+
 
 ## Boundaries
 

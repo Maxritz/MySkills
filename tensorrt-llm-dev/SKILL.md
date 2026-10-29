@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # TensorRT-LLM Development
@@ -89,3 +90,10 @@ python examples/benchmark.py --engine_dir=./engines --batch_size=32
 - Custom attention: `AttentionWithRelativePositionBias` plugin in `cpp/tensorrt/plugins/`.
 - LayerNorm, RMSNorm, SiLU, GELU fused kernels.
 - Build with `python setup.py install` or `pip install -r requirements.txt`.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin TensorRT-LLM, TensorRT, CUDA, GPU architecture, model config and build flags. Validate engine deserialisation on the intended deployment target, compare outputs with a reference, and benchmark separate prefill/decode paths rather than relying on a successful engine build.
+
