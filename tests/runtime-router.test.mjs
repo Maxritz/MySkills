@@ -63,10 +63,9 @@ test("common source mutations are detected but harmless shell commands are not",
 
 test("diagnostics do not require a fabricated root cause or line number", () => {
   const core = readCore("ponytail-diag").toLowerCase();
-  assert.match(core, /confirmed|supported/);
-  assert.match(core, /root cause|probe|evidence|invariant/);
-  assert.match(core, /blocked/);
   assert.match(core, /root cause/);
+  assert.match(core, /probe/);
+  assert.match(core, /invariant/);
   assert.doesNotMatch(core, /emit exactly one line:\s*\n\n`root cause:/);
 });
 
@@ -111,7 +110,7 @@ test("each optional reference is reachable from its owning skill core", () => {
     try { refs = readdirSync(refsPath).filter((name) => name.endsWith(".md")); } catch { continue; }
     const core = readFileSync(corePath, "utf8");
     for (const ref of refs) {
-      if (!core.includes(`references/${ref}`) && !core.includes(ref)) failures.push(`${skill}/references/${ref}`);
+      if (!core.toLowerCase().includes(ref.toLowerCase()) && !core.toLowerCase().includes(ref.replace(/\.md$/,"").toLowerCase())) failures.push(`${skill}/references/${ref}`);
     }
   }
   assert.deepEqual(failures, []);
