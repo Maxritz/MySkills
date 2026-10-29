@@ -112,7 +112,7 @@ jobs:
       - name: Run deterministic routing, evidence and reference tests
         run: node --test tests/runtime-router.test.mjs
 
-      - name: Smoke-test OpenCode plugin registration and gates
+      - name: Check OpenCode plugin registration
         run: |
           node --input-type=module - <<'JS'
           import assert from "node:assert/strict";
