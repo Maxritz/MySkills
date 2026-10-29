@@ -2,7 +2,7 @@
 
 This file is derived from actual top-level skill directories, not a planned or historical inventory.
 
-**Catalogue size on this branch: 65 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
+**Catalogue size on this branch: 74 skill directories.** Each skill appears in exactly one primary category below. Cross-links remain in individual skill bodies.
 
 ## 1. Debugging and Diagnostics (14)
 
@@ -21,7 +21,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - debug-verify
 - ponytail-diag
 
-## 2. Systems, Operating Systems and Architecture (14)
+## 2. Systems, Operating Systems and Architecture (18)
 
 - c-systems
 - c99-systems
@@ -37,6 +37,10 @@ This file is derived from actual top-level skill directories, not a planned or h
 - x86-arch
 - low-level-toolkit
 - cross-compilation
+- api-contracts
+- data-storage
+- networking-systems
+- observability-engineering
 
 ## 3. GPU Compute and Optimisation (8)
 
@@ -70,7 +74,7 @@ This file is derived from actual top-level skill directories, not a planned or h
 - python-conversion
 - rust-safety
 
-## 6. Quality, Knowledge and Workflow (11)
+## 6. Quality, Knowledge and Workflow (16)
 
 - goli-mat-de
 - implementation-integrity
@@ -79,9 +83,14 @@ This file is derived from actual top-level skill directories, not a planned or h
 - traceability
 - knowledge-process
 - app-engine-deploy
+- deployment-operations
 - build-ci
+- ci-release-engineering
 - security-hardening
+- security-review
 - test-engineering
+- testing-engineering
+- git-workflow
 - sherlock-it
 
 ## 7. Output-Style Utilities (3)
@@ -90,16 +99,9 @@ This file is derived from actual top-level skill directories, not a planned or h
 - ponytail
 - utility-pair
 
-## Observations from the audit
+## Observations
 
-1. The previous README claimed 32 skills although the repository had 40 skill directories before this branch's additions.
-2. Several previously named capabilities had no dedicated folder. This branch adds focused entries for C99, cross-compilation, shader-kernel implementation, general stack routing and implementation-integrity routing. Each remains a thin specialist or router where an existing skill is the source of truth.
-3. The previous loader configuration referred to absent directories and did not include all installed skill directories.
-4. code-quality-gate and traceability-gate overlapped substantially and both claimed automatic triggering. The loader now designates only code-quality-gate as the automatic code-change gate.
-5. The focused debugging skills restore links in the intended pipeline: localise → reproduce/reduce → form hypotheses → distinguish them → check invariants/reference → establish root cause → fix → verify.
-6. GGUF/GGML notes needed factual correction and explicit version pinning. Binary constants and quantisation layouts must be checked against the exact upstream revision used.
-7. CI needed to check real folder names and references without regex-stripping // inside JSON strings. The updated validator permits intentional overlap in trigger phrases.
-
-## Recommended operating pattern
-
-Use debug-core for the default debugging loop; load the focused debugging skill that resolves the current uncertainty; use goli-mat-de for systematic completeness audits; use sherlock-it when measured performance is the primary objective. Avoid loading multiple broad orchestrators for the same job.
+- The current catalogue includes the original 65 main-branch skills plus nine additional specialist skills introduced by the runtime branch.
+- Legacy loader fields such as `auto_trigger`, `conditional_load` and `trigger_keywords` are not OpenCode runtime controls. Native discovery is configured through `skills: ["./"]`; deterministic routing is implemented by the MySkills plugin.
+- Use Goli-mat-de for systematic completeness audits, ponytail-diag for evidence-calibrated diagnosis, and sherlock-it for measured performance investigations.
+- CI checks real directories, front matter, links, categories, routing inventory and runtime tests. Hardware-specific or credentialed evaluations must not be claimed unless evidence exists.
