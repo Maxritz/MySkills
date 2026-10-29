@@ -90,3 +90,8 @@ The guide references upstream specifications rather than claiming that a handcra
 - `llm-evaluation`: reproducible functional, numerical, task-quality, safety and performance gates for model/runtime changes.
 
 The catalogue now targets 65 specialist skills and keeps full topic details on-demand. These changes are source-reviewed; this report does not claim all platform-specific samples were compiled or executed on native hardware.
+
+
+## Goli-mat-de deep-audit reference
+
+Expanded the optional audit matrix with catalogue/loader integrity, script and example validation, coverage-ledger fields, priority and confidence separation, retest criteria and an explicit audit-completion gate. The concise core remains under the 750-word budget; these extended checks are loaded only for broad audits.
