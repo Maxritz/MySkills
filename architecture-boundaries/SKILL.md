@@ -3,6 +3,7 @@ name: architecture-boundaries
 description: "Component architecture: modular boundaries, backend demarcation, porting isolation. Enforce dependency direction, explicit interfaces, replacement seams, platform adapters."
 compatibility: opencode
 metadata:
+  auto_unload: true
   loading: on-demand
   auto_trigger: true
   trigger_keywords: ["component", "module", "architecture", "boundary", "backend", "service", "porting", "adapter", "interface", "dependency direction", "replacement seam"]
