@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "evaluation_kind": "hybrid",
+  "note": "Skill routing and context byte estimates are deterministic. Finding the seeded defect, evidence calibration, test execution and actual model tokens require model-backed grading and are not claimed by the deterministic CI checks.",
+  "cases": [
+    {
+      "id": "stub-audit",
+      "category": "implementation-integrity",
+      "task": "Audit this function for stub, placeholder or fake completion. Trace the callers and contract. Do not report a stub unless the behaviour is actually disconnected or incomplete.",
+      "required_skills": [
+        "goli-mat-de"
+      ],
+      "fixture": "// Contract: return parsed row count after validating and storing every row.\nint ingest_rows(const Row* rows, size_t count) {\n  (void)rows; (void)count;\n  return 0; // intentional-looking placeholder\n}",
+      "expected_findings": [
+        "Input rows are ignored",
+        "Function returns a constant inconsistent with stated contract"
+      ],
+      "expected_tests": [
+        "Inspect callers and the contract",
+        "Add a test with count > 0 and assert stored rows and return value"
+      ],
+      "required_verdict": "evidence-backed finding; verify intentional no-op/fallback possibility"
+    },
+    {
+      "id": "injected-parser-defect",
+      "category": "parser",
+      "task": "Debug the reproducible parser crash on a two-field row. Inspect code, reproduce if possible, identify the first invalid operation, and propose the smallest distinguishing test before fixing.",
+      "required_skills": [
+        "debug-core",
+        "python-engineering"
+      ],
+      "fixture": "def parse_row(line):\n    fields = line.split(',')\n    return fields[0], fields[1], fields[2]\n\n# Input: 'alice,42'",
+      "expected_findings": [
+        "IndexError on fields[2] for two-field input",
+        "Missing field-count contract/validation before indexing"
+      ],
+      "expected_tests": [
+        "Run the supplied input",
+        "Test zero-, one-, two- and three-field rows"
+      ],
+      "required_verdict": "confirmed only after the failing input reproduces or equivalent execution evidence exists"
+    },
+    {
+      "id": "concurrency-bug",
+      "category": "concurrency",
+      "task": "Diagnose the C++ counter mismatch. Establish whether a data race exists; do not conclude that missing happens-before alone is sufficient.",
+      "required_skills": [
+        "debug-core",
+        "c-systems"
+      ],
+      "fixture": "#include <thread>\nint counter = 0;\nvoid worker() { for (int i=0; i<100000; ++i) ++counter; }\nint main() { std::thread a(worker), b(worker); a.join(); b.join(); }",
+      "expected_findings": [
+        "Both threads perform unsynchronised non-atomic writes to the same counter",
+        "In C++, the data race makes behaviour undefined"
+      ],
+      "expected_tests": [
+        "Use ThreadSanitizer where supported",
+        "Compare a mutex/atomic variant under the same workload"
+      ],
+      "required_verdict": "causal claim grounded in conflicting access and missing synchronisation"
+    },
+    {
+      "id": "vulkan-synchronisation",
+      "category": "gpu-vulkan",
+      "task": "Diagnose stale data in a Vulkan compute-then-copy path. Check command order, access masks, pipeline stages, queue ownership and semaphore dependencies before naming a root cause.",
+      "required_skills": [
+        "debug-core",
+        "vulkan-compute-stack"
+      ],
+      "fixture": "vkCmdDispatch(cmd, ...); // compute shader writes buffer as storage\nvkCmdCopyBuffer(cmd, storageBuffer, readbackBuffer, 1, &region); // no intervening dependency",
+      "expected_findings": [
+        "No explicit compute-write to transfer-read memory dependency is shown between dispatch and copy",
+        "Verify whether queue submission or other barriers already provide the required dependency before confirming"
+      ],
+      "expected_tests": [
+        "Inspect complete command buffer and submission/queue flow",
+        "Add a COMPUTE_SHADER/SHADER_WRITE to TRANSFER/TRANSFER_READ dependency when required, then compare readback"
+      ],
+      "required_verdict": "UNRESOLVED until the complete synchronisation path is inspected"
+    },
+    {
+      "id": "quantisation-mismatch",
+      "category": "quantisation",
+      "task": "Debug a Q4_0 dequantisation mismatch against the trusted reference. Trace nibble extraction, scale, signed offset, block layout and tail handling.",
+      "required_skills": [
+        "debug-core",
+        "gguf-ggml"
+      ],
+      "fixture": "// Synthetic dequant path for a format whose stored 4-bit codes are centred at 8.\nfloat dequant(uint8_t q, float d) { return d * float(q & 0x0f); }\n// Reference formula for this fixture: d * (q - 8)",
+      "expected_findings": [
+        "Missing centring offset changes every decoded value",
+        "Use the reference formula for this fixture; do not generalise without checking the actual format spec"
+      ],
+      "expected_tests": [
+        "Compare every decoded nibble against reference vectors",
+        "Include minimum/maximum code, block boundaries and tail cases"
+      ],
+      "required_verdict": "confirmed for the supplied fixture only; verify target format before transferring conclusion"
+    },
+    {
+      "id": "performance-regression",
+      "category": "performance",
+      "task": "Investigate a reported 12% throughput regression. The only evidence is one baseline run at 100 ms and one changed run at 112 ms. Determine whether a regression is established and design the next measurement.",
+      "required_skills": [
+        "debug-core",
+        "sherlock-it",
+        "kernel-tuning"
+      ],
+      "fixture": "baseline_ms=[100.0]; candidate_ms=[112.0]; same machine/workload not independently confirmed; no variance or warm-up data.",
+      "expected_findings": [
+        "One sample per version is insufficient to distinguish a genuine regression from noise, environment or workload drift",
+        "Use paired repeated runs on the same workload, report median and spread, inspect counters/profiles"
+      ],
+      "required_tests": [
+        "Repeated comparable baseline/candidate measurements",
+        "Correctness equivalence and profiler/counter check if slowdown persists"
+      ],
+      "required_verdict": "NO DEFECT ESTABLISHED from the supplied measurements alone"
+    },
+    {
+      "id": "deployment-failure",
+      "category": "deployment",
+      "task": "Diagnose failed deployment health checks from the supplied configuration and logs. Distinguish a proven route mismatch from other startup or networking causes.",
+      "required_skills": [
+        "debug-core",
+        "deployment-operations"
+      ],
+      "fixture": "Application route table: GET /ready -> 200. Container health check: GET /health -> 404. Container logs show the app is listening and serving /ready.",
+      "expected_findings": [
+        "Health check probes /health while the service exposes /ready",
+        "The supplied evidence supports an endpoint mismatch; verify the deployed image/config is the same revision"
+      ],
+      "required_tests": [
+        "Inspect rendered deployment config and effective container health check",
+        "Probe the configured endpoint and the documented readiness endpoint in the deployed container"
+      ],
+      "required_verdict": "supported/confirmed only to the extent that evidence ties the active deployment to the shown configuration"
+    },
+    {
+      "id": "negative-no-defect-established",
+      "category": "negative-control",
+      "task": "Run ponytail-diag on this report: expected runtime is 10-15 ms, observed runtime is 11.2 ms in one run, correctness tests pass, and no failure contract is provided. State whether a defect has been established.",
+      "required_skills": [
+        "ponytail-diag"
+      ],
+      "fixture": "expected latency range: 10-15 ms; observed: 11.2 ms once; correctness tests pass; no other failure evidence.",
+      "expected_findings": [
+        "No defect is established by these facts",
+        "Ask for an unmet requirement, failing reproduction or comparable performance baseline instead of inventing a root cause"
+      ],
+      "expected_tests": [
+        "Request the actual violated contract or capture comparable repeat measurements if performance is the complaint"
+      ],
+      "required_verdict": "NO DEFECT ESTABLISHED"
+    },
+    {
+      "id": "negative-confounded-performance",
+      "category": "negative-control",
+      "task": "Assess this claim: version B is 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. Do not assign a code root cause without discriminating evidence.",
+      "required_skills": [
+        "ponytail-diag",
+        "sherlock-it"
+      ],
+      "fixture": "A: 20 tokens/s on host A with model X. B: 19 tokens/s on host B with model X plus extra logging. One run each; different power states.",
+      "expected_findings": [
+        "Results are confounded and do not establish a code regression",
+        "No root cause can be assigned; control host, workload, warm-up and logging, then repeat"
+      ],
+      "expected_tests": [
+        "Paired or otherwise comparable repeated benchmark with same workload and environment"
+      ],
+      "required_verdict": "UNRESOLVED / NO DEFECT ESTABLISHED"
+    }
+  ]
+}
