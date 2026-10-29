@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["Python", "packaging", "typing", "asyncio", "testing", "cffi", "meson", "uv", "ruff", "mypy", "reproducible"]
 ---
 
@@ -309,6 +310,13 @@ TESTS: unit✅/❌ integration✅/❌ contract✅/❌
 ENV: reproducible ✅/❌
 BLOCKERS: <missing deps|native build|conversion gap>
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Validate from a clean, reproducible environment and include packaging/install/import tests, public API contracts and async cancellation/cleanup. Do not call an environment reproducible merely because a lock file exists.
+
 
 ## Boundaries
 

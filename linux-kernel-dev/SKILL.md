@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["Linux kernel", "kernel module", "driver", "KASAN", "ftrace", "lockdep", "perf", "crash", "kdump", "kselftest", "kunit", "slabinfo", "vmstat"]
 ---
 
@@ -162,6 +163,13 @@ MODULE_DESCRIPTION("Minimal char device");
 | **Lockdep** | Boot with `lockdep=on` | No splats on reproducer |
 | **Reproducer** | `insmod mymod.ko; test.sh` | Expected behavior |
 | **Regression** | `kselftest / kunit` | All pass |
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin kernel version, config, symbols and reproduction environment. Use the diagnostic appropriate to the suspected layer; verify lock ordering, interrupt context and allocation context, and report whether the test ran on a real target or emulator.
+
 
 ## Boundaries
 

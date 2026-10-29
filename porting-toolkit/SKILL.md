@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["port", "cross-compile", "cross-platform", "adapter", "fallback", "capability probe", "platform delta", "ISA", "ABI", "sysroot", "emulator"]
 ---
 
@@ -374,6 +374,13 @@ TOOLCHAIN: <locked> ✅/❌
 DIFFERENTIAL: <passed>/<total> tests
 BLOCKERS: <list>
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Freeze a source-behaviour contract and capability matrix before translation. Build and test each target adapter independently, prove the fallback path and ABI, and distinguish compile-only targets from targets exercised at runtime.
+
 
 ## Boundaries
 

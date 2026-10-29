@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["syscall", "pthread", "epoll", "mmap", "signal", "IPC", "systemd", "cgroup", "process", "thread", "Linux", "mmap", "shared memory", "pipe", "socket", "seccomp", "capability"]
 ---
 
@@ -245,6 +246,13 @@ prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
 | **Integration** | `pytest` / custom |
 | **Chaos** | `chaos-mesh` |
 | **Load** | `wrk` / `locust` |
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Handle partial reads/writes, EINTR, descriptor lifetime, signal interruption, cancellation and shutdown explicitly. Validate permissions and trust boundaries, and test the actual process/service lifecycle rather than relying on a successful compile.
+
 
 ## Boundaries
 
