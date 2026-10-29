@@ -91,3 +91,7 @@ ESTIMATED COST: <low/medium/high>
 - Does not diagnose (routes only)
 - Does not run techniques (delegates to specialized skills)
 - `stop debug-domain-router`: revert.
+
+## Optional references
+
+- [specialist-profiles.md](references/specialist-profiles.md)
