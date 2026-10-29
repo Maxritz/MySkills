@@ -98,3 +98,7 @@ HIPIFY is a source translation aid, not a semantic proof. For each ported operat
 - Use vulkan-compute-stack for Vulkan API/runtime queue and synchronisation issues.
 - Use graphics-shader-kernels or shader-opt for shader semantics and tuning.
 - Use llm-core, gguf-ggml or model-formats for model/tensor-format contracts.
+
+## Optional references
+
+- [stack-recipes.md](references/stack-recipes.md)
