@@ -1,6 +1,6 @@
 ---
 name: knowledge-process
-description: "Unified knowledge & process: analysis-log (append-only delta), context-tracker (local store), dev-process (10-iter validation), knowledge-base (two-tier sanitized), app-engine-deploy. Session continuity, validation gates, deployment."
+description: "Sanitised analysis logs, compact context tracking, knowledge retention and risk-sized development validation. Session continuity and evidence capture."
 compatibility: opencode
 metadata:
   auto_unload: true
@@ -20,7 +20,7 @@ metadata:
 ### Flow
 1. **Full analysis** → append to `.opencode/analysis.md`
 2. **Every change** → **append** (never rewrite) — `@appended {timestamp}: ...`
-3. **Next analysis** → read only appended delta, never full codebase
+3. **Next analysis** → read prior deltas first, then re-check current source before reusing any recorded fact; logs are leads, not source truth.
 
 ### Format (Append-Only Markdown)
 ```markdown
@@ -46,7 +46,7 @@ metadata:
 - Same regex enforcement as knowledge-base.
 - Validate: `test_analysis_log.py` — 6 tests pass.
 
-### Lookup (Never Open Full File)
+### Lookup (Summary first, source verification when needed)
 ```bash
 grep -n "finding:" .opencode/analysis.md | grep "severity: critical"
 grep "pattern:" .opencode/analysis.md
@@ -117,11 +117,14 @@ ctx.py unload debug-localize → "debug-localize: applied, validated. 42 tokens 
 
 ### Before Writing Code
 1. **Architecture first.** Component diagram: data flow, interfaces, ownership, error paths, cleanup. No code until covers inputs, outputs, edge cases, resource lifecycle.
-2. **Plan vetting.** Every task cross-checked against architecture. No orphaned modules. Plans version-controlled, updated via diff.
-3. **Task breakdown.** ≤30-line units. Each: 1 purpose, 1 test, 1 file/function change.
-   Format: `[component]: [action] → [expected invariant]`
+2. **Plan vetting.** Cross-check each task against architecture, dependencies and acceptance criteria; keep plans in version control when their decision history matters.
+3. **Task breakdown.** Give each task one observable outcome and acceptance check. Prefer small, coherent units, but do not split code at an arbitrary line count when that hides a contract or creates artificial seams.
+   Format: `[component]: [action] -> [expected invariant]`
 
 ### Ten-check validation catalogue
+
+Use these checks according to risk. Always inspect the diff and run relevant targeted checks for behavioural changes. Add golden/differential, fuzz, sanitizer, state-flow, lifecycle, integration and performance checks when the changed contract justifies them. A check may be NOT APPLICABLE only with a reason. Use PASS, FAIL, BLOCKED, NOT RUN or NOT APPLICABLE honestly; an unrun check is never PASS.
+
 | Iter | Check | Tool |
 |------|-------|------|
 | **1** | Compile | `cmake --build -Werror` |
@@ -202,25 +205,23 @@ For platform-specific deployment, release, rollback and runtime operations, load
 [ ] Context loaded (Get "current-task")
 [ ] Analysis log exists (.opencode/analysis.md)
 [ ] Plan vetted against architecture
-[ ] Tasks ≤30 lines, 1 purpose/test/file each
-[ ] 10-iteration validation ready
+[ ] Tasks have a clear outcome, acceptance check and coherent scope
+[ ] Risk-sized verification plan ready
 [ ] Knowledge base search done before debug
 [ ] Sanitization rules understood
 ```
 
 ### Per-Change Checklist (select applicable gates)
-```
-[ ] I1: Compile clean (-Werror)
-[ ] I2: Format clean (clang-format/ruff)
-[ ] I3: Unit tests pass
-[ ] I4: Reproducer captured
-[ ] I5: Golden test pass
-[ ] I6: Fuzz test pass
-[ ] I7: Sanitizers clean
-[ ] I8: Flow analysis (truth table + data trace)
-[ ] I9: Resource audit (alloc/free balance)
-[ ] I10: Performance (≤5% regression)
-```
+
+- [ ] Exact revision and diff inspected
+- [ ] Applicable build, format and static checks run
+- [ ] Targeted behaviour test and original reproducer/regression checked when relevant
+- [ ] Golden/differential reference checked where one exists
+- [ ] Fuzzing and sanitizers considered for parser, unsafe-memory or concurrency risk
+- [ ] Control flow, ownership, cleanup and failure paths checked when touched
+- [ ] Integration/runtime check executed for cross-layer changes
+- [ ] Performance baseline compared for performance-sensitive changes
+- [ ] Every unrun, blocked or not-applicable gate recorded honestly
 
 ### Post-Validation (Step 12 of debug-core)
 ```
@@ -238,11 +239,11 @@ For platform-specific deployment, release, rollback and runtime operations, load
 KNOWLEDGE & PROCESS: <phase> STATUS
 PHASE: <analysis|context|dev|kb|deploy>
 SESSION: <id> | CONTEXT: <topics loaded> | KB: <entries added>
-VALIDATION: I1-I10 <passed>/10
+VALIDATION: <gate/status/result for each applicable check>
 ANALYSIS: <findings> critical, <findings> high, <findings> medium
 CONTEXT: <stored> entries, <unloaded> topics
 KB: <central> + <project> entries
-DEPLOY: <service> <version> <status>
+DEPLOY: delegated to deployment-operations / ci-release-engineering
 BLOCKERS: <unsanitized|missing repro|failed iter|secret in yaml>
 ```
 
@@ -258,6 +259,6 @@ Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and o
 ## Boundaries
 
 - Does not write code (receives code to validate/process)
-- Does not manage infrastructure beyond App Engine
+- Does not provision or manage infrastructure; use deployment-operations and ci-release-engineering
 - Does not replace git history (context tracker supplements)
 - `stop knowledge-process`: revert.

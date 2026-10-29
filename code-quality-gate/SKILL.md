@@ -236,7 +236,7 @@ STAGE: <failed stage> / 7
 DOXYGEN: <missing tags>
 CONTRACTS: <missing elements>
 FAKE_CODE: <violations found>
-VALIDATION: I<failed_iter> <reason>
+VALIDATION: <gate/status/result>
 TRACEABILITY: <missing markers>
 RUST: <violations>
 BOUNDARIES: <cross-layer violations>

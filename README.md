@@ -124,7 +124,7 @@
 
 ## Validation
 
-Run the repository workflow and inspect its results before claiming a skill update is validated. The CI validator checks skill front matter and folder-name agreement, configured skill references, trigger-map references, auto-trigger/conditional-load separation and skill line limits.
+Run the repository workflow and inspect its results before claiming a skill update is validated. The CI validator checks skill front matter and folder-name agreement, loader and trigger-map coverage, metadata/auto-trigger agreement, relative Markdown references, the Goli-mat-de 750-word core budget and skill line limits.
 
 ## Installation
 
