@@ -6,6 +6,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["demoscene", "tiny executable", "size optimisation", "size optimization", "code golf performance", "register pressure", "farbrausch", "ryg"]
 ---
 
@@ -51,6 +52,13 @@ Record the target, compiler/toolchain, binary-size budget, hot workload, correct
 ## Output
 
 Report baseline, target budget, transformed mechanism, correctness result, binary-size delta, performance delta, generated-code evidence, and remaining trade-offs.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Name the size/cycle budget and target before tuning. Measure the exact artifact and workload, change one technique at a time, compare output to a correctness reference, and reject gains that depend on unstable measurement or invalid language behaviour.
+
 
 ## Boundaries
 

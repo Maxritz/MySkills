@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["reproduce bug", "minimal reproducer", "reproduction steps", "intermittent failure", "regression reproducer"]
 ---
@@ -26,6 +27,13 @@ Establish exactly what fails and under which conditions before claiming a root c
 ## Reproducer record
 
 \`REPRO: <command> | INPUT: <fixture/version> | EXPECTED: <contract> | ACTUAL: <observation> | RATE: <passes/fails> | ENV: <relevant details>\`
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Record exact revision, command, input, environment, expected/actual result, seed and failure frequency. Redact secrets and private paths. A plausible narrative without an observed reproducer stays unconfirmed.
+
 
 ## Boundaries
 
