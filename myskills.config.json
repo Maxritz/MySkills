@@ -1,0 +1,612 @@
+{
+  "version": 1,
+  "routing": {
+    "maxSkills": 4,
+    "implementationKeywords": [
+      "implement",
+      "write code",
+      "edit code",
+      "create implementation",
+      "add feature",
+      "refactor",
+      "patch",
+      "fix implementation"
+    ],
+    "debuggingKeywords": [
+      "debug",
+      "diagnose",
+      "diagnostic",
+      "crash",
+      "hang",
+      "wrong output",
+      "regression",
+      "root cause",
+      "failure",
+      "fails",
+      "bug"
+    ],
+    "mutationTools": [
+      "write",
+      "edit",
+      "apply_patch",
+      "patch",
+      "multiedit",
+      "create_file",
+      "update_file",
+      "delete_file",
+      "move_file"
+    ],
+    "triggers": {
+      "amd-gpu-stack": [
+        "AMD GPU",
+        "ROCm",
+        "HIP",
+        "HSA",
+        "ROCr",
+        "CDNA",
+        "RDNA",
+        "rocBLAS",
+        "RCCL",
+        "rocprof"
+      ],
+      "architecture-boundaries": [
+        "component boundary",
+        "backend boundary",
+        "dependency direction",
+        "replacement seam",
+        "module architecture"
+      ],
+      "bare-metal-kernel": [
+        "bare metal",
+        "GRUB",
+        "long mode",
+        "page tables",
+        "IDT",
+        "PCI enumeration"
+      ],
+      "c-systems": [
+        "C99",
+        "C++",
+        "RAII",
+        "ABI",
+        "ownership",
+        "allocator",
+        "concurrency"
+      ],
+      "code-quality-gate": [
+        "write code",
+        "edit code",
+        "create implementation",
+        "add feature",
+        "refactor",
+        "implement",
+        "fix"
+      ],
+      "debug-core": [
+        "debug",
+        "reproduce",
+        "root cause",
+        "hypothesis",
+        "fix and verify"
+      ],
+      "debug-deep": [
+        "deep debug",
+        "truth table",
+        "fishbone",
+        "fault tree",
+        "5 whys",
+        "waterfall trace"
+      ],
+      "debug-domain-router": [
+        "domain debug",
+        "specialised debug",
+        "specialized debug",
+        "GPU debug",
+        "LLM debug"
+      ],
+      "debug-fix": [
+        "apply fix",
+        "minimal patch",
+        "confirmed root cause"
+      ],
+      "debug-hypothesis": [
+        "hypothesis",
+        "competing causes",
+        "falsifiable explanation"
+      ],
+      "debug-invariants": [
+        "invariant",
+        "precondition",
+        "postcondition",
+        "contract violation"
+      ],
+      "debug-localize": [
+        "localise bug",
+        "localize bug",
+        "first bad state",
+        "failing boundary"
+      ],
+      "debug-mde": [
+        "MDE",
+        "minimum distinguishing experiment",
+        "cheapest experiment"
+      ],
+      "debug-reduce": [
+        "reduce reproducer",
+        "shrink failing input",
+        "delta debugging"
+      ],
+      "debug-reference": [
+        "golden reference",
+        "oracle",
+        "differential test"
+      ],
+      "debug-reproduce": [
+        "reproduce bug",
+        "minimal reproducer",
+        "intermittent failure"
+      ],
+      "debug-root-cause": [
+        "root cause",
+        "causal chain",
+        "underlying defect"
+      ],
+      "debug-verify": [
+        "verify fix",
+        "regression test",
+        "validation"
+      ],
+      "demoscene-opt": [
+        "demoscene",
+        "tiny executable",
+        "code size optimisation",
+        "register pressure"
+      ],
+      "goli-mat-de": [
+        "goli-mat-de",
+        "goli mat de",
+        "implementation integrity audit",
+        "fake code",
+        "stub audit",
+        "placeholder audit",
+        "skipped implementation",
+        "kaam chalau code",
+        "thook patti code",
+        "stub",
+        "placeholder",
+        "fake completion",
+        "no-op",
+        "no op",
+        "constant success"
+      ],
+      "gguf-ggml": [
+        "GGUF",
+        "GGML",
+        "GGUF parser",
+        "GGML quantisation",
+        "GGML quantization",
+        "Q4_0"
+      ],
+      "kernel-tuning": [
+        "kernel tuning",
+        "roofline",
+        "arithmetic intensity",
+        "kernel performance"
+      ],
+      "knowledge-process": [
+        "analysis log",
+        "context tracker",
+        "knowledge base",
+        "session continuity",
+        "development process"
+      ],
+      "llm-advanced": [
+        "MoE",
+        "Mixture of Experts",
+        "speculative decoding",
+        "Medusa",
+        "EAGLE",
+        "expert routing"
+      ],
+      "llm-core": [
+        "tokenizer",
+        "embeddings",
+        "attention",
+        "KV cache",
+        "MLP",
+        "sampling",
+        "logits"
+      ],
+      "llm-hardcode": [
+        "LLM kernel",
+        "quantisation kernel",
+        "SIMD",
+        "AVX-512"
+      ],
+      "llm-serving": [
+        "vLLM",
+        "SGLang",
+        "TensorRT-LLM",
+        "Triton",
+        "PagedAttention",
+        "serving"
+      ],
+      "linux-kernel-dev": [
+        "Linux kernel",
+        "kernel module",
+        "KASAN",
+        "ftrace",
+        "lockdep"
+      ],
+      "linux-user": [
+        "syscall",
+        "pthread",
+        "epoll",
+        "mmap",
+        "systemd",
+        "seccomp"
+      ],
+      "low-level-toolkit": [
+        "assembly",
+        "emulation",
+        "ISA",
+        "ABI",
+        "linker",
+        "sysroot",
+        "JIT"
+      ],
+      "memory-mgmt": [
+        "virtual memory",
+        "allocator",
+        "NUMA",
+        "DMA",
+        "coherence",
+        "page fault"
+      ],
+      "model-formats": [
+        "GGUF",
+        "SafeTensors",
+        "ONNX",
+        "OpenVINO",
+        "model format",
+        "model conversion"
+      ],
+      "nvidia-cuda-stack": [
+        "CUDA",
+        "NVIDIA",
+        "H100",
+        "H200",
+        "B200",
+        "PTX",
+        "SASS",
+        "Nsight",
+        "NCCL"
+      ],
+      "optimization-toolkit": [
+        "optimisation",
+        "optimization",
+        "profiling",
+        "cache",
+        "SIMD",
+        "occupancy"
+      ],
+      "ponytail": [
+        "ponytail",
+        "YAGNI",
+        "simplest solution",
+        "do less",
+        "stdlib first"
+      ],
+      "ponytail-diag": [
+        "ponytail-diag",
+        "what should vs did happen",
+        "one-line verdict",
+        "no defect established",
+        "uncertain diagnosis",
+        "diagnosis without reproduction"
+      ],
+      "porting-toolkit": [
+        "port",
+        "cross-compile",
+        "cross-platform",
+        "capability probe",
+        "platform adapter"
+      ],
+      "python-conversion": [
+        "Python to C++",
+        "Python conversion",
+        "ONNX",
+        "MLIR",
+        "differential conversion test"
+      ],
+      "python-engineering": [
+        "Python",
+        "packaging",
+        "typing",
+        "asyncio",
+        "uv",
+        "ruff",
+        "mypy"
+      ],
+      "python-perf": [
+        "NumPy",
+        "Numba",
+        "Python profiling",
+        "vectorisation",
+        "vectorization"
+      ],
+      "rust-safety": [
+        "Rust",
+        "ownership",
+        "lifetimes",
+        "unsafe",
+        "FFI",
+        "Cargo"
+      ],
+      "sglang-dev": [
+        "SGLang",
+        "RadixAttention",
+        "SGLang KV cache"
+      ],
+      "shader-opt": [
+        "shader optimisation",
+        "shader optimization",
+        "HLSL",
+        "GLSL",
+        "SPIR-V",
+        "wave divergence"
+      ],
+      "sherlock-it": [
+        "sherlock-it",
+        "performance bottleneck",
+        "profile",
+        "benchmark",
+        "instrumentation traps"
+      ],
+      "sys-arch": [
+        "system architecture",
+        "non-functional budget",
+        "failure domain",
+        "dependency direction"
+      ],
+      "tensorrt-llm-dev": [
+        "TensorRT-LLM",
+        "Triton backend",
+        "TensorRT engine"
+      ],
+      "traceability": [
+        "trace markers",
+        "DBG_TRACE",
+        "execution trace",
+        "source mapping"
+      ],
+      "traceability-gate": [
+        "traceability gate",
+        "Doxygen contract check",
+        "implementation integrity gate"
+      ],
+      "utility-pair": [
+        "utility-pair",
+        "caveman and ponytail",
+        "output style"
+      ],
+      "vllm-dev": [
+        "vLLM",
+        "PagedAttention",
+        "vLLM scheduler"
+      ],
+      "vulkan-compute-stack": [
+        "Vulkan",
+        "VK_KHR",
+        "SPIR-V",
+        "glslc",
+        "VMA",
+        "compute shader",
+        "descriptor",
+        "command buffer",
+        "semaphore"
+      ],
+      "windows-user": [
+        "Windows",
+        "Win32",
+        "IOCP",
+        "ETW",
+        "WDDM",
+        "MSIX"
+      ],
+      "x86-arch": [
+        "x86-64",
+        "SIMD",
+        "AVX-512",
+        "AVX2",
+        "CPUID",
+        "memory ordering"
+      ],
+      "caveman": [
+        "caveman",
+        "ultra-terse",
+        "terse human-facing output"
+      ],
+      "testing-engineering": [
+        "testing strategy",
+        "test design",
+        "property-based testing",
+        "fuzz testing",
+        "regression test",
+        "coverage",
+        "flaky test",
+        "test oracle"
+      ],
+      "security-review": [
+        "security review",
+        "threat model",
+        "attack surface",
+        "secret leak",
+        "authentication",
+        "authorisation",
+        "injection",
+        "dependency vulnerability",
+        "secure coding"
+      ],
+      "ci-release-engineering": [
+        "CI pipeline",
+        "continuous integration",
+        "release engineering",
+        "build pipeline",
+        "artifact signing",
+        "release workflow",
+        "rollback",
+        "software supply chain"
+      ],
+      "networking-systems": [
+        "networking",
+        "socket",
+        "TCP",
+        "UDP",
+        "HTTP protocol",
+        "TLS",
+        "RPC",
+        "network I/O",
+        "backpressure",
+        "connection timeout"
+      ],
+      "observability-engineering": [
+        "observability",
+        "metrics",
+        "distributed tracing",
+        "structured logs",
+        "SLO",
+        "SLI",
+        "Prometheus",
+        "OpenTelemetry",
+        "alerting",
+        "latency histogram"
+      ],
+      "data-storage": [
+        "database design",
+        "data storage",
+        "transaction isolation",
+        "schema migration",
+        "durability",
+        "write-ahead log",
+        "data consistency",
+        "backup restore",
+        "atomic file"
+      ],
+      "api-contracts": [
+        "API design",
+        "API contract",
+        "OpenAPI",
+        "REST API",
+        "gRPC",
+        "schema compatibility",
+        "versioning",
+        "idempotency",
+        "error response"
+      ],
+      "deployment-operations": [
+        "deployment",
+        "deploy service",
+        "container deployment",
+        "runtime configuration",
+        "health check",
+        "rollout",
+        "rollback",
+        "production operations"
+      ],
+      "git-workflow": [
+        "git workflow",
+        "branch management",
+        "pull request",
+        "commit changes",
+        "review diff",
+        "merge conflict",
+        "git status",
+        "repository changes"
+      ],
+      "app-engine-deploy": [
+        "App Engine",
+        "app.yaml",
+        "dispatch.yaml",
+        "Google Cloud deployment",
+        "Cloud SQL"
+      ],
+      "build-ci": [
+        "CMake",
+        "Ninja",
+        "MSBuild",
+        "build failure",
+        "CI pipeline",
+        "reproducible build",
+        "linker error"
+      ],
+      "c99-systems": [
+        "C99",
+        "portable C",
+        "strict C",
+        "C systems programming"
+      ],
+      "cross-compilation": [
+        "cross compilation",
+        "cross-compile",
+        "target toolchain",
+        "sysroot",
+        "CMake toolchain"
+      ],
+      "graphics-shader-kernels": [
+        "shader kernel",
+        "compute shader",
+        "GLSL",
+        "HLSL",
+        "SPIR-V",
+        "workgroup size"
+      ],
+      "implementation-integrity": [
+        "implementation integrity",
+        "fake implementation",
+        "completion audit",
+        "missing wiring"
+      ],
+      "llm-evaluation": [
+        "LLM evaluation",
+        "model eval",
+        "perplexity",
+        "quality regression",
+        "eval dataset",
+        "token accuracy",
+        "logits comparison",
+        "LLM benchmark"
+      ],
+      "security-hardening": [
+        "security hardening",
+        "least privilege",
+        "secure parsing",
+        "secrets management",
+        "resource exhaustion"
+      ],
+      "systems-ml-stack-router": [
+        "systems ML stack",
+        "systems router",
+        "GPU and LLM stack",
+        "choose specialist skill"
+      ],
+      "test-engineering": [
+        "test engineering",
+        "unit test",
+        "integration test",
+        "property test",
+        "fuzz test",
+        "regression test"
+      ],
+      "windows-driver-dev": [
+        "Windows driver",
+        "KMDF",
+        "UMDF",
+        "WDM",
+        "Driver Verifier",
+        "IOCTL",
+        "DMA"
+      ]
+    }
+  }
+}

@@ -64,3 +64,7 @@ Record upstream revision, file version, tensor type, test fixture provenance, pa
 ## Boundaries
 
 This skill covers GGUF/GGML format handling and tensor encodings. Use \`model-formats\` for cross-format conversion and \`llm-core\` for inference semantics.
+
+## Optional references
+
+- [gguf-details.md](references/gguf-details.md)

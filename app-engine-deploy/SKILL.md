@@ -2,11 +2,6 @@
 name: app-engine-deploy
 description: Plans and validates Google App Engine deployments, runtime configuration, IAM, secret handling, health, observability and rollback.
 compatibility: opencode
-metadata:
-  loading: on-demand
-  auto_unload: true
-  auto_trigger: false
-  trigger_keywords: ["App Engine", "app.yaml", "dispatch.yaml", "Google Cloud deployment", "Cloud SQL"]
 ---
 
 # App Engine Deployment

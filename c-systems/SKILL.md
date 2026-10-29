@@ -2,11 +2,6 @@
 name: c-systems
 description: "C/C++ systems engineering: ownership, lifetime, ABI, concurrency, memory safety, portability, performance contracts and cross-language boundaries."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["C99", "C++", "RAII", "ABI", "ownership", "lifetime", "allocator", "concurrency", "templates", "systems code", "portable C", "performance contract"]
 ---
 
 # C/C++ Systems
@@ -135,3 +130,7 @@ For matrix kernels, validate shape, strides, alignment, aliasing and accumulatio
 - Use memory-mgmt for allocator, virtual-memory and DMA detail.
 - Use low-level-toolkit for assembly and target ABI inspection.
 - Use c99-systems when strict C99 is a hard requirement.
+
+## Optional references
+
+- [c-systems-recipes.md](references/c-systems-recipes.md)

@@ -50,3 +50,7 @@ Load references/implementation-checklist.md only for higher-risk, multi-module o
 ## Output
 
 Report changed scope, contract, tests/commands actually run, results, known limitations and remaining risks. Do not create issues or tasks from findings until the user acknowledges the proposed list and authorises the destination.
+
+## Optional references
+
+- [quality-recipes.md](references/quality-recipes.md)

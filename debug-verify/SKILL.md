@@ -168,3 +168,7 @@ Append to `.opencode/analysis.md`:
 - Does not skip levels based on "confidence"
 - `stop debug-verify`: revert.
 - If UNVALIDATED remains → mark explicitly, do not ship.
+
+## Optional references
+
+- [verification-protocol.md](references/verification-protocol.md)

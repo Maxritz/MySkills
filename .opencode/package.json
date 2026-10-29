@@ -1,0 +1,8 @@
+{
+  "name": "myskills-opencode-runtime",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@opencode-ai/plugin": "1.19.5"
+  }
+}

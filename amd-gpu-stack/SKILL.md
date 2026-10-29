@@ -2,11 +2,6 @@
 name: amd-gpu-stack
 description: "AMD GPU compute stack: HIP/ROCm, HSA/ROCr, CDNA and RDNA hardware, queue and memory behaviour, correctness, profiling and tuning."
 compatibility: opencode
-metadata:
-  auto_unload: true
-  loading: on-demand
-  auto_trigger: false
-  trigger_keywords: ["AMD GPU", "ROCm", "HIP", "HSA", "ROCr", "CDNA", "RDNA", "gfx1201", "gfx1100", "MI300", "RX 9070 XT", "rocBLAS", "RCCL", "rocprof", "rocminfo"]
 ---
 
 # AMD GPU Stack
@@ -103,3 +98,7 @@ HIPIFY is a source translation aid, not a semantic proof. For each ported operat
 - Use vulkan-compute-stack for Vulkan API/runtime queue and synchronisation issues.
 - Use graphics-shader-kernels or shader-opt for shader semantics and tuning.
 - Use llm-core, gguf-ggml or model-formats for model/tensor-format contracts.
+
+## Optional references
+
+- [stack-recipes.md](references/stack-recipes.md)

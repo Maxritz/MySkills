@@ -164,3 +164,11 @@ BLOCKERS: <circular dep|missing interface|budget breach>
 - Does not write kernel code (see `linux-kernel-dev`)
 - Does not manage C/C++ ownership (see `c-systems`)
 - `stop sys-arch`: revert.
+
+## Optional references
+
+- [architecture-recipes.md](references/architecture-recipes.md)
+
+## Optional reference
+
+See [architecture-recipes.md](references/architecture-recipes.md) for worked architecture patterns.
