@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["component", "module", "architecture", "boundary", "backend", "service", "porting", "adapter", "interface", "dependency direction", "replacement seam"]
 ---
 
@@ -287,6 +287,13 @@ BLOCKERS: <circular dep|missing interface|untested adapter>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Verify dependency direction, ownership, interface errors, timeout/cancellation, and failure/rollback behaviour against the actual call graph. Diagrams and directory structure alone do not prove that runtime wiring respects the boundary.
+
 
 ## Boundaries
 

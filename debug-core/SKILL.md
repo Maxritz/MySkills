@@ -98,6 +98,13 @@ See `knowledge-process` → Context Tracker for session memory and unload loggin
 
 `repro | facts | boundary | hypotheses | next test | result | fix | validation | unknowns`
 
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Keep a coverage ledger of observations, hypotheses, experiments and results. Choose the cheapest experiment that separates live hypotheses; do not escalate through every diagnostic method by rote or close the issue without retesting the original failure.
+
+
 ## Boundaries
 
 - Does not apply fixes; hands off to debug-fix and uses debug-verify for executed verification

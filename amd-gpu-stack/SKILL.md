@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["AMD GPU", "ROCm", "HIP", "HSA", "ROCr", "CDNA", "RDNA", "MI200", "MI300", "RX 6000", "RX 7000", "rocBLAS", "RCCL", "rocprof", "rocminfo"]
 ---
 
@@ -290,6 +290,13 @@ BLOCKERS: <unsupported combos, missing primitives>
 ```
 
 ---
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Record device architecture, driver/runtime/compiler versions and required features. Trace submission, queue selection, synchronisation and transfers to measured device work; distinguish host launch cost from execution and prove correctness on the named target.
+
 
 ## Boundaries
 

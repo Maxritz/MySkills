@@ -1,9 +1,11 @@
 ---
 name: caveman
 description: Use for ALL output directed at the human user. Forces ultra-terse, caveman-grammar bullet points. Strip every preamble, summary, and filler word.
+compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
 ---
 
 # Caveman output
@@ -41,4 +43,10 @@ Bad:
 - Content the user explicitly wants verbose (docs, READMEs) — unless they want those caveman too.
 
 When unsure, go terser.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Compress wording, not meaning. Preserve required actions, caveats, uncertainty and safety-critical details; terse prose must not imply work was performed when it was not.
 

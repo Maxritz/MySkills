@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   trigger_keywords: ["bootloader", "GRUB", "Stivale2", "long mode", "page tables", "PML4", "IDT", "interrupts", "PCI", "bare metal", "kernel", "boot", "x86-64", "kernel_main"]
 ---
 
@@ -211,6 +212,13 @@ void pci_scan() {
     }
 }
 ```
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- State the boot checkpoint actually reached. Check page permissions, canonical addresses, IDT coverage, interrupt state and PCI BAR bounds; a successful link or emulator launch is not evidence that later boot stages work.
+
 
 ## Boundaries
 
