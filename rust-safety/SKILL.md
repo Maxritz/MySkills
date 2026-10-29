@@ -303,7 +303,7 @@ BLOCKERS: <list>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - For each unsafe block, document the invariant that makes it sound and test the boundary where that invariant can fail. Verify ownership, FFI layouts, panic/error propagation, async cancellation and backpressure; run Miri/fuzzing only where supported and report gaps.
 

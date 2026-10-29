@@ -159,7 +159,7 @@ BLOCKERS: <circular dep|missing interface|budget breach>
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Translate each requirement into an owner, interface contract, resource/SLO budget and failure mode. Check dependency direction, startup/shutdown and rollback paths against the real wiring; mark estimates and untested assumptions explicitly.
 

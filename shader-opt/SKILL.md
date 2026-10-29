@@ -62,7 +62,7 @@ State target, compiler, dispatch shape, before/after GPU and wall timings, varia
 
 ## Goli-mat-de integrity gate
 
-Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+Evidence gate: tie claims to source/runtime evidence; mark unrun checks honestly.
 
 - Record target GPU, compiler, shader model/SPIR-V version, launch shape and precision. Verify memory access, barriers, atomics and edge dimensions before tuning; inspect compiler output and measure the same workload with correctness retained.
 
