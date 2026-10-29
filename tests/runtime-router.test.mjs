@@ -29,7 +29,22 @@ test("fixed evaluation prompts route to every required specialist within the con
     assert.ok(entry.required_verdict, `${entry.id}: missing verdict rubric`);
 
     const bytes = route.skills.reduce((sum, skill) => sum + Buffer.byteLength(readCore(skill), "utf8"), 0);
-    results.push({ id: entry.id, selected: route.skills, coreBytes: bytes, estimatedTokens: estimateTokensFromBytes(bytes) });
+    const required = new Set(entry.required_skills);
+    const selected = new Set(route.skills);
+    const matched = [...required].filter((skill) => selected.has(skill)).length;
+    const missing = [...required].filter((skill) => !selected.has(skill));
+    const additional = [...selected].filter((skill) => !required.has(skill));
+    results.push({
+      id: entry.id,
+      requiredSkills: [...required],
+      selected: route.skills,
+      missingSkills: missing,
+      additionalSkills: additional,
+      rubricPrecision: selected.size ? matched / selected.size : 0,
+      requiredSkillRecall: required.size ? matched / required.size : 1,
+      coreBytes: bytes,
+      estimatedTokens: estimateTokensFromBytes(bytes),
+    });
   }
   console.log("ROUTING_MATRIX " + JSON.stringify(results));
 });
