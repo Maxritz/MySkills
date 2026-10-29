@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["reduce reproducer", "minimise test case", "minimize test case", "shrink failing input", "delta debugging"]
 ---
@@ -34,3 +35,10 @@ Preserve a copy of the original input. Do not reduce away the condition under in
 - Reduction steps retained/rejected.
 - Reproduction rate and signature comparison.
 - Known limitations.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Define the failure predicate before reduction and preserve the environment, revision and failure class. Re-run the final reduced case several times when nondeterminism is possible, and record any changed assumptions.
+

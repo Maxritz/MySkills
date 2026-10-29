@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["minimum distinguishing experiment", "MDE", "cheapest experiment", "falsify hypothesis"]
 ---
@@ -34,6 +35,13 @@ Prefer an experiment that is safe and reversible, low-cost, deterministic, minim
 - Shrink one input dimension while preserving the failure.
 - Repeat controlled runs to test nondeterminism.
 - Compare a feature-enabled path with a supported baseline fallback.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Choose the experiment with the best expected separation per unit cost. Write the prediction before running it, change one variable when possible, and retain a control. Stop when the result distinguishes the competing causes.
+
 
 ## Boundaries
 

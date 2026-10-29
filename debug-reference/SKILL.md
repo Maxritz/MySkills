@@ -5,6 +5,7 @@ compatibility: opencode
 metadata:
   loading: on-demand
   auto_unload: true
+  auto_trigger: false
   role: debugging
   trigger_keywords: ["differential test", "golden reference", "reference comparison", "oracle", "expected output"]
 ---
@@ -37,6 +38,13 @@ Use the lowest sufficient level.
 ## Output
 
 State the reference, what was compared, tolerance, first divergence, raw evidence, and remaining uncertainty.
+
+## Goli-mat-de integrity gate
+
+Apply Goli-mat-de's evidence rule: tie claims to the actual execution path and observed checks; report unrun or blocked work honestly.
+
+- Pin the reference source and version. Compare contract-relevant outputs, not incidental formatting; normalise only known nondeterminism and distinguish specification violations from differences between implementations.
+
 
 ## Boundaries
 
