@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["C99", "C++", "RAII", "ABI", "ownership", "lifetime", "allocator", "concurrency", "template", "systems code", "portable C", "performance contract"]
 ---
 

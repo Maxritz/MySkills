@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["caveman", "ponytail", "terse", "lazy", "YAGNI", "stdlib", "minimal", "shortest path", "output style"]
 ---
 

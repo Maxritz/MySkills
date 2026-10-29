@@ -117,6 +117,25 @@ jobs:
           if duplicates:
               failures.append(f"Skills appear in auto_trigger and conditional_load: {sorted(duplicates)}")
 
+          expected_auto = {"debug-core", "code-quality-gate", "knowledge-process"}
+          if auto != expected_auto:
+              failures.append(
+                  "Auto-trigger set changed unexpectedly; expected="
+                  + str(sorted(expected_auto))
+                  + "; actual="
+                  + str(sorted(auto))
+              )
+          for dirname, path in sorted(skills.items()):
+              skill_text = path.read_text(encoding="utf-8")
+              declared_auto = re.search(r"(?m)^  auto_trigger:\s*(true|false)\s*$", skill_text)
+              if declared_auto:
+                  declared = declared_auto.group(1) == "true"
+                  if declared != (dirname in auto):
+                      failures.append(
+                          f"{path}: metadata auto_trigger={str(declared).lower()} "
+                          "does not match opencode.jsonc registration"
+                      )
+
           registered = auto | conditional
           for missing in sorted(registered - set(skills)):
               failures.append(f"Loader configuration references missing skill directory: {missing}")

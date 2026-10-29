@@ -57,3 +57,8 @@ Before merging this work, the current branch must pass repository CI. Passing st
 - Windows IOCP guidance: explicitly covers overlapped-I/O lifetime, immediate completion versus pending completion, and completion errors. Removed an unrelated Kubernetes chaos tool from generic Windows validation.
 
 These are source reviews and edits. They have not yet been claimed as compiled or executed; CI and platform-specific checks must supply that evidence.
+
+## Context and trigger-budget consistency
+
+- Normalised per-skill `auto_trigger` metadata to match the actual loader policy. Only `debug-core`, `code-quality-gate` and `knowledge-process` are automatic; the specialist skills remain conditional/on-demand. CI now rejects drift between a declared metadata flag and the loader set, and requires an explicit workflow update if the automatic set changes.
+- Split `vulkan-compute-stack` into a 160-line decision guide and optional API-pattern reference, preserving the code detail without requiring the full boilerplate in every Vulkan context. This is a token/context-load reduction, not a claim that the snippets were compiled on a GPU.

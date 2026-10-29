@@ -5,7 +5,7 @@ compatibility: opencode
 metadata:
   auto_unload: true
   loading: on-demand
-  auto_trigger: true
+  auto_trigger: false
   trigger_keywords: ["AMD GPU", "ROCm", "HIP", "HSA", "ROCr", "CDNA", "RDNA", "MI200", "MI300", "RX 6000", "RX 7000", "rocBLAS", "RCCL", "rocprof", "rocminfo"]
 ---
 
