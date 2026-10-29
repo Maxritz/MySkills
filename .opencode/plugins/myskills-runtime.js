@@ -42,7 +42,7 @@ export function resolveSkillCorePath(root, skill) {
 
 export function stripSkillFrontMatter(raw) {
   const source = String(raw);
-  const match = source.match(/^(?:\\uFEFF)?---[ \\t]*\\r?\\n[\\s\\S]*?\\r?\\n---[ \\t]*(?:\\r?\\n|$)/);
+  const match = source.match(/^(?:\uFEFF)?---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/);
   return match ? source.slice(match[0].length) : source;
 }
 
