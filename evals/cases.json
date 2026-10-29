@@ -15,16 +15,13 @@
         "Input rows are ignored",
         "Function returns a constant inconsistent with stated contract"
       ],
-      "expected_tests": [
-        "Inspect callers and the contract",
-        "Add a test with count > 0 and assert stored rows and return value"
-      ],
-      "required_verdict": "evidence-backed finding; verify intentional no-op/fallback possibility"
+      "required_verdict": "evidence-backed finding; verify intentional no-op/fallback possibility",
+      "required_tests": []
     },
     {
       "id": "injected-parser-defect",
       "category": "parser",
-      "task": "Debug the reproducible parser crash on a two-field row. Inspect code, reproduce if possible, identify the first invalid operation, and propose the smallest distinguishing test before fixing.",
+      "task": "Debug the Python parser crash on a two-field row. Inspect code, reproduce if possible, identify the first invalid operation, and propose the smallest distinguishing test before fixing.",
       "required_skills": [
         "debug-core",
         "python-engineering"
@@ -34,11 +31,8 @@
         "IndexError on fields[2] for two-field input",
         "Missing field-count contract/validation before indexing"
       ],
-      "expected_tests": [
-        "Run the supplied input",
-        "Test zero-, one-, two- and three-field rows"
-      ],
-      "required_verdict": "confirmed only after the failing input reproduces or equivalent execution evidence exists"
+      "required_verdict": "confirmed only after the failing input reproduces or equivalent execution evidence exists",
+      "required_tests": []
     },
     {
       "id": "concurrency-bug",
@@ -53,11 +47,8 @@
         "Both threads perform unsynchronised non-atomic writes to the same counter",
         "In C++, the data race makes behaviour undefined"
       ],
-      "expected_tests": [
-        "Use ThreadSanitizer where supported",
-        "Compare a mutex/atomic variant under the same workload"
-      ],
-      "required_verdict": "causal claim grounded in conflicting access and missing synchronisation"
+      "required_verdict": "causal claim grounded in conflicting access and missing synchronisation",
+      "required_tests": []
     },
     {
       "id": "vulkan-synchronisation",
@@ -72,11 +63,8 @@
         "No explicit compute-write to transfer-read memory dependency is shown between dispatch and copy",
         "Verify whether queue submission or other barriers already provide the required dependency before confirming"
       ],
-      "expected_tests": [
-        "Inspect complete command buffer and submission/queue flow",
-        "Add a COMPUTE_SHADER/SHADER_WRITE to TRANSFER/TRANSFER_READ dependency when required, then compare readback"
-      ],
-      "required_verdict": "UNRESOLVED until the complete synchronisation path is inspected"
+      "required_verdict": "UNRESOLVED until the complete synchronisation path is inspected",
+      "required_tests": []
     },
     {
       "id": "quantisation-mismatch",
@@ -91,16 +79,13 @@
         "Missing centring offset changes every decoded value",
         "Use the reference formula for this fixture; do not generalise without checking the actual format spec"
       ],
-      "expected_tests": [
-        "Compare every decoded nibble against reference vectors",
-        "Include minimum/maximum code, block boundaries and tail cases"
-      ],
-      "required_verdict": "confirmed for the supplied fixture only; verify target format before transferring conclusion"
+      "required_verdict": "confirmed for the supplied fixture only; verify target format before transferring conclusion",
+      "required_tests": []
     },
     {
       "id": "performance-regression",
       "category": "performance",
-      "task": "Investigate a reported 12% throughput regression. The only evidence is one baseline run at 100 ms and one changed run at 112 ms. Determine whether a regression is established and design the next measurement.",
+      "task": "Profile a kernel performance regression and benchmark throughput. The only evidence is one baseline run at 100 ms and one changed run at 112 ms. Determine whether a regression is established and design the next measurement.",
       "required_skills": [
         "debug-core",
         "sherlock-it",
@@ -111,11 +96,8 @@
         "One sample per version is insufficient to distinguish a genuine regression from noise, environment or workload drift",
         "Use paired repeated runs on the same workload, report median and spread, inspect counters/profiles"
       ],
-      "required_tests": [
-        "Repeated comparable baseline/candidate measurements",
-        "Correctness equivalence and profiler/counter check if slowdown persists"
-      ],
-      "required_verdict": "NO DEFECT ESTABLISHED from the supplied measurements alone"
+      "required_verdict": "NO DEFECT ESTABLISHED from the supplied measurements alone",
+      "required_tests": []
     },
     {
       "id": "deployment-failure",
@@ -130,11 +112,8 @@
         "Health check probes /health while the service exposes /ready",
         "The supplied evidence supports an endpoint mismatch; verify the deployed image/config is the same revision"
       ],
-      "required_tests": [
-        "Inspect rendered deployment config and effective container health check",
-        "Probe the configured endpoint and the documented readiness endpoint in the deployed container"
-      ],
-      "required_verdict": "supported/confirmed only to the extent that evidence ties the active deployment to the shown configuration"
+      "required_verdict": "supported/confirmed only to the extent that evidence ties the active deployment to the shown configuration",
+      "required_tests": []
     },
     {
       "id": "negative-no-defect-established",
@@ -148,15 +127,13 @@
         "No defect is established by these facts",
         "Ask for an unmet requirement, failing reproduction or comparable performance baseline instead of inventing a root cause"
       ],
-      "expected_tests": [
-        "Request the actual violated contract or capture comparable repeat measurements if performance is the complaint"
-      ],
-      "required_verdict": "NO DEFECT ESTABLISHED"
+      "required_verdict": "NO DEFECT ESTABLISHED",
+      "required_tests": []
     },
     {
       "id": "negative-confounded-performance",
       "category": "negative-control",
-      "task": "Assess this claim: version B is 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. Do not assign a code root cause without discriminating evidence.",
+      "task": "Run ponytail-diag on this claim: version B appears 5% slower than version A, but versions ran on different machines with different workloads and each was measured once. No defect is established by this evidence alone. Do not assign a code root cause without a discriminating test.",
       "required_skills": [
         "ponytail-diag",
         "sherlock-it"
@@ -166,10 +143,8 @@
         "Results are confounded and do not establish a code regression",
         "No root cause can be assigned; control host, workload, warm-up and logging, then repeat"
       ],
-      "expected_tests": [
-        "Paired or otherwise comparable repeated benchmark with same workload and environment"
-      ],
-      "required_verdict": "UNRESOLVED / NO DEFECT ESTABLISHED"
+      "required_verdict": "UNRESOLVED / NO DEFECT ESTABLISHED",
+      "required_tests": []
     }
   ]
 }
